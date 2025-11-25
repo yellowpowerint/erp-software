@@ -44,6 +44,8 @@ interface ProjectProgress {
   totalProduction: number;
   fieldReports: number;
   criticalReports: number;
+  milestones: number;
+  tasks: number;
 }
 
 function OperationsReportsContent() {
