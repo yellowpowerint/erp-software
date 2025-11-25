@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  CEO
+  CFO
+  DEPARTMENT_HEAD
+  ACCOUNTANT
+  PROCUREMENT_OFFICER
+  OPERATIONS_MANAGER
+  IT_MANAGER
+  HR_MANAGER
+  SAFETY_OFFICER
+  WAREHOUSE_MANAGER
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id        String      @id @default(uuid())
+  email     String      @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  role      UserRole    @default(EMPLOYEE)
+  status    UserStatus  @default(ACTIVE)
+  department String?
+  position   String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  lastLogin DateTime?
+
+  @@map("users")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  module      String
+  action      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  role         UserRole
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  @@unique([role, permissionId])
+  @@map("role_permissions")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  module    String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
