@@ -432,6 +432,8 @@ model StockItem {
   currentQuantity Int           @default(0)
   barcode         String?
   supplier        String?
+  expiryDate      DateTime?
+  lastRestockDate DateTime?
   notes           String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -441,6 +443,7 @@ model StockItem {
   @@index([category])
   @@index([warehouseId])
   @@index([currentQuantity])
+  @@index([expiryDate])
   @@map("stock_items")
 }
 
