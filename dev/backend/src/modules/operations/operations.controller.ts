@@ -127,4 +127,43 @@ export class OperationsController {
   getOperationsStats() {
     return this.operationsService.getOperationsStats();
   }
+
+  // Reports
+  @Get('reports/production')
+  getProductionReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.operationsService.getProductionReport(
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+    );
+  }
+
+  @Get('reports/equipment-utilization')
+  getEquipmentUtilizationReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.operationsService.getEquipmentUtilizationReport(
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+    );
+  }
+
+  @Get('reports/shift-performance')
+  getShiftPerformanceReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.operationsService.getShiftPerformanceReport(
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+    );
+  }
+
+  @Get('reports/project-progress')
+  getProjectProgressReport() {
+    return this.operationsService.getProjectProgressReport();
+  }
 }
