@@ -11,6 +11,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { OperationsModule } from './modules/operations/operations.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     InventoryModule,
     AssetsModule,
     ProjectsModule,
+    OperationsModule,
   ],
   controllers: [AppController],
   providers: [
