@@ -293,3 +293,73 @@ model UserAssignment {
   @@index([itemId])
   @@map("user_assignments")
 }
+
+// Workflow System
+model ApprovalWorkflow {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        ApprovalType
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stages      ApprovalStage[]
+  instances   WorkflowInstance[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("approval_workflows")
+}
+
+model ApprovalStage {
+  id          String   @id @default(uuid())
+  workflowId  String
+  workflow    ApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  stageOrder  Int
+  stageName   String
+  approverRoles String[]
+  requiresAll Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  stageActions StageAction[]
+
+  @@unique([workflowId, stageOrder])
+  @@index([workflowId])
+  @@map("approval_stages")
+}
+
+model WorkflowInstance {
+  id          String   @id @default(uuid())
+  workflowId  String
+  workflow    ApprovalWorkflow @relation(fields: [workflowId], references: [id])
+  itemType    String
+  itemId      String
+  currentStage Int     @default(1)
+  status      ApprovalStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stageActions StageAction[]
+
+  @@unique([itemType, itemId])
+  @@index([workflowId])
+  @@index([itemId])
+  @@map("workflow_instances")
+}
+
+model StageAction {
+  id          String   @id @default(uuid())
+  instanceId  String
+  instance    WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stageId     String
+  stage       ApprovalStage @relation(fields: [stageId], references: [id])
+  approverId  String
+  action      ApprovalStatus
+  comments    String?
+  createdAt   DateTime @default(now())
+
+  @@index([instanceId])
+  @@index([stageId])
+  @@map("stage_actions")
+}
