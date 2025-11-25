@@ -12,6 +12,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { OperationsModule } from './modules/operations/operations.module';
+import { FinanceModule } from './modules/finance/finance.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -28,6 +29,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     AssetsModule,
     ProjectsModule,
     OperationsModule,
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [

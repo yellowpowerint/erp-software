@@ -91,6 +91,10 @@ model User {
   approvalActions       ApprovalHistory[] @relation("ApprovalActor")
   notifications         Notification[]    @relation("UserNotifications")
   assignedApprovals     UserAssignment[]  @relation("AssignedUser")
+  approvedPayments      FinancePayment[]
+  submittedExpenses     Expense[]         @relation("ExpenseSubmitter")
+  approvedExpenses      Expense[]         @relation("ExpenseApprover")
+  createdBudgets        Budget[]
 
   @@map("users")
 }
@@ -593,6 +597,9 @@ model Project {
   tasks           Task[]
   productionLogs  ProductionLog[]
   fieldReports    FieldReport[]
+  payments        FinancePayment[]
+  expenses        Expense[]
+  budgets         Budget[]
 
   @@index([status])
   @@index([priority])
@@ -718,4 +725,154 @@ model FieldReport {
   @@index([projectId])
   @@index([reportDate])
   @@map("field_reports")
+}
+
+// Finance & Procurement Models
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CHEQUE
+  CASH
+  MOBILE_MONEY
+  CREDIT_CARD
+  WIRE_TRANSFER
+}
+
+enum ExpenseCategory {
+  OPERATIONS
+  MAINTENANCE
+  SALARIES
+  SUPPLIES
+  UTILITIES
+  FUEL
+  EQUIPMENT
+  TRAVEL
+  PROFESSIONAL_SERVICES
+  TRAINING
+  INSURANCE
+  OTHER
+}
+
+enum BudgetPeriod {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model FinancePayment {
+  id              String        @id @default(uuid())
+  paymentNumber   String        @unique
+  supplierId      String?
+  supplier        Supplier?     @relation(fields: [supplierId], references: [id])
+  projectId       String?
+  project         Project?      @relation(fields: [projectId], references: [id])
+  amount          Float
+  currency        String        @default("GHS")
+  paymentMethod   PaymentMethod
+  paymentDate     DateTime
+  status          PaymentStatus @default(PENDING)
+  reference       String?
+  description     String
+  category        String?
+  approvedById    String?
+  approvedBy      User?         @relation(fields: [approvedById], references: [id])
+  notes           String?
+  attachments     String[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([paymentNumber])
+  @@index([supplierId])
+  @@index([projectId])
+  @@index([status])
+  @@index([paymentDate])
+  @@map("finance_payments")
+}
+
+model Expense {
+  id              String          @id @default(uuid())
+  expenseNumber   String          @unique
+  category        ExpenseCategory
+  projectId       String?
+  project         Project?        @relation(fields: [projectId], references: [id])
+  description     String
+  amount          Float
+  currency        String          @default("GHS")
+  expenseDate     DateTime
+  submittedById   String
+  submittedBy     User            @relation("ExpenseSubmitter", fields: [submittedById], references: [id])
+  approvedById    String?
+  approvedBy      User?           @relation("ExpenseApprover", fields: [approvedById], references: [id])
+  status          ApprovalStatus  @default(PENDING)
+  receipt         String?
+  notes           String?
+  attachments     String[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([expenseNumber])
+  @@index([category])
+  @@index([projectId])
+  @@index([status])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+model Budget {
+  id              String       @id @default(uuid())
+  name            String
+  description     String?
+  category        ExpenseCategory
+  projectId       String?
+  project         Project?     @relation(fields: [projectId], references: [id])
+  period          BudgetPeriod
+  startDate       DateTime
+  endDate         DateTime
+  allocatedAmount Float
+  spentAmount     Float        @default(0)
+  currency        String       @default("GHS")
+  createdById     String
+  createdBy       User         @relation(fields: [createdById], references: [id])
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([category])
+  @@index([projectId])
+  @@index([period])
+  @@index([startDate])
+  @@map("budgets")
+}
+
+model Supplier {
+  id              String           @id @default(uuid())
+  supplierCode    String           @unique
+  name            String
+  contactPerson   String?
+  email           String?
+  phone           String?
+  address         String?
+  city            String?
+  country         String           @default("Ghana")
+  taxId           String?
+  bankAccount     String?
+  paymentTerms    String?
+  category        String?
+  rating          Int?
+  isActive        Boolean          @default(true)
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  payments        FinancePayment[]
+
+  @@index([supplierCode])
+  @@index([isActive])
+  @@map("suppliers")
 }
