@@ -467,3 +467,80 @@ model StockMovement {
   @@index([createdAt])
   @@map("stock_movements")
 }
+
+// Asset Management System
+enum AssetCategory {
+  HEAVY_EQUIPMENT
+  VEHICLES
+  MACHINERY
+  TOOLS
+  COMPUTERS
+  FURNITURE
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+  RETIRED
+  DAMAGED
+}
+
+enum AssetCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  CRITICAL
+}
+
+model Asset {
+  id                String         @id @default(uuid())
+  assetCode         String         @unique
+  name              String
+  description       String?
+  category          AssetCategory
+  manufacturer      String?
+  model             String?
+  serialNumber      String?
+  purchaseDate      DateTime
+  purchasePrice     Float
+  currentValue      Float?
+  depreciationRate  Float?
+  location          String?
+  status            AssetStatus    @default(ACTIVE)
+  condition         AssetCondition @default(GOOD)
+  assignedTo        String?
+  notes             String?
+  warrantyExpiry    DateTime?
+  lastMaintenanceAt DateTime?
+  nextMaintenanceAt DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  maintenanceLogs   MaintenanceLog[]
+
+  @@index([category])
+  @@index([status])
+  @@index([condition])
+  @@map("assets")
+}
+
+model MaintenanceLog {
+  id              String   @id @default(uuid())
+  assetId         String
+  asset           Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  maintenanceType String
+  description     String
+  performedBy     String?
+  performedAt     DateTime
+  cost            Float?
+  nextDueDate     DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@index([assetId])
+  @@index([performedAt])
+  @@map("maintenance_logs")
+}
