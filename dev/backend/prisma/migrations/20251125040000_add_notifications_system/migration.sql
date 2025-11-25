@@ -1,3 +1,6 @@
+-- Migration to add notification system, IT requests, and payment requests
+-- All operations are idempotent and safe to re-run
+
 -- CreateEnum (only if not exists)
 DO $$ BEGIN
   CREATE TYPE "NotificationType" AS ENUM ('APPROVAL_REQUEST', 'APPROVAL_APPROVED', 'APPROVAL_REJECTED', 'SYSTEM_ALERT', 'MENTION');
