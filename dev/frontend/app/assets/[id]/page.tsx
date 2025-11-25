@@ -51,7 +51,7 @@ function AssetDetailContent() {
   const [maintenanceData, setMaintenanceData] = useState({
     maintenanceType: '',
     description: '',
-    performedBy: user?.name || '',
+    performedBy: user ? `${user.firstName} ${user.lastName}` : '',
     performedAt: new Date().toISOString().split('T')[0],
     cost: '',
     nextDueDate: '',
@@ -100,7 +100,7 @@ function AssetDetailContent() {
       setMaintenanceData({
         maintenanceType: '',
         description: '',
-        performedBy: user?.name || '',
+        performedBy: user ? `${user.firstName} ${user.lastName}` : '',
         performedAt: new Date().toISOString().split('T')[0],
         cost: '',
         nextDueDate: '',
