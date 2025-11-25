@@ -1,9 +1,10 @@
 'use client';
 
-import { Menu, Bell, User, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Menu, User, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -51,10 +52,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
         {/* Right: Notifications & User Menu */}
         <div className="flex items-center space-x-4">
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <Bell className="w-6 h-6 text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          <NotificationBell />
 
           {/* User Menu */}
           <div className="relative" ref={dropdownRef}>
