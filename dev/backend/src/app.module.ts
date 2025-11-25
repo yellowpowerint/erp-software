@@ -10,6 +10,7 @@ import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { AssetsModule } from './modules/assets/assets.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     NotificationsModule,
     InventoryModule,
     AssetsModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [

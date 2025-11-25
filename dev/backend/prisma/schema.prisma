@@ -547,3 +547,91 @@ model MaintenanceLog {
   @@index([performedAt])
   @@map("maintenance_logs")
 }
+
+// Operations & Project Management System
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+model Project {
+  id              String          @id @default(uuid())
+  projectCode     String          @unique
+  name            String
+  description     String?
+  status          ProjectStatus   @default(PLANNING)
+  priority        ProjectPriority @default(MEDIUM)
+  location        String?
+  startDate       DateTime
+  endDate         DateTime?
+  estimatedBudget Float?
+  actualCost      Float           @default(0)
+  progress        Int             @default(0)
+  managerId       String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  milestones      Milestone[]
+  tasks           Task[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([startDate])
+  @@map("projects")
+}
+
+model Milestone {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  dueDate     DateTime
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([dueDate])
+  @@map("milestones")
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      TaskStatus @default(PENDING)
+  assignedTo  String?
+  dueDate     DateTime?
+  isCompleted Boolean    @default(false)
+  completedAt DateTime?
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@index([assignedTo])
+  @@map("tasks")
+}
