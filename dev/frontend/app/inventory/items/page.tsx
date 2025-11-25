@@ -62,8 +62,8 @@ function StockItemsContent() {
     }
   };
 
-  const handleDelete = async (id: string, itemCode: string) {
-    if (!confirm(`Are you sure you want to delete item ${itemCode}?`)) return;
+  const handleDelete = async (id: string, itemCode: string) => {
+    if (!window.confirm(`Are you sure you want to delete item ${itemCode}?`)) return;
 
     try {
       await api.delete(`/inventory/items/${id}`);
