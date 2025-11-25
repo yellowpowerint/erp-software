@@ -28,6 +28,21 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalType {
+  INVOICE
+  PURCHASE_REQUEST
+  EXPENSE_CLAIM
+  LEAVE_REQUEST
+  PAYMENT
+}
+
 model User {
   id        String      @id @default(uuid())
   email     String      @unique
@@ -42,6 +57,11 @@ model User {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   lastLogin DateTime?
+
+  // Relations
+  createdInvoices       Invoice[]         @relation("InvoiceCreator")
+  createdPurchaseRequests PurchaseRequest[] @relation("PurchaseRequestCreator")
+  approvalActions       ApprovalHistory[] @relation("ApprovalActor")
 
   @@map("users")
 }
@@ -81,4 +101,78 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model Invoice {
+  id              String         @id @default(uuid())
+  invoiceNumber   String         @unique
+  supplierName    String
+  supplierEmail   String?
+  description     String
+  amount          Float
+  currency        String         @default("GHS")
+  dueDate         DateTime
+  status          ApprovalStatus @default(PENDING)
+  createdById     String
+  createdBy       User           @relation("InvoiceCreator", fields: [createdById], references: [id])
+  approvalHistory ApprovalHistory[]
+  attachmentUrl   String?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model PurchaseRequest {
+  id              String         @id @default(uuid())
+  requestNumber   String         @unique
+  title           String
+  description     String
+  category        String
+  quantity        Int
+  estimatedCost   Float
+  currency        String         @default("GHS")
+  justification   String
+  urgency         String         @default("NORMAL")
+  status          ApprovalStatus @default(PENDING)
+  createdById     String
+  createdBy       User           @relation("PurchaseRequestCreator", fields: [createdById], references: [id])
+  approvalHistory ApprovalHistory[]
+  attachmentUrl   String?
+  supplierSuggestion String?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("purchase_requests")
+}
+
+model ApprovalHistory {
+  id              String         @id @default(uuid())
+  type            ApprovalType
+  referenceId     String
+  approverLevel   Int            @default(1)
+  approverId      String
+  approver        User           @relation("ApprovalActor", fields: [approverId], references: [id])
+  action          ApprovalStatus
+  comments        String?
+  createdAt       DateTime       @default(now())
+
+  // Relations to specific types
+  invoice         Invoice?       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId       String?
+  purchaseRequest PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  purchaseRequestId String?
+
+  @@index([referenceId])
+  @@index([approverId])
+  @@index([createdAt])
+  @@map("approval_history")
 }
