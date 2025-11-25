@@ -54,7 +54,7 @@ function DashboardContent() {
           Welcome back, {user?.firstName}!
         </h1>
         <p className="text-gray-600 mt-1">
-          Here's what's happening with your operations today.
+          {`Here's what's happening with your operations today.`}
         </p>
       </div>
 
