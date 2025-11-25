@@ -7,9 +7,18 @@ CREATE TYPE "ITRequestType" AS ENUM ('EQUIPMENT', 'SOFTWARE', 'ACCESS', 'SUPPORT
 -- CreateEnum
 CREATE TYPE "PaymentType" AS ENUM ('VOUCHER', 'REIMBURSEMENT', 'ADVANCE', 'PETTY_CASH');
 
--- AlterEnum
-ALTER TYPE "ApprovalType" ADD VALUE 'IT_REQUEST';
-ALTER TYPE "ApprovalType" ADD VALUE 'PAYMENT_REQUEST';
+-- AlterEnum - Add new values to ApprovalType if they don't exist
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'IT_REQUEST' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'ApprovalType')) THEN
+    ALTER TYPE "ApprovalType" ADD VALUE 'IT_REQUEST';
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'PAYMENT_REQUEST' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'ApprovalType')) THEN
+    ALTER TYPE "ApprovalType" ADD VALUE 'PAYMENT_REQUEST';
+  END IF;
+END $$;
 
 -- CreateTable
 CREATE TABLE "it_requests" (
