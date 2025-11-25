@@ -41,6 +41,31 @@ enum ApprovalType {
   EXPENSE_CLAIM
   LEAVE_REQUEST
   PAYMENT
+  IT_REQUEST
+  PAYMENT_REQUEST
+}
+
+enum NotificationType {
+  APPROVAL_REQUEST
+  APPROVAL_APPROVED
+  APPROVAL_REJECTED
+  SYSTEM_ALERT
+  MENTION
+}
+
+enum ITRequestType {
+  EQUIPMENT
+  SOFTWARE
+  ACCESS
+  SUPPORT
+  OTHER
+}
+
+enum PaymentType {
+  VOUCHER
+  REIMBURSEMENT
+  ADVANCE
+  PETTY_CASH
 }
 
 model User {
@@ -61,7 +86,11 @@ model User {
   // Relations
   createdInvoices       Invoice[]         @relation("InvoiceCreator")
   createdPurchaseRequests PurchaseRequest[] @relation("PurchaseRequestCreator")
+  createdITRequests     ITRequest[]       @relation("ITRequestCreator")
+  createdPaymentRequests PaymentRequest[]  @relation("PaymentRequestCreator")
   approvalActions       ApprovalHistory[] @relation("ApprovalActor")
+  notifications         Notification[]    @relation("UserNotifications")
+  assignedApprovals     UserAssignment[]  @relation("AssignedUser")
 
   @@map("users")
 }
@@ -171,8 +200,96 @@ model ApprovalHistory {
   purchaseRequest PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
   purchaseRequestId String?
 
+  // Relations for new types
+  itRequest       ITRequest?     @relation(fields: [itRequestId], references: [id], onDelete: Cascade)
+  itRequestId     String?
+  paymentRequest  PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  paymentRequestId String?
+
   @@index([referenceId])
   @@index([approverId])
   @@index([createdAt])
   @@map("approval_history")
+}
+
+model ITRequest {
+  id              String         @id @default(uuid())
+  requestNumber   String         @unique
+  requestType     ITRequestType
+  title           String
+  description     String
+  priority        String         @default("NORMAL")
+  status          ApprovalStatus @default(PENDING)
+  createdById     String
+  createdBy       User           @relation("ITRequestCreator", fields: [createdById], references: [id])
+  approvalHistory ApprovalHistory[]
+  estimatedCost   Float?
+  currency        String         @default("GHS")
+  justification   String
+  attachmentUrl   String?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("it_requests")
+}
+
+model PaymentRequest {
+  id              String         @id @default(uuid())
+  requestNumber   String         @unique
+  paymentType     PaymentType
+  payeeName       String
+  payeeAccount    String?
+  description     String
+  amount          Float
+  currency        String         @default("GHS")
+  status          ApprovalStatus @default(PENDING)
+  createdById     String
+  createdBy       User           @relation("PaymentRequestCreator", fields: [createdById], references: [id])
+  approvalHistory ApprovalHistory[]
+  attachmentUrl   String?
+  notes           String?
+  dueDate         DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("payment_requests")
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  referenceId String?
+  referenceType String?
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model UserAssignment {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation("AssignedUser", fields: [userId], references: [id], onDelete: Cascade)
+  itemType    String
+  itemId      String
+  assignedAt  DateTime @default(now())
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId])
+  @@index([itemId])
+  @@map("user_assignments")
 }
