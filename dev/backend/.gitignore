@@ -39,5 +39,5 @@ lerna-debug.log*
 .env.local
 .env.test
 
-# Prisma
-prisma/migrations/
+# Prisma (keep migrations in git)
+# prisma/migrations/

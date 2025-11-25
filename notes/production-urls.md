@@ -6,7 +6,7 @@
 https://erp-swart-psi.vercel.app/
 
 **Backend (Render):**
-<your-render-url-here>
+https://mining-erp-backend.onrender.com
 
 **Database (Neon):**
 postgresql://neondb_owner:***@ep-orange-morning-ad4s2uw2-pooler.c-2.us-east-1.aws.neon.tech/neondb
@@ -31,11 +31,6 @@ JWT_EXPIRATION=7d
 
 ### **Frontend (Vercel) - Environment Variables**
 
-```bash
-NEXT_PUBLIC_API_URL=<your-render-backend-url>/api
-```
-
-Example:
 ```bash
 NEXT_PUBLIC_API_URL=https://mining-erp-backend.onrender.com/api
 ```
