@@ -131,6 +131,42 @@ export class NotificationsService {
     }
   }
 
+  // Helper: Notify approvers for IT requests
+  async notifyITRequestApprovers(requestId: string, requestNumber: string, title: string, creatorName: string) {
+    const approvers = await this.getUsersByRole(['CEO', 'CFO', 'IT_MANAGER']);
+    
+    const notifications: CreateNotificationDto[] = approvers.map((approver) => ({
+      userId: approver.id,
+      type: 'APPROVAL_REQUEST',
+      title: 'New IT Request',
+      message: `${creatorName} submitted IT request "${title}" (${requestNumber})`,
+      referenceId: requestId,
+      referenceType: 'it_request',
+    }));
+
+    if (notifications.length > 0) {
+      await this.createBulkNotifications(notifications);
+    }
+  }
+
+  // Helper: Notify approvers for payment requests
+  async notifyPaymentRequestApprovers(requestId: string, requestNumber: string, amount: number, creatorName: string) {
+    const approvers = await this.getUsersByRole(['CEO', 'CFO', 'ACCOUNTANT']);
+    
+    const notifications: CreateNotificationDto[] = approvers.map((approver) => ({
+      userId: approver.id,
+      type: 'APPROVAL_REQUEST',
+      title: 'New Payment Request',
+      message: `${creatorName} submitted payment request ${requestNumber} for ₵${amount.toLocaleString()}`,
+      referenceId: requestId,
+      referenceType: 'payment_request',
+    }));
+
+    if (notifications.length > 0) {
+      await this.createBulkNotifications(notifications);
+    }
+  }
+
   // Helper: Notify creator when approved/rejected
   async notifyCreatorOfApproval(
     creatorId: string,

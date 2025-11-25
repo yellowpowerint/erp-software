@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { FileText, ShoppingCart, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
+import { FileText, ShoppingCart, CheckCircle, XCircle, Clock, Plus, Laptop, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
@@ -46,16 +46,18 @@ function ApprovalsContent() {
 
   const canCreateInvoice = user && ['SUPER_ADMIN', 'CFO', 'ACCOUNTANT'].includes(user.role);
   const canCreatePurchaseRequest = user && ['SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'DEPARTMENT_HEAD'].includes(user.role);
+  const canCreateITRequest = user && ['SUPER_ADMIN', 'CEO', 'CFO', 'IT_MANAGER', 'DEPARTMENT_HEAD', 'OPERATIONS_MANAGER'].includes(user.role);
+  const canCreatePaymentRequest = user && ['SUPER_ADMIN', 'CEO', 'CFO', 'ACCOUNTANT', 'DEPARTMENT_HEAD'].includes(user.role);
 
   return (
     <DashboardLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Approvals & Workflows</h1>
-        <p className="text-gray-600 mt-1">Manage invoices, purchase requests, and approval workflows</p>
+        <p className="text-gray-600 mt-1">Manage invoices, purchase requests, IT requests, and payment approvals</p>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {canCreateInvoice && (
           <Link
             href="/approvals/invoices/new"
@@ -77,6 +79,30 @@ function ApprovalsContent() {
             <div>
               <p className="font-semibold">New Purchase Request</p>
               <p className="text-sm text-green-100">Submit new purchase request</p>
+            </div>
+          </Link>
+        )}
+        {canCreateITRequest && (
+          <Link
+            href="/approvals/it-requests/new"
+            className="flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+          >
+            <Plus className="w-6 h-6" />
+            <div>
+              <p className="font-semibold">New IT Request</p>
+              <p className="text-sm text-purple-100">Request IT equipment or software</p>
+            </div>
+          </Link>
+        )}
+        {canCreatePaymentRequest && (
+          <Link
+            href="/approvals/payment-requests/new"
+            className="flex items-center space-x-3 p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-all"
+          >
+            <Plus className="w-6 h-6" />
+            <div>
+              <p className="font-semibold">New Payment Request</p>
+              <p className="text-sm text-orange-100">Request payment or reimbursement</p>
             </div>
           </Link>
         )}
@@ -247,6 +273,44 @@ function ApprovalsContent() {
                     <span className="text-xl font-bold text-gray-900">{stats.purchaseRequests.rejected}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* IT Requests Card */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Laptop className="w-5 h-5 text-purple-500" />
+                  <h2 className="text-lg font-semibold text-gray-900">IT Requests</h2>
+                </div>
+                <Link
+                  href="/approvals/it-requests"
+                  className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                >
+                  View All →
+                </Link>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 text-center py-8">Equipment and software requests</p>
+              </div>
+            </div>
+
+            {/* Payment Requests Card */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="w-5 h-5 text-orange-500" />
+                  <h2 className="text-lg font-semibold text-gray-900">Payment Requests</h2>
+                </div>
+                <Link
+                  href="/approvals/payment-requests"
+                  className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                >
+                  View All →
+                </Link>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 text-center py-8">Payment vouchers and reimbursements</p>
               </div>
             </div>
           </div>
