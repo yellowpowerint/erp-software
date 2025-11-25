@@ -3,41 +3,16 @@
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { ClipboardCheck, Package, DollarSign, Users, TrendingUp, AlertCircle } from 'lucide-react';
+import QuickActions from '@/components/dashboard/QuickActions';
+import ProductionChart from '@/components/dashboard/ProductionChart';
+import ExpenseChart from '@/components/dashboard/ExpenseChart';
+import { getRoleBasedStats } from '@/lib/get-role-stats';
+import { AlertCircle } from 'lucide-react';
 
 function DashboardContent() {
   const { user } = useAuth();
 
-  const stats = [
-    {
-      name: 'Pending Approvals',
-      value: '12',
-      icon: ClipboardCheck,
-      color: 'bg-blue-500',
-      change: '+2 from yesterday',
-    },
-    {
-      name: 'Low Stock Items',
-      value: '8',
-      icon: Package,
-      color: 'bg-orange-500',
-      change: '3 critical',
-    },
-    {
-      name: 'Monthly Expenses',
-      value: '₵45,231',
-      icon: DollarSign,
-      color: 'bg-green-500',
-      change: '+12% from last month',
-    },
-    {
-      name: 'Active Employees',
-      value: '156',
-      icon: Users,
-      color: 'bg-purple-500',
-      change: '2 new this week',
-    },
-  ];
+  const stats = user ? getRoleBasedStats(user.role) : [];
 
   const recentActivities = [
     { action: 'Invoice #1234 approved', user: 'John CEO', time: '2 hours ago' },
@@ -57,6 +32,9 @@ function DashboardContent() {
           {`Here's what's happening with your operations today.`}
         </p>
       </div>
+
+      {/* Quick Actions */}
+      <QuickActions />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -79,7 +57,13 @@ function DashboardContent() {
         })}
       </div>
 
-      {/* Two Column Layout */}
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <ProductionChart />
+        <ExpenseChart />
+      </div>
+
+      {/* Three Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}
         <div className="lg:col-span-2 bg-white rounded-lg shadow">
@@ -103,7 +87,7 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Quick Actions & Alerts */}
+        {/* Alerts & Profile */}
         <div className="space-y-6">
           {/* Alerts */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -153,10 +137,10 @@ function DashboardContent() {
       </div>
 
       {/* Success Message */}
-      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-        <p className="text-sm text-green-800">
-          <strong>🎉 Session 2.1 Complete!</strong> Dashboard layout with sidebar navigation is now working.
-          Navigate using the menu on the left!
+      <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+        <p className="text-sm text-indigo-800">
+          <strong>🎉 Session 2.2 Complete!</strong> Dashboard now has role-based stats, quick actions, and analytics charts.
+          Try logging in with different user roles to see personalized dashboards!
         </p>
       </div>
     </DashboardLayout>
