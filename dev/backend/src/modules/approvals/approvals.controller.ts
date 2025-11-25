@@ -13,7 +13,7 @@ export class ApprovalsController {
 
   // Invoice endpoints
   @Post('invoices')
-  @Roles('SUPER_ADMIN', 'CFO', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'CEO', 'CFO', 'ACCOUNTANT')
   createInvoice(@CurrentUser() user: any, @Body() dto: CreateInvoiceDto) {
     return this.approvalsService.createInvoice(user.userId, dto);
   }
@@ -50,7 +50,7 @@ export class ApprovalsController {
 
   // Purchase Request endpoints
   @Post('purchase-requests')
-  @Roles('SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'DEPARTMENT_HEAD')
+  @Roles('SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'DEPARTMENT_HEAD', 'OPERATIONS_MANAGER')
   createPurchaseRequest(@CurrentUser() user: any, @Body() dto: CreatePurchaseRequestDto) {
     return this.approvalsService.createPurchaseRequest(user.userId, dto);
   }
