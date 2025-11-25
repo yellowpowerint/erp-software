@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateInvoiceDto, CreatePurchaseRequestDto, ApprovalActionDto } from './dto';
 
 @Injectable()
 export class ApprovalsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   // Invoice Methods
   async createInvoice(userId: string, dto: CreateInvoiceDto) {
@@ -12,7 +16,7 @@ export class ApprovalsService {
     const count = await this.prisma.invoice.count();
     const invoiceNumber = `INV-${String(count + 1).padStart(6, '0')}`;
 
-    return this.prisma.invoice.create({
+    const invoice = await this.prisma.invoice.create({
       data: {
         invoiceNumber,
         supplierName: dto.supplierName,
@@ -37,6 +41,17 @@ export class ApprovalsService {
         },
       },
     });
+
+    // Send notifications to approvers
+    const creatorName = `${invoice.createdBy.firstName} ${invoice.createdBy.lastName}`;
+    await this.notificationsService.notifyInvoiceApprovers(
+      invoice.id,
+      invoice.invoiceNumber,
+      invoice.amount,
+      creatorName,
+    );
+
+    return invoice;
   }
 
   async getInvoices(userId: string, userRole: string) {
@@ -125,7 +140,7 @@ export class ApprovalsService {
     const count = await this.prisma.purchaseRequest.count();
     const requestNumber = `PR-${String(count + 1).padStart(6, '0')}`;
 
-    return this.prisma.purchaseRequest.create({
+    const request = await this.prisma.purchaseRequest.create({
       data: {
         requestNumber,
         title: dto.title,
@@ -153,6 +168,17 @@ export class ApprovalsService {
         },
       },
     });
+
+    // Send notifications to approvers
+    const creatorName = `${request.createdBy.firstName} ${request.createdBy.lastName}`;
+    await this.notificationsService.notifyPurchaseRequestApprovers(
+      request.id,
+      request.requestNumber,
+      request.title,
+      creatorName,
+    );
+
+    return request;
   }
 
   async getPurchaseRequests(userId: string, userRole: string) {
@@ -260,8 +286,14 @@ export class ApprovalsService {
       },
     });
 
+    // Get approver info
+    const approver = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+
     // Update invoice status
-    return this.prisma.invoice.update({
+    const updatedInvoice = await this.prisma.invoice.update({
       where: { id: invoiceId },
       data: { status: 'APPROVED' },
       include: {
@@ -289,6 +321,17 @@ export class ApprovalsService {
         },
       },
     });
+
+    // Notify creator
+    await this.notificationsService.notifyCreatorOfApproval(
+      invoice.createdBy.id,
+      true,
+      'Invoice',
+      invoice.invoiceNumber,
+      `${approver.firstName} ${approver.lastName}`,
+    );
+
+    return updatedInvoice;
   }
 
   async rejectInvoice(invoiceId: string, userId: string, userRole: string, dto: ApprovalActionDto) {
@@ -316,8 +359,14 @@ export class ApprovalsService {
       },
     });
 
+    // Get approver info
+    const approver = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+
     // Update invoice status
-    return this.prisma.invoice.update({
+    const updatedInvoice = await this.prisma.invoice.update({
       where: { id: invoiceId },
       data: { status: 'REJECTED' },
       include: {
@@ -345,6 +394,17 @@ export class ApprovalsService {
         },
       },
     });
+
+    // Notify creator of rejection
+    await this.notificationsService.notifyCreatorOfApproval(
+      invoice.createdBy.id,
+      false,
+      'Invoice',
+      invoice.invoiceNumber,
+      `${approver.firstName} ${approver.lastName}`,
+    );
+
+    return updatedInvoice;
   }
 
   async approvePurchaseRequest(requestId: string, userId: string, userRole: string, dto: ApprovalActionDto) {
