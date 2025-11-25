@@ -70,7 +70,7 @@ function OperationsContent() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Today's Logs</p>
+                <p className="text-sm text-gray-600">Today&apos;s Logs</p>
                 <p className="text-2xl font-bold text-green-600 mt-1">{stats.todayLogs}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
@@ -108,7 +108,7 @@ function OperationsContent() {
       {/* Today's Production by Activity */}
       {stats && Object.keys(stats.productionByActivity).length > 0 && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Today's Production by Activity</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Today&apos;s Production by Activity</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(stats.productionByActivity).map(([activity, quantity]) => (
               <div key={activity} className="p-4 bg-gray-50 rounded-lg">
