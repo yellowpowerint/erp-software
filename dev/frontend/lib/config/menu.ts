@@ -308,6 +308,13 @@ export const menuItems: MenuItem[] = [
         path: '/ai/procurement-advisor',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER],
       },
+      {
+        id: 'ai-maintenance',
+        label: 'Maintenance Predictor',
+        icon: Brain,
+        path: '/ai/maintenance-predictor',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER],
+      },
     ],
   },
   {

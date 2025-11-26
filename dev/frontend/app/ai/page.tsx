@@ -177,6 +177,23 @@ function AiDashboardContent() {
                 <span>Get Recommendations</span>
               </div>
             </Link>
+
+            <Link
+              href="/ai/maintenance-predictor"
+              className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900">Maintenance Predictor</h3>
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Predictive maintenance analysis and breakdown risk assessment for heavy equipment.
+              </p>
+              <div className="flex items-center space-x-2 text-indigo-600 text-sm font-medium">
+                <Brain className="w-4 h-4" />
+                <span>View Predictions</span>
+              </div>
+            </Link>
           </div>
         </>
       )}

@@ -511,4 +511,245 @@ export class AiService {
       },
     };
   }
+
+  // ==================== Maintenance Predictor ====================
+
+  async predictMaintenanceNeeds() {
+    // Get all active assets with maintenance history
+    const assets = await this.prisma.asset.findMany({
+      where: {
+        status: {
+          in: ['ACTIVE', 'MAINTENANCE'],
+        },
+      },
+      include: {
+        maintenanceLogs: {
+          orderBy: { performedAt: 'desc' },
+          take: 10,
+        },
+      },
+    });
+
+    const predictions = assets.map((asset) => {
+      const riskScore = this.calculateBreakdownRisk(asset);
+      const riskLevel = this.getRiskLevel(riskScore);
+      const daysUntilMaintenance = this.calculateDaysUntilMaintenance(asset);
+      const recommendations = this.generateMaintenanceRecommendations(
+        asset,
+        riskScore,
+        daysUntilMaintenance,
+      );
+
+      return {
+        assetId: asset.id,
+        assetCode: asset.assetCode,
+        name: asset.name,
+        category: asset.category,
+        condition: asset.condition,
+        riskScore,
+        riskLevel,
+        daysUntilMaintenance,
+        lastMaintenanceAt: asset.lastMaintenanceAt,
+        nextMaintenanceAt: asset.nextMaintenanceAt,
+        recommendations,
+        maintenanceFrequency: this.calculateMaintenanceFrequency(
+          asset.maintenanceLogs,
+        ),
+        totalMaintenanceCost: asset.maintenanceLogs.reduce(
+          (sum, log) => sum + (log.cost || 0),
+          0,
+        ),
+        maintenanceCount: asset.maintenanceLogs.length,
+        urgency: riskScore > 70 ? 'CRITICAL' : riskScore > 50 ? 'HIGH' : riskScore > 30 ? 'MEDIUM' : 'LOW',
+      };
+    });
+
+    // Sort by risk score descending
+    predictions.sort((a, b) => b.riskScore - a.riskScore);
+
+    const summary = this.generateMaintenanceSummary(predictions);
+
+    return {
+      predictions,
+      summary,
+      statistics: {
+        totalAssets: assets.length,
+        criticalRisk: predictions.filter((p) => p.riskLevel === 'CRITICAL')
+          .length,
+        highRisk: predictions.filter((p) => p.riskLevel === 'HIGH').length,
+        mediumRisk: predictions.filter((p) => p.riskLevel === 'MEDIUM').length,
+        lowRisk: predictions.filter((p) => p.riskLevel === 'LOW').length,
+        overdueMaintenances: predictions.filter(
+          (p) => p.daysUntilMaintenance < 0,
+        ).length,
+      },
+    };
+  }
+
+  private calculateBreakdownRisk(asset: any): number {
+    let riskScore = 0;
+
+    // Factor 1: Days since last maintenance (40% weight)
+    const daysSinceLastMaintenance = asset.lastMaintenanceAt
+      ? Math.floor(
+          (Date.now() - new Date(asset.lastMaintenanceAt).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : 9999;
+
+    if (daysSinceLastMaintenance > 180) riskScore += 40;
+    else if (daysSinceLastMaintenance > 90) riskScore += 30;
+    else if (daysSinceLastMaintenance > 60) riskScore += 20;
+    else if (daysSinceLastMaintenance > 30) riskScore += 10;
+
+    // Factor 2: Asset age (20% weight)
+    const ageInYears =
+      (Date.now() - new Date(asset.purchaseDate).getTime()) /
+      (1000 * 60 * 60 * 24 * 365);
+
+    if (ageInYears > 10) riskScore += 20;
+    else if (ageInYears > 7) riskScore += 15;
+    else if (ageInYears > 5) riskScore += 10;
+    else if (ageInYears > 3) riskScore += 5;
+
+    // Factor 3: Asset condition (25% weight)
+    const conditionScores: Record<string, number> = {
+      EXCELLENT: 0,
+      GOOD: 5,
+      FAIR: 15,
+      POOR: 20,
+      CRITICAL: 25,
+    };
+    riskScore += conditionScores[asset.condition] || 0;
+
+    // Factor 4: Overdue maintenance (15% weight)
+    if (asset.nextMaintenanceAt) {
+      const daysOverdue = Math.floor(
+        (Date.now() - new Date(asset.nextMaintenanceAt).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+      if (daysOverdue > 30) riskScore += 15;
+      else if (daysOverdue > 14) riskScore += 10;
+      else if (daysOverdue > 7) riskScore += 5;
+    }
+
+    return Math.min(riskScore, 100);
+  }
+
+  private getRiskLevel(riskScore: number): string {
+    if (riskScore >= 70) return 'CRITICAL';
+    if (riskScore >= 50) return 'HIGH';
+    if (riskScore >= 30) return 'MEDIUM';
+    return 'LOW';
+  }
+
+  private calculateDaysUntilMaintenance(asset: any): number {
+    if (!asset.nextMaintenanceAt) return 9999;
+
+    return Math.floor(
+      (new Date(asset.nextMaintenanceAt).getTime() - Date.now()) /
+        (1000 * 60 * 60 * 24),
+    );
+  }
+
+  private calculateMaintenanceFrequency(logs: any[]): number {
+    if (logs.length < 2) return 0;
+
+    const sortedLogs = logs.sort(
+      (a, b) =>
+        new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime(),
+    );
+
+    let totalDays = 0;
+    for (let i = 0; i < sortedLogs.length - 1; i++) {
+      const days = Math.floor(
+        (new Date(sortedLogs[i].performedAt).getTime() -
+          new Date(sortedLogs[i + 1].performedAt).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+      totalDays += days;
+    }
+
+    return Math.floor(totalDays / (sortedLogs.length - 1));
+  }
+
+  private generateMaintenanceRecommendations(
+    asset: any,
+    riskScore: number,
+    daysUntilMaintenance: number,
+  ): string[] {
+    const recommendations: string[] = [];
+
+    if (riskScore >= 70) {
+      recommendations.push(
+        'URGENT: Schedule immediate inspection and maintenance.',
+      );
+      recommendations.push(
+        'Consider temporary equipment substitution to prevent breakdown.',
+      );
+    } else if (riskScore >= 50) {
+      recommendations.push(
+        'Schedule maintenance within next 7 days to prevent breakdown.',
+      );
+    }
+
+    if (daysUntilMaintenance < 0) {
+      recommendations.push(
+        `Maintenance is ${Math.abs(daysUntilMaintenance)} days overdue.`,
+      );
+    } else if (daysUntilMaintenance <= 7) {
+      recommendations.push(
+        `Maintenance due in ${daysUntilMaintenance} days. Plan accordingly.`,
+      );
+    }
+
+    if (asset.condition === 'POOR' || asset.condition === 'CRITICAL') {
+      recommendations.push(
+        'Asset condition is deteriorating. Consider replacement or major overhaul.',
+      );
+    }
+
+    const ageInYears =
+      (Date.now() - new Date(asset.purchaseDate).getTime()) /
+      (1000 * 60 * 60 * 24 * 365);
+    if (ageInYears > 10) {
+      recommendations.push(
+        'Equipment is over 10 years old. Evaluate cost of maintenance vs. replacement.',
+      );
+    }
+
+    if (asset.maintenanceLogs.length === 0) {
+      recommendations.push(
+        'No maintenance history found. Schedule initial inspection.',
+      );
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push('Continue regular maintenance schedule.');
+    }
+
+    return recommendations;
+  }
+
+  private generateMaintenanceSummary(predictions: any[]): string {
+    const critical = predictions.filter((p) => p.riskLevel === 'CRITICAL')
+      .length;
+    const high = predictions.filter((p) => p.riskLevel === 'HIGH').length;
+    const overdue = predictions.filter((p) => p.daysUntilMaintenance < 0)
+      .length;
+
+    if (critical > 0) {
+      return `CRITICAL: ${critical} asset(s) at high risk of breakdown. Immediate action required.`;
+    }
+
+    if (high > 0) {
+      return `WARNING: ${high} asset(s) require maintenance within 7 days.`;
+    }
+
+    if (overdue > 0) {
+      return `ATTENTION: ${overdue} asset(s) have overdue maintenance schedules.`;
+    }
+
+    return `All assets are in good operational condition. Continue preventive maintenance.`;
+  }
 }

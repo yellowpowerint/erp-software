@@ -32,4 +32,10 @@ export class AiController {
   getDashboardInsights() {
     return this.aiService.getDashboardInsights();
   }
+
+  // Maintenance Predictor
+  @Get('maintenance-predictor')
+  getMaintenancePredictions() {
+    return this.aiService.predictMaintenanceNeeds();
+  }
 }
