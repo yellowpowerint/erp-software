@@ -100,7 +100,7 @@ export default function LoginPage() {
         </form>
         <div className="text-center text-sm text-gray-600">
           <p>Enterprise Resource Planning System</p>
-          <p className="text-xs mt-1">© 2025 Mining ERP. All rights reserved.</p>
+          <p className="text-xs mt-1">© 2025 Yellow Power Int&apos;l ERP v1.0</p>
         </div>
       </div>
     </div>
