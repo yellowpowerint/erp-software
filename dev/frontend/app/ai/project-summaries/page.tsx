@@ -42,34 +42,44 @@ function ProjectSummariesContent() {
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProjects();
   }, []);
 
   const fetchProjects = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await api.get('/projects');
-      setProjects(response.data);
-      if (response.data.length > 0) {
-        setSelectedProject(response.data[0].id);
-        fetchSummary(response.data[0].id);
+      const items: Project[] = response.data || [];
+      setProjects(items);
+      if (items.length > 0) {
+        setSelectedProject(items[0].id);
+        fetchSummary(items[0].id);
+      } else {
+        setSummary(null);
       }
     } catch (error) {
       console.error('Failed to fetch projects:', error);
+      setError('Failed to load projects. Please try again later.');
+      setProjects([]);
+      setSummary(null);
+    } finally {
       setLoading(false);
     }
   };
 
   const fetchSummary = async (projectId: string) => {
     setAnalyzing(true);
+    setError(null);
     try {
       const response = await api.get(`/ai/project-summary/${projectId}`);
       setSummary(response.data);
     } catch (error) {
       console.error('Failed to fetch project summary:', error);
     } finally {
-      setLoading(false);
       setAnalyzing(false);
     }
   };
@@ -128,20 +138,32 @@ function ProjectSummariesContent() {
         </div>
       </div>
 
+      {error && (
+        <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* Project Selector */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">Select Project</label>
-        <select
-          value={selectedProject}
-          onChange={(e) => handleProjectChange(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-        >
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name} ({project.projectCode}) - {project.progress}%
-            </option>
-          ))}
-        </select>
+        {projects.length === 0 ? (
+          <p className="text-sm text-gray-600">
+            No projects found. Create a project first to generate AI summaries.
+          </p>
+        ) : (
+          <select
+            value={selectedProject}
+            onChange={(e) => handleProjectChange(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name} ({project.projectCode}) - {project.progress}%
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {analyzing && (
