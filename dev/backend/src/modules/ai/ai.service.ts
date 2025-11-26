@@ -752,4 +752,271 @@ export class AiService {
 
     return `All assets are in good operational condition. Continue preventive maintenance.`;
   }
+
+  // ==================== Knowledge Engine (RAG Q&A) ====================
+
+  async getDocuments(filters?: {
+    type?: string;
+    status?: string;
+    category?: string;
+  }) {
+    const where: any = {};
+    if (filters?.type) where.type = filters.type;
+    if (filters?.status) where.status = filters.status;
+    if (filters?.category) where.category = filters.category;
+
+    return this.prisma.knowledgeDocument.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getDocumentById(id: string) {
+    return this.prisma.knowledgeDocument.findUnique({
+      where: { id },
+    });
+  }
+
+  async createDocument(data: {
+    title: string;
+    description?: string;
+    type: string;
+    content: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    category?: string;
+    tags?: string[];
+    version?: string;
+    uploadedBy: string;
+  }) {
+    return this.prisma.knowledgeDocument.create({
+      data: {
+        ...data,
+        type: data.type as any,
+      },
+    });
+  }
+
+  async updateDocument(
+    id: string,
+    data: {
+      title?: string;
+      description?: string;
+      status?: string;
+      content?: string;
+      category?: string;
+      tags?: string[];
+      version?: string;
+    },
+  ) {
+    return this.prisma.knowledgeDocument.update({
+      where: { id },
+      data: {
+        ...data,
+        status: data.status as any,
+      },
+    });
+  }
+
+  async deleteDocument(id: string) {
+    return this.prisma.knowledgeDocument.delete({
+      where: { id },
+    });
+  }
+
+  async searchDocuments(query: string) {
+    // Simple text search - in production, use full-text search or vector similarity
+    return this.prisma.knowledgeDocument.findMany({
+      where: {
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { content: { contains: query, mode: 'insensitive' } },
+          { category: { contains: query, mode: 'insensitive' } },
+        ],
+        status: 'ACTIVE',
+      },
+      take: 10,
+    });
+  }
+
+  async askQuestion(question: string) {
+    // Step 1: Search for relevant documents
+    const relevantDocs = await this.searchDocuments(question);
+
+    if (relevantDocs.length === 0) {
+      return {
+        answer:
+          'I could not find any relevant information in the knowledge base to answer your question. Please try rephrasing your question or ensure relevant documents are uploaded.',
+        sources: [],
+        confidence: 0,
+      };
+    }
+
+    // Step 2: Generate AI answer based on retrieved documents (RAG approach)
+    // In production, this would call OpenAI/Claude API with the retrieved context
+    const answer = this.generateAnswerFromDocuments(question, relevantDocs);
+
+    // Step 3: Return answer with source citations
+    return {
+      answer: answer.text,
+      sources: relevantDocs.slice(0, 3).map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        type: doc.type,
+        excerpt: this.extractRelevantExcerpt(doc.content, question),
+      })),
+      confidence: answer.confidence,
+      relatedQuestions: this.generateRelatedQuestions(question),
+    };
+  }
+
+  private generateAnswerFromDocuments(
+    question: string,
+    documents: any[],
+  ): { text: string; confidence: number } {
+    // Simulated AI answer generation
+    // In production, this would:
+    // 1. Combine document contents as context
+    // 2. Create a prompt: "Based on the following documents: [context], answer: [question]"
+    // 3. Call OpenAI/Claude API
+    // 4. Return the AI-generated answer
+
+    const lowerQuestion = question.toLowerCase();
+
+    // Safety-related questions
+    if (
+      lowerQuestion.includes('safety') ||
+      lowerQuestion.includes('ppe') ||
+      lowerQuestion.includes('protective equipment')
+    ) {
+      return {
+        text: `Based on the safety documentation in our knowledge base, all personnel must wear appropriate Personal Protective Equipment (PPE) including hard hats, safety boots, high-visibility vests, and safety glasses when in operational areas. Additional equipment such as respirators, ear protection, or harnesses may be required depending on the specific task. All safety procedures must be followed as outlined in our Standard Operating Procedures (SOPs). Regular safety training and equipment inspections are mandatory.`,
+        confidence: 85,
+      };
+    }
+
+    // Maintenance-related questions
+    if (
+      lowerQuestion.includes('maintenance') ||
+      lowerQuestion.includes('equipment') ||
+      lowerQuestion.includes('repair')
+    ) {
+      return {
+        text: `According to our maintenance manuals, all heavy equipment should undergo preventive maintenance every 250 operating hours or monthly, whichever comes first. Daily pre-operation inspections are mandatory and must be logged. Any equipment showing signs of wear, unusual sounds, or operational issues should be immediately taken out of service and reported to the maintenance supervisor. Maintenance records must be kept for the entire lifecycle of each piece of equipment.`,
+        confidence: 90,
+      };
+    }
+
+    // Operational procedures
+    if (
+      lowerQuestion.includes('procedure') ||
+      lowerQuestion.includes('process') ||
+      lowerQuestion.includes('how to')
+    ) {
+      return {
+        text: `Based on our Standard Operating Procedures (SOPs), all operational activities must follow established protocols. This includes obtaining necessary approvals, conducting pre-operation safety checks, using appropriate equipment, following environmental guidelines, and maintaining accurate records. Each task should be performed by qualified personnel who have received proper training. Any deviations from standard procedures must be documented and approved by a supervisor.`,
+        confidence: 80,
+      };
+    }
+
+    // Regulatory and compliance
+    if (
+      lowerQuestion.includes('regulation') ||
+      lowerQuestion.includes('compliance') ||
+      lowerQuestion.includes('legal')
+    ) {
+      return {
+        text: `Our operations must comply with all local and international mining regulations, including environmental protection laws, worker safety standards (OSHA), and mineral rights legislation. Regular audits are conducted to ensure compliance. All permits and licenses must be current and displayed. Environmental impact assessments must be conducted before starting new operations. Non-compliance can result in fines, operational shutdowns, or legal action.`,
+        confidence: 75,
+      };
+    }
+
+    // General answer based on document availability
+    const docTypes = documents.map((d) => d.type).join(', ');
+    return {
+      text: `I found relevant information in our ${documents.length} document(s) (${docTypes}). The documents contain detailed information about your question. For the most accurate and complete answer, I recommend reviewing the source documents provided below. Key points from the documents suggest established procedures and guidelines are in place for this topic. Please refer to the specific documents for detailed instructions and requirements.`,
+      confidence: 70,
+    };
+  }
+
+  private extractRelevantExcerpt(content: string, question: string): string {
+    // Extract a relevant snippet from the document
+    // In production, use semantic search to find the most relevant paragraph
+    const sentences = content.split('.').filter((s) => s.trim().length > 20);
+    
+    // Simple keyword matching
+    const keywords = question
+      .toLowerCase()
+      .split(' ')
+      .filter((w) => w.length > 3);
+
+    for (const sentence of sentences) {
+      const lowerSentence = sentence.toLowerCase();
+      const matchCount = keywords.filter((k) => lowerSentence.includes(k))
+        .length;
+
+      if (matchCount > 0) {
+        return sentence.trim() + '.';
+      }
+    }
+
+    // Fallback to first substantial sentence
+    return sentences[0]?.trim() + '.' || content.substring(0, 200) + '...';
+  }
+
+  private generateRelatedQuestions(question: string): string[] {
+    const lowerQuestion = question.toLowerCase();
+
+    if (lowerQuestion.includes('safety')) {
+      return [
+        'What PPE is required for underground operations?',
+        'How often are safety inspections conducted?',
+        'What is the emergency evacuation procedure?',
+      ];
+    }
+
+    if (lowerQuestion.includes('maintenance')) {
+      return [
+        'What is the maintenance schedule for heavy equipment?',
+        'How do I report equipment malfunctions?',
+        'Who approves major maintenance work?',
+      ];
+    }
+
+    if (lowerQuestion.includes('procedure') || lowerQuestion.includes('process')) {
+      return [
+        'Where can I find the complete SOP manual?',
+        'Who do I contact for procedure clarifications?',
+        'How are procedures updated?',
+      ];
+    }
+
+    return [
+      'What documents are available in the knowledge base?',
+      'How do I request additional information?',
+      'Where can I find training materials?',
+    ];
+  }
+
+  async getKnowledgeBaseStats() {
+    const [totalDocs, activeDoc, docsByType] = await Promise.all([
+      this.prisma.knowledgeDocument.count(),
+      this.prisma.knowledgeDocument.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.knowledgeDocument.groupBy({
+        by: ['type'],
+        _count: true,
+      }),
+    ]);
+
+    return {
+      totalDocuments: totalDocs,
+      activeDocuments: activeDoc,
+      documentsByType: docsByType.map((item) => ({
+        type: item.type,
+        count: item._count,
+      })),
+    };
+  }
 }

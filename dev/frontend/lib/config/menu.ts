@@ -315,6 +315,13 @@ export const menuItems: MenuItem[] = [
         path: '/ai/maintenance-predictor',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER],
       },
+      {
+        id: 'ai-knowledge',
+        label: 'Knowledge Engine',
+        icon: Brain,
+        path: '/ai/knowledge-engine',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER, UserRole.SAFETY_OFFICER, UserRole.HR_MANAGER],
+      },
     ],
   },
   {

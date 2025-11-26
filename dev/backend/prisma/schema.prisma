@@ -876,3 +876,44 @@ model Supplier {
   @@index([isActive])
   @@map("suppliers")
 }
+
+// Knowledge Base & Documents
+enum DocumentType {
+  MANUAL
+  SOP
+  POLICY
+  PROCEDURE
+  REGULATION
+  TRAINING
+  REPORT
+  OTHER
+}
+
+enum DocumentStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+}
+
+model KnowledgeDocument {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  type        DocumentType
+  status      DocumentStatus @default(ACTIVE)
+  content     String         @db.Text
+  fileUrl     String?
+  fileName    String?
+  fileSize    Int?
+  category    String?
+  tags        String[]
+  version     String?
+  uploadedBy  String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([category])
+  @@map("knowledge_documents")
+}
