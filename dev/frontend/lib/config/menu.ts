@@ -93,7 +93,7 @@ export const menuItems: MenuItem[] = [
         id: 'approvals-payments',
         label: 'Payment Requests',
         icon: ClipboardCheck,
-        path: '/approvals/payments',
+        path: '/approvals/payment-requests',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.ACCOUNTANT],
       },
       {
