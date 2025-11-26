@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { TrendingUp, ArrowLeft, Package, Wrench, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowLeft, Package, Wrench, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
