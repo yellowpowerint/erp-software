@@ -38,7 +38,7 @@ const quickActions: QuickAction[] = [
   {
     label: 'New Project',
     icon: HardHat,
-    href: '/operations/projects/new',
+    href: '/projects/new',
     color: 'bg-purple-500 hover:bg-purple-600',
     roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER],
   },

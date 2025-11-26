@@ -203,7 +203,7 @@ export const menuItems: MenuItem[] = [
         id: 'operations-projects',
         label: 'Projects',
         icon: HardHat,
-        path: '/operations/projects',
+        path: '/projects',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER],
       },
       {
