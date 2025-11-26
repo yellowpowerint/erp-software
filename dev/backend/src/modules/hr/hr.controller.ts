@@ -104,4 +104,90 @@ export class HrController {
   getHrStats() {
     return this.hrService.getHrStats();
   }
+
+  // Recruitment & AI HR Assistant
+  @Post('recruitment/generate-job-description')
+  generateJobDescription(@Body() body: any) {
+    return this.hrService.generateJobDescription(body);
+  }
+
+  @Post('recruitment/jobs')
+  createJobPosting(@Body() body: any) {
+    return this.hrService.createJobPosting(body);
+  }
+
+  @Get('recruitment/jobs')
+  getJobPostings(
+    @Query('status') status?: string,
+    @Query('department') department?: string,
+  ) {
+    return this.hrService.getJobPostings({ status, department });
+  }
+
+  @Get('recruitment/jobs/:id')
+  getJobPostingById(@Param('id') id: string) {
+    return this.hrService.getJobPostingById(id);
+  }
+
+  @Post('recruitment/candidates')
+  createCandidate(@Body() body: any) {
+    return this.hrService.createCandidate(body);
+  }
+
+  @Get('recruitment/candidates')
+  getCandidates() {
+    return this.hrService.getCandidates();
+  }
+
+  @Post('recruitment/parse-cv')
+  parseCV(@Body() body: any) {
+    return this.hrService.parseCV(body);
+  }
+
+  @Post('recruitment/applications')
+  createApplication(@Body() body: any) {
+    return this.hrService.createApplication(body);
+  }
+
+  @Get('recruitment/applications')
+  getApplications(
+    @Query('jobPostingId') jobPostingId?: string,
+    @Query('candidateId') candidateId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.hrService.getApplications({ jobPostingId, candidateId, status });
+  }
+
+  @Post('recruitment/screen-candidate')
+  screenCandidate(@Body() body: any) {
+    return this.hrService.screenCandidate(body);
+  }
+
+  @Post('recruitment/rank-candidates/:jobPostingId')
+  rankCandidates(@Param('jobPostingId') jobPostingId: string) {
+    return this.hrService.rankCandidates(jobPostingId);
+  }
+
+  @Post('recruitment/interviews')
+  createInterview(@Body() body: any) {
+    return this.hrService.createInterview(body);
+  }
+
+  @Get('recruitment/interviews')
+  getInterviews(
+    @Query('candidateId') candidateId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.hrService.getInterviews({ candidateId, status });
+  }
+
+  @Post('recruitment/generate-interview-summary/:id')
+  generateInterviewSummary(@Param('id') id: string) {
+    return this.hrService.generateInterviewSummary(id);
+  }
+
+  @Get('recruitment/stats')
+  getRecruitmentStats() {
+    return this.hrService.getRecruitmentStats();
+  }
 }

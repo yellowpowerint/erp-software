@@ -1143,3 +1143,197 @@ model PerformanceReview {
   @@index([reviewDate])
   @@map("performance_reviews")
 }
+
+// Recruitment & Talent Acquisition
+enum JobStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ON_HOLD
+  FILLED
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  TEMPORARY
+  INTERN
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SCREENING
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  INTERVIEWED
+  OFFERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+model JobPosting {
+  id              String      @id @default(uuid())
+  jobId           String      @unique
+  title           String
+  department      String
+  location        String
+  jobType         JobType
+  status          JobStatus   @default(DRAFT)
+  
+  // Job Details
+  description     String      @db.Text
+  requirements    String      @db.Text
+  responsibilities String     @db.Text
+  qualifications  String      @db.Text
+  
+  // Compensation
+  salaryMin       Float?
+  salaryMax       Float?
+  benefits        String?     @db.Text
+  
+  // Dates
+  openDate        DateTime?
+  closeDate       DateTime?
+  
+  // AI Generated
+  aiGenerated     Boolean     @default(false)
+  aiPrompt        String?     @db.Text
+  
+  postedBy        String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  applications    Application[]
+
+  @@index([status])
+  @@index([department])
+  @@index([jobType])
+  @@map("job_postings")
+}
+
+model Candidate {
+  id              String      @id @default(uuid())
+  candidateId     String      @unique
+  firstName       String
+  lastName        String
+  email           String      @unique
+  phone           String?
+  
+  // Resume/CV
+  resumeUrl       String?
+  resumeText      String?     @db.Text
+  cvParsed        Boolean     @default(false)
+  
+  // Parsed Information
+  skills          String[]
+  experience      String?     @db.Text
+  education       String?     @db.Text
+  currentPosition String?
+  currentCompany  String?
+  yearsExperience Int?
+  
+  // AI Analysis
+  aiSummary       String?     @db.Text
+  aiSkillMatch    Float?
+  aiExperienceMatch Float?
+  aiCultureFit    Float?
+  
+  linkedinUrl     String?
+  portfolioUrl    String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  applications    Application[]
+  interviews      Interview[]
+
+  @@index([email])
+  @@map("candidates")
+}
+
+model Application {
+  id              String            @id @default(uuid())
+  jobPostingId    String
+  jobPosting      JobPosting        @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  candidateId     String
+  candidate       Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  status          ApplicationStatus @default(SUBMITTED)
+  coverLetter     String?           @db.Text
+  
+  // AI Screening
+  aiScreened      Boolean           @default(false)
+  aiScore         Float?
+  aiRecommendation String?          @db.Text
+  aiStrengths     String[]
+  aiWeaknesses    String[]
+  
+  // Ranking
+  overallScore    Float?
+  rank            Int?
+  
+  // Dates
+  appliedAt       DateTime          @default(now())
+  screenedAt      DateTime?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  interviews      Interview[]
+
+  @@unique([jobPostingId, candidateId])
+  @@index([jobPostingId])
+  @@index([candidateId])
+  @@index([status])
+  @@map("applications")
+}
+
+model Interview {
+  id              String          @id @default(uuid())
+  applicationId   String
+  application     Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  candidateId     String
+  candidate       Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  interviewType   String
+  scheduledDate   DateTime
+  duration        Int
+  location        String?
+  meetingLink     String?
+  
+  interviewers    String[]
+  status          InterviewStatus @default(SCHEDULED)
+  
+  // Interview Results
+  completed       Boolean         @default(false)
+  feedback        String?         @db.Text
+  rating          Float?
+  
+  // AI Summary
+  aiSummary       String?         @db.Text
+  aiKeyPoints     String[]
+  aiRecommendation String?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([applicationId])
+  @@index([candidateId])
+  @@index([scheduledDate])
+  @@map("interviews")
+}

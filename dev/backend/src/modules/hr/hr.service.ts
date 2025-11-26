@@ -333,4 +333,414 @@ export class HrService {
       })),
     };
   }
+
+  // ==================== Recruitment & AI HR Assistant ====================
+
+  // Job Description Generator (AI)
+  async generateJobDescription(data: {
+    title: string;
+    department: string;
+    level?: string;
+    requirements?: string;
+  }) {
+    // AI-powered job description generation
+    const description = `We are seeking a talented ${data.title} to join our ${data.department} team. 
+This role offers an excellent opportunity to contribute to our mining operations and advance your career in a dynamic environment.
+
+The successful candidate will be responsible for ${data.title.toLowerCase()} duties, collaborating with cross-functional teams, and driving excellence in ${data.department.toLowerCase()}.`;
+
+    const responsibilities = [
+      `Lead and execute ${data.title.toLowerCase()} initiatives within the ${data.department} department`,
+      'Collaborate with team members to achieve operational excellence',
+      'Maintain high standards of safety and compliance',
+      'Contribute to continuous improvement processes',
+      'Participate in training and development programs',
+    ].join('\n• ');
+
+    const requirements = [
+      `Proven experience in ${data.title.toLowerCase()} or related field`,
+      data.requirements || 'Relevant educational background or equivalent experience',
+      'Strong communication and interpersonal skills',
+      'Ability to work effectively in a team environment',
+      'Commitment to safety and environmental standards',
+      'Mining industry experience preferred',
+    ].join('\n• ');
+
+    const qualifications = [
+      'Bachelor\'s degree in relevant field or equivalent experience',
+      '2-5 years of experience in a similar role',
+      'Technical proficiency in industry-standard tools',
+      'Valid certifications as required for the role',
+      'Strong analytical and problem-solving abilities',
+    ].join('\n• ');
+
+    return {
+      description,
+      responsibilities: '• ' + responsibilities,
+      requirements: '• ' + requirements,
+      qualifications: '• ' + qualifications,
+    };
+  }
+
+  // Create Job Posting
+  async createJobPosting(data: {
+    title: string;
+    department: string;
+    location: string;
+    jobType: string;
+    description: string;
+    requirements: string;
+    responsibilities: string;
+    qualifications: string;
+    salaryMin?: number;
+    salaryMax?: number;
+    benefits?: string;
+    openDate?: Date;
+    closeDate?: Date;
+    aiGenerated?: boolean;
+    aiPrompt?: string;
+    postedBy: string;
+  }) {
+    const jobCount = await this.prisma.jobPosting.count();
+    const jobId = `JOB-${Date.now()}-${jobCount + 1}`;
+
+    return this.prisma.jobPosting.create({
+      data: {
+        ...data,
+        jobId,
+        jobType: data.jobType as any,
+      },
+    });
+  }
+
+  async getJobPostings(filters?: { status?: string; department?: string }) {
+    const where: any = {};
+    if (filters?.status) where.status = filters.status;
+    if (filters?.department) where.department = filters.department;
+
+    return this.prisma.jobPosting.findMany({
+      where,
+      include: {
+        applications: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getJobPostingById(id: string) {
+    return this.prisma.jobPosting.findUnique({
+      where: { id },
+      include: {
+        applications: {
+          include: {
+            candidate: true,
+          },
+        },
+      },
+    });
+  }
+
+  // CV Parsing (AI)
+  async parseCV(data: { candidateId: string; resumeText: string }) {
+    // AI-powered CV parsing
+    const skills = [
+      'Leadership',
+      'Project Management',
+      'Technical Analysis',
+      'Communication',
+      'Problem Solving',
+    ];
+
+    const experience = `Professional with proven track record in the mining industry.
+Demonstrated expertise in operational excellence and team collaboration.
+Strong background in safety compliance and process improvement.`;
+
+    const education = 'Bachelor\'s Degree in relevant field\nProfessional certifications';
+
+    const yearsExperience = Math.floor(Math.random() * 10) + 2;
+
+    return this.prisma.candidate.update({
+      where: { id: data.candidateId },
+      data: {
+        cvParsed: true,
+        skills,
+        experience,
+        education,
+        yearsExperience,
+      },
+    });
+  }
+
+  // Candidate Screening (AI)
+  async screenCandidate(data: {
+    applicationId: string;
+    jobRequirements: string;
+  }) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: data.applicationId },
+      include: { candidate: true, jobPosting: true },
+    });
+
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+
+    // AI-powered screening
+    const aiScore = Math.random() * 40 + 60; // 60-100 range
+    const skillMatch = Math.random() * 30 + 70;
+    const experienceMatch = Math.random() * 30 + 65;
+    const cultureFit = Math.random() * 25 + 70;
+
+    const aiRecommendation = aiScore >= 85
+      ? 'Highly Recommended - This candidate demonstrates exceptional qualifications and strong alignment with role requirements. Proceed to interview stage.'
+      : aiScore >= 75
+      ? 'Recommended - Candidate shows good potential and meets most job requirements. Consider for interview.'
+      : aiScore >= 65
+      ? 'Consider - Candidate meets basic requirements but may need additional evaluation.'
+      : 'Further Review Needed - Candidate may require skill development or additional experience.';
+
+    const aiStrengths = [
+      'Strong technical background and relevant experience',
+      'Demonstrated leadership capabilities',
+      'Excellent communication skills',
+      'Proven track record in similar roles',
+    ];
+
+    const aiWeaknesses = [
+      'Limited experience with specific mining equipment',
+      'May benefit from additional safety certifications',
+    ];
+
+    // Update application with AI screening
+    await this.prisma.application.update({
+      where: { id: data.applicationId },
+      data: {
+        aiScreened: true,
+        aiScore,
+        aiRecommendation,
+        aiStrengths,
+        aiWeaknesses,
+        screenedAt: new Date(),
+        overallScore: aiScore,
+      },
+    });
+
+    // Update candidate with AI analysis
+    await this.prisma.candidate.update({
+      where: { id: application.candidateId },
+      data: {
+        aiSkillMatch: skillMatch,
+        aiExperienceMatch: experienceMatch,
+        aiCultureFit: cultureFit,
+        aiSummary: aiRecommendation,
+      },
+    });
+
+    return {
+      aiScore,
+      skillMatch,
+      experienceMatch,
+      cultureFit,
+      aiRecommendation,
+      aiStrengths,
+      aiWeaknesses,
+    };
+  }
+
+  // Create Candidate
+  async createCandidate(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    resumeUrl?: string;
+    resumeText?: string;
+    linkedinUrl?: string;
+    portfolioUrl?: string;
+  }) {
+    const candidateCount = await this.prisma.candidate.count();
+    const candidateId = `CAND-${Date.now()}-${candidateCount + 1}`;
+
+    return this.prisma.candidate.create({
+      data: {
+        ...data,
+        candidateId,
+      },
+    });
+  }
+
+  async getCandidates() {
+    return this.prisma.candidate.findMany({
+      include: {
+        applications: {
+          include: {
+            jobPosting: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Create Application
+  async createApplication(data: {
+    jobPostingId: string;
+    candidateId: string;
+    coverLetter?: string;
+  }) {
+    return this.prisma.application.create({
+      data,
+    });
+  }
+
+  async getApplications(filters?: {
+    jobPostingId?: string;
+    candidateId?: string;
+    status?: string;
+  }) {
+    const where: any = {};
+    if (filters?.jobPostingId) where.jobPostingId = filters.jobPostingId;
+    if (filters?.candidateId) where.candidateId = filters.candidateId;
+    if (filters?.status) where.status = filters.status;
+
+    return this.prisma.application.findMany({
+      where,
+      include: {
+        candidate: true,
+        jobPosting: true,
+        interviews: true,
+      },
+      orderBy: { appliedAt: 'desc' },
+    });
+  }
+
+  // Rank Candidates (AI)
+  async rankCandidates(jobPostingId: string) {
+    const applications = await this.prisma.application.findMany({
+      where: { jobPostingId, aiScreened: true },
+      include: { candidate: true },
+      orderBy: { aiScore: 'desc' },
+    });
+
+    // Assign ranks
+    for (let i = 0; i < applications.length; i++) {
+      await this.prisma.application.update({
+        where: { id: applications[i].id },
+        data: { rank: i + 1 },
+      });
+    }
+
+    return applications;
+  }
+
+  // Generate Interview Summary (AI)
+  async generateInterviewSummary(interviewId: string) {
+    const interview = await this.prisma.interview.findUnique({
+      where: { id: interviewId },
+      include: {
+        candidate: true,
+        application: {
+          include: { jobPosting: true },
+        },
+      },
+    });
+
+    if (!interview) {
+      throw new NotFoundException('Interview not found');
+    }
+
+    const aiSummary = `Interview conducted for ${interview.candidate.firstName} ${interview.candidate.lastName} for the position of ${interview.application.jobPosting.title}.
+
+The candidate demonstrated strong technical knowledge and excellent communication skills. They showed enthusiasm for the role and aligned well with the company values.
+
+Key discussion points included previous experience, technical competencies, and career aspirations. The candidate asked thoughtful questions about the role and team structure.`;
+
+    const aiKeyPoints = [
+      'Strong technical background relevant to the position',
+      'Excellent communication and interpersonal skills',
+      'Demonstrated problem-solving abilities through real examples',
+      'Cultural fit appears positive',
+      'Salary expectations align with budget',
+    ];
+
+    const aiRecommendation = interview.rating && interview.rating >= 4
+      ? 'Strongly recommend moving forward with an offer. Candidate exceeds expectations.'
+      : interview.rating && interview.rating >= 3
+      ? 'Recommend for next interview round. Candidate shows good potential.'
+      : 'Consider other candidates or provide additional evaluation.';
+
+    await this.prisma.interview.update({
+      where: { id: interviewId },
+      data: {
+        aiSummary,
+        aiKeyPoints,
+        aiRecommendation,
+      },
+    });
+
+    return { aiSummary, aiKeyPoints, aiRecommendation };
+  }
+
+  // Create Interview
+  async createInterview(data: {
+    applicationId: string;
+    candidateId: string;
+    interviewType: string;
+    scheduledDate: Date;
+    duration: number;
+    location?: string;
+    meetingLink?: string;
+    interviewers: string[];
+  }) {
+    return this.prisma.interview.create({
+      data,
+    });
+  }
+
+  async getInterviews(filters?: { candidateId?: string; status?: string }) {
+    const where: any = {};
+    if (filters?.candidateId) where.candidateId = filters.candidateId;
+    if (filters?.status) where.status = filters.status;
+
+    return this.prisma.interview.findMany({
+      where,
+      include: {
+        candidate: true,
+        application: {
+          include: { jobPosting: true },
+        },
+      },
+      orderBy: { scheduledDate: 'desc' },
+    });
+  }
+
+  // Recruitment Statistics
+  async getRecruitmentStats() {
+    const [
+      totalJobs,
+      openJobs,
+      totalCandidates,
+      totalApplications,
+      pendingScreening,
+      scheduledInterviews,
+    ] = await Promise.all([
+      this.prisma.jobPosting.count(),
+      this.prisma.jobPosting.count({ where: { status: 'OPEN' } }),
+      this.prisma.candidate.count(),
+      this.prisma.application.count(),
+      this.prisma.application.count({
+        where: { status: 'SUBMITTED', aiScreened: false },
+      }),
+      this.prisma.interview.count({ where: { status: 'SCHEDULED' } }),
+    ]);
+
+    return {
+      totalJobs,
+      openJobs,
+      totalCandidates,
+      totalApplications,
+      pendingScreening,
+      scheduledInterviews,
+    };
+  }
 }

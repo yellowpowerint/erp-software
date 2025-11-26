@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Users, UserCheck, Calendar, ClipboardList, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, UserCheck, Calendar, ClipboardList, TrendingUp, AlertCircle, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
@@ -123,7 +123,7 @@ function HrDashboardContent() {
           )}
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Link
               href="/hr/employees"
               className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
@@ -152,10 +152,22 @@ function HrDashboardContent() {
             </Link>
 
             <Link
+              href="/hr/recruitment"
+              className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-purple-200"
+            >
+              <Briefcase className="w-8 h-8 text-purple-600 mb-3" />
+              <h3 className="font-semibold text-gray-900 mb-1 flex items-center">
+                Recruitment
+                <span className="ml-2 text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">AI</span>
+              </h3>
+              <p className="text-sm text-gray-600">AI-powered talent acquisition</p>
+            </Link>
+
+            <Link
               href="/hr/performance"
               className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
             >
-              <ClipboardList className="w-8 h-8 text-purple-600 mb-3" />
+              <ClipboardList className="w-8 h-8 text-orange-600 mb-3" />
               <h3 className="font-semibold text-gray-900 mb-1">Performance</h3>
               <p className="text-sm text-gray-600">Employee performance reviews</p>
             </Link>
