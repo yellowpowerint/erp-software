@@ -6,6 +6,15 @@ import * as bcrypt from "bcrypt";
 export class SettingsService {
   constructor(private prisma: PrismaService) {}
 
+  // Internal helper for system settings
+  private async upsertSetting(key: string, value: string, isSecret = false) {
+    return this.prisma.systemSetting.upsert({
+      where: { key },
+      update: { value, isSecret },
+      create: { key, value, isSecret },
+    });
+  }
+
   // System Configuration
   async getSystemConfig() {
     return {
@@ -303,5 +312,116 @@ export class SettingsService {
       logs: logs.slice(0, limit),
       total: logs.length,
     };
+  }
+
+  // AI Provider Settings (BYOK)
+  async getAiSettings() {
+    const keys = await this.prisma.systemSetting.findMany({
+      where: {
+        key: {
+          in: [
+            "AI_ENABLED",
+            "AI_DEFAULT_PROVIDER",
+            "AI_OPENAI_API_KEY",
+            "AI_OPENAI_MODEL",
+            "AI_CLAUDE_API_KEY",
+            "AI_CLAUDE_MODEL",
+          ],
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const map = new Map(keys.map((k) => [k.key, k] as const));
+
+    const openaiKey = map.get("AI_OPENAI_API_KEY");
+    const claudeKey = map.get("AI_CLAUDE_API_KEY");
+
+    const enabled = map.get("AI_ENABLED")?.value === "true";
+    const defaultProvider =
+      (map.get("AI_DEFAULT_PROVIDER")?.value as "OPENAI" | "CLAUDE" | null) ||
+      null;
+
+    return {
+      enabled,
+      defaultProvider,
+      openai: {
+        configured: !!openaiKey,
+        last4: openaiKey ? openaiKey.value.slice(-4) : null,
+        model: map.get("AI_OPENAI_MODEL")?.value || null,
+        updatedAt: openaiKey?.updatedAt || null,
+      },
+      claude: {
+        configured: !!claudeKey,
+        last4: claudeKey ? claudeKey.value.slice(-4) : null,
+        model: map.get("AI_CLAUDE_MODEL")?.value || null,
+        updatedAt: claudeKey?.updatedAt || null,
+      },
+    };
+  }
+
+  async updateAiSettings(data: {
+    enabled?: boolean;
+    defaultProvider?: "OPENAI" | "CLAUDE" | null;
+    openai?: { apiKey?: string; model?: string | null };
+    claude?: { apiKey?: string; model?: string | null };
+  }) {
+    const ops: Promise<unknown>[] = [];
+
+    if (typeof data.enabled === "boolean") {
+      ops.push(
+        this.upsertSetting("AI_ENABLED", data.enabled ? "true" : "false"),
+      );
+    }
+
+    if (data.defaultProvider !== undefined) {
+      ops.push(
+        this.upsertSetting("AI_DEFAULT_PROVIDER", data.defaultProvider ?? ""),
+      );
+    }
+
+    if (data.openai?.apiKey && data.openai.apiKey.trim().length > 0) {
+      ops.push(
+        this.upsertSetting(
+          "AI_OPENAI_API_KEY",
+          data.openai.apiKey.trim(),
+          true,
+        ),
+      );
+    }
+
+    if (data.openai && data.openai.model !== undefined) {
+      ops.push(
+        this.upsertSetting(
+          "AI_OPENAI_MODEL",
+          data.openai.model ? data.openai.model : "",
+        ),
+      );
+    }
+
+    if (data.claude?.apiKey && data.claude.apiKey.trim().length > 0) {
+      ops.push(
+        this.upsertSetting(
+          "AI_CLAUDE_API_KEY",
+          data.claude.apiKey.trim(),
+          true,
+        ),
+      );
+    }
+
+    if (data.claude && data.claude.model !== undefined) {
+      ops.push(
+        this.upsertSetting(
+          "AI_CLAUDE_MODEL",
+          data.claude.model ? data.claude.model : "",
+        ),
+      );
+    }
+
+    if (ops.length > 0) {
+      await Promise.all(ops);
+    }
+
+    return this.getAiSettings();
   }
 }

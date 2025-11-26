@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -7,10 +8,39 @@ import QuickActions from '@/components/dashboard/QuickActions';
 import ProductionChart from '@/components/dashboard/ProductionChart';
 import ExpenseChart from '@/components/dashboard/ExpenseChart';
 import { getRoleBasedStats } from '@/lib/get-role-stats';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Clock } from 'lucide-react';
 
 function DashboardContent() {
   const { user } = useAuth();
+
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const nowUtc = new Date();
+      const day = nowUtc.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+      const time = nowUtc.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'UTC',
+      });
+
+      setCurrentTime(`${day} • ${time} GMT`);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const stats = user ? getRoleBasedStats(user.role) : [];
 
@@ -24,13 +54,20 @@ function DashboardContent() {
   return (
     <DashboardLayout>
       {/* Welcome Section */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {user?.firstName}!
-        </h1>
-        <p className="text-gray-600 mt-1">
-          {`Here's what's happening with your operations today.`}
-        </p>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {user?.firstName}!
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {`Here's what's happening with your operations today.`}
+          </p>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-600 bg-white rounded-lg shadow px-4 py-2">
+          <Clock className="w-4 h-4 text-indigo-600" />
+          <span className="font-medium">Current Time (GMT)</span>
+          <span className="text-gray-900">{currentTime}</span>
+        </div>
       </div>
 
       {/* Quick Actions */}

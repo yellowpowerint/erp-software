@@ -27,6 +27,17 @@ export class SettingsController {
     return this.settingsService.updateSystemConfig(data);
   }
 
+  // AI Provider Settings (BYOK)
+  @Get("ai")
+  async getAiSettings() {
+    return this.settingsService.getAiSettings();
+  }
+
+  @Put("ai")
+  async updateAiSettings(@Body() data: any) {
+    return this.settingsService.updateAiSettings(data);
+  }
+
   // System Statistics
   @Get("stats")
   async getSystemStats() {
