@@ -6,6 +6,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Settings, Users, Shield, Database, Bell, FileText, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { UserRole } from '@/types/auth';
 
 interface SystemStats {
   totalUsers: number;
@@ -16,6 +18,7 @@ interface SystemStats {
 }
 
 function SettingsDashboardContent() {
+  const { user } = useAuth();
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +46,9 @@ function SettingsDashboardContent() {
       </DashboardLayout>
     );
   }
+
+  const canManageAiSettings =
+    user && [UserRole.SUPER_ADMIN, UserRole.IT_MANAGER].includes(user.role);
 
   return (
     <DashboardLayout>
@@ -146,14 +152,16 @@ function SettingsDashboardContent() {
           <p className="text-sm text-gray-600">View system activity and audit logs</p>
         </Link>
 
-        <Link
-          href="/settings/ai"
-          className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
-        >
-          <BrainCircuit className="w-10 h-10 text-purple-600 mb-3" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">AI & Integrations</h3>
-          <p className="text-sm text-gray-600">Manage OpenAI/Claude keys and AI options</p>
-        </Link>
+        {canManageAiSettings && (
+          <Link
+            href="/settings/ai"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <BrainCircuit className="w-10 h-10 text-purple-600 mb-3" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">AI & Integrations</h3>
+            <p className="text-sm text-gray-600">Manage OpenAI/Claude keys and AI options</p>
+          </Link>
+        )}
 
         <Link
           href="/settings/roles"

@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BrainCircuit, ArrowLeft, Save, KeyRound, Sparkles } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { UserRole } from "@/types/auth";
 
 interface ProviderStatus {
   configured: boolean;
@@ -352,7 +353,9 @@ function AiSettingsContent() {
 
 export default function AiSettingsPage() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute
+      allowedRoles={[UserRole.SUPER_ADMIN, UserRole.IT_MANAGER]}
+    >
       <AiSettingsContent />
     </ProtectedRoute>
   );
