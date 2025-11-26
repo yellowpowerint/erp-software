@@ -17,6 +17,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { HrModule } from './modules/hr/hr.module';
 import { SafetyModule } from './modules/safety/safety.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -38,6 +39,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     HrModule,
     SafetyModule,
     ReportsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [
