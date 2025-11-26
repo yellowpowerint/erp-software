@@ -977,3 +977,169 @@ model SafetyIncident {
   @@index([incidentDate])
   @@map("safety_incidents")
 }
+
+// HR & Personnel Management
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  TERMINATED
+  RETIRED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  TEMPORARY
+  INTERN
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  ON_LEAVE
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  PERSONAL
+  MATERNITY
+  PATERNITY
+  UNPAID
+  EMERGENCY
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ReviewRating {
+  OUTSTANDING
+  EXCEEDS_EXPECTATIONS
+  MEETS_EXPECTATIONS
+  NEEDS_IMPROVEMENT
+  UNSATISFACTORY
+}
+
+model Employee {
+  id              String           @id @default(uuid())
+  employeeId      String           @unique
+  firstName       String
+  lastName        String
+  email           String           @unique
+  phone           String?
+  dateOfBirth     DateTime?
+  gender          String?
+  address         String?
+  city            String?
+  country         String           @default("Ghana")
+  
+  // Employment Details
+  department      String
+  position        String
+  employmentType  EmploymentType   @default(FULL_TIME)
+  status          EmploymentStatus @default(ACTIVE)
+  hireDate        DateTime
+  terminationDate DateTime?
+  salary          Float?
+  supervisorId    String?
+  
+  // Emergency Contact
+  emergencyContact String?
+  emergencyPhone   String?
+  
+  // Documents & Notes
+  documents       String[]
+  notes           String?          @db.Text
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  attendances     Attendance[]
+  leaveRequests   LeaveRequest[]
+  performanceReviews PerformanceReview[]
+
+  @@index([employeeId])
+  @@index([department])
+  @@index([status])
+  @@map("employees")
+}
+
+model Attendance {
+  id          String           @id @default(uuid())
+  employeeId  String
+  employee    Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date        DateTime
+  status      AttendanceStatus
+  checkIn     DateTime?
+  checkOut    DateTime?
+  workHours   Float?
+  notes       String?
+  markedBy    String?
+  createdAt   DateTime         @default(now())
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@map("attendances")
+}
+
+model LeaveRequest {
+  id            String      @id @default(uuid())
+  employeeId    String
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType     LeaveType
+  startDate     DateTime
+  endDate       DateTime
+  totalDays     Int
+  reason        String      @db.Text
+  status        LeaveStatus @default(PENDING)
+  approvedById  String?
+  approvedAt    DateTime?
+  rejectionReason String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate])
+  @@map("leave_requests")
+}
+
+model PerformanceReview {
+  id            String       @id @default(uuid())
+  employeeId    String
+  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewPeriod  String
+  reviewDate    DateTime
+  reviewerId    String
+  reviewerName  String
+  
+  // Performance Metrics
+  overallRating ReviewRating
+  technicalSkills Float?
+  communication   Float?
+  teamwork        Float?
+  productivity    Float?
+  leadership      Float?
+  
+  strengths     String?      @db.Text
+  areasForImprovement String? @db.Text
+  goals         String?      @db.Text
+  comments      String?      @db.Text
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([employeeId])
+  @@index([reviewDate])
+  @@map("performance_reviews")
+}

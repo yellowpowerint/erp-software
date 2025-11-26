@@ -353,6 +353,13 @@ export const menuItems: MenuItem[] = [
         roles: [UserRole.SUPER_ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_HEAD],
       },
       {
+        id: 'hr-leave-requests',
+        label: 'Leave Requests',
+        icon: Users,
+        path: '/hr/leave-requests',
+        roles: [UserRole.SUPER_ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_HEAD],
+      },
+      {
         id: 'hr-recruitment',
         label: 'Recruitment',
         icon: Users,
