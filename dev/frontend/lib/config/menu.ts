@@ -505,6 +505,20 @@ export const menuItems: MenuItem[] = [
         path: '/settings/audit-logs',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO],
       },
+      {
+        id: 'settings-ai',
+        label: 'AI & Integrations',
+        icon: Brain,
+        path: '/settings/ai',
+        roles: [UserRole.SUPER_ADMIN, UserRole.IT_MANAGER],
+      },
+      {
+        id: 'settings-roles',
+        label: 'Roles & Permissions',
+        icon: Shield,
+        path: '/settings/roles',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.IT_MANAGER],
+      },
     ],
   },
 ];
