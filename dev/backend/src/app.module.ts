@@ -15,6 +15,7 @@ import { OperationsModule } from './modules/operations/operations.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { AiModule } from './modules/ai/ai.module';
 import { HrModule } from './modules/hr/hr.module';
+import { SafetyModule } from './modules/safety/safety.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -34,6 +35,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     FinanceModule,
     AiModule,
     HrModule,
+    SafetyModule,
   ],
   controllers: [AppController],
   providers: [

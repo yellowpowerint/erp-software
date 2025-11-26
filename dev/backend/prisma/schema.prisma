@@ -1337,3 +1337,243 @@ model Interview {
   @@index([scheduledDate])
   @@map("interviews")
 }
+
+// Safety & Compliance Module
+enum InspectionType {
+  EQUIPMENT
+  VEHICLE
+  FACILITY
+  WORKPLACE
+  FIRE_SAFETY
+  ELECTRICAL
+  CONFINED_SPACE
+  CHEMICAL_STORAGE
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  PASSED
+}
+
+enum TrainingType {
+  SAFETY_ORIENTATION
+  EQUIPMENT_OPERATION
+  EMERGENCY_RESPONSE
+  FIRST_AID
+  FIRE_SAFETY
+  CONFINED_SPACE
+  HAZARDOUS_MATERIALS
+  PPE_USAGE
+  INCIDENT_REPORTING
+}
+
+enum TrainingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum CertificationStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+  SUSPENDED
+  REVOKED
+}
+
+enum DrillType {
+  FIRE_EVACUATION
+  EMERGENCY_EVACUATION
+  SPILL_RESPONSE
+  RESCUE_OPERATION
+  MEDICAL_EMERGENCY
+}
+
+model SafetyInspection {
+  id              String           @id @default(uuid())
+  inspectionId    String           @unique
+  type            InspectionType
+  status          InspectionStatus @default(SCHEDULED)
+  
+  // What is being inspected
+  title           String
+  location        String
+  equipmentId     String?
+  assetId         String?
+  
+  // Inspection details
+  scheduledDate   DateTime
+  completedDate   DateTime?
+  inspectedBy     String?
+  inspectorName   String?
+  
+  // Results
+  passed          Boolean?
+  score           Float?
+  findings        String?          @db.Text
+  deficiencies    String[]
+  recommendations String?          @db.Text
+  actionRequired  Boolean          @default(false)
+  
+  // Corrective actions
+  correctiveActions String?        @db.Text
+  dueDate         DateTime?
+  resolvedDate    DateTime?
+  resolvedBy      String?
+  
+  // Documentation
+  checklistItems  String[]
+  photoUrls       String[]
+  documentUrls    String[]
+  notes           String?          @db.Text
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("safety_inspections")
+}
+
+model SafetyTraining {
+  id              String         @id @default(uuid())
+  trainingId      String         @unique
+  type            TrainingType
+  status          TrainingStatus @default(SCHEDULED)
+  
+  // Training details
+  title           String
+  description     String?        @db.Text
+  location        String?
+  duration        Int
+  maxParticipants Int?
+  
+  // Scheduling
+  scheduledDate   DateTime
+  startTime       String?
+  endTime         String?
+  
+  // Instructor
+  instructorId    String?
+  instructorName  String
+  
+  // Participants
+  participants    String[]
+  completedBy     String[]
+  attendanceCount Int?
+  
+  // Results
+  passingScore    Float?
+  completed       Boolean        @default(false)
+  completedDate   DateTime?
+  
+  // Content
+  topics          String[]
+  materials       String[]
+  certificateUrl  String?
+  
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("safety_trainings")
+}
+
+model SafetyCertification {
+  id              String              @id @default(uuid())
+  certificationId String              @unique
+  
+  // Employee
+  employeeId      String
+  employeeName    String
+  
+  // Certification details
+  certType        String
+  certName        String
+  certNumber      String?
+  issuingBody     String
+  
+  // Dates
+  issueDate       DateTime
+  expiryDate      DateTime
+  renewalDate     DateTime?
+  
+  status          CertificationStatus @default(ACTIVE)
+  
+  // Verification
+  verifiedBy      String?
+  verifiedDate    DateTime?
+  
+  // Documentation
+  certificateUrl  String?
+  documentUrls    String[]
+  
+  notes           String?             @db.Text
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([expiryDate])
+  @@map("safety_certifications")
+}
+
+model SafetyDrill {
+  id              String     @id @default(uuid())
+  drillId         String     @unique
+  type            DrillType
+  
+  // Drill details
+  title           String
+  description     String?    @db.Text
+  location        String
+  
+  // Scheduling
+  scheduledDate   DateTime
+  startTime       String?
+  endTime         String?
+  duration        Int?
+  
+  // Participants
+  expectedCount   Int?
+  actualCount     Int?
+  participants    String[]
+  
+  // Coordination
+  coordinator     String
+  coordinatorName String
+  observers       String[]
+  
+  // Results
+  completed       Boolean    @default(false)
+  completedDate   DateTime?
+  successRating   Float?
+  
+  // Evaluation
+  objectives      String[]
+  results         String?    @db.Text
+  strengths       String[]
+  areasForImprovement String[]
+  lessonsLearned  String?    @db.Text
+  
+  // Follow-up
+  followUpActions String?    @db.Text
+  actionRequired  Boolean    @default(false)
+  
+  notes           String?    @db.Text
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([type])
+  @@index([scheduledDate])
+  @@map("safety_drills")
+}
