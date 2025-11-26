@@ -84,4 +84,34 @@ export class AiController {
   getKnowledgeBaseStats() {
     return this.aiService.getKnowledgeBaseStats();
   }
+
+  // Safety Assistant
+  @Post('safety/report-incident')
+  reportIncident(@Body() body: any) {
+    return this.aiService.reportIncident(body);
+  }
+
+  @Get('safety/incidents')
+  getIncidents(
+    @Query('type') type?: string,
+    @Query('severity') severity?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.aiService.getIncidents({ type, severity, status });
+  }
+
+  @Get('safety/incidents/:id')
+  getIncidentById(@Param('id') id: string) {
+    return this.aiService.getIncidentById(id);
+  }
+
+  @Post('safety/analyze/:id')
+  analyzeIncident(@Param('id') id: string) {
+    return this.aiService.analyzeIncident(id);
+  }
+
+  @Get('safety/stats')
+  getSafetyStats() {
+    return this.aiService.getSafetyStats();
+  }
 }

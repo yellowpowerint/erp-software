@@ -917,3 +917,63 @@ model KnowledgeDocument {
   @@index([category])
   @@map("knowledge_documents")
 }
+
+// Safety & Incident Management
+enum IncidentSeverity {
+  MINOR
+  MODERATE
+  SERIOUS
+  CRITICAL
+  FATAL
+}
+
+enum IncidentType {
+  INJURY
+  NEAR_MISS
+  EQUIPMENT_DAMAGE
+  ENVIRONMENTAL
+  SECURITY
+  FIRE
+  CHEMICAL_SPILL
+  OTHER
+}
+
+enum IncidentStatus {
+  REPORTED
+  INVESTIGATING
+  RESOLVED
+  CLOSED
+}
+
+model SafetyIncident {
+  id              String           @id @default(uuid())
+  incidentNumber  String           @unique
+  type            IncidentType
+  severity        IncidentSeverity
+  status          IncidentStatus   @default(REPORTED)
+  location        String
+  incidentDate    DateTime
+  reportedBy      String
+  reportedAt      DateTime         @default(now())
+  description     String           @db.Text
+  injuries        String?          @db.Text
+  witnesses       String[]
+  photoUrls       String[]
+  aiAnalysis      String?          @db.Text
+  rootCause       String?          @db.Text
+  correctiveActions String?        @db.Text
+  oshaReportable  Boolean          @default(false)
+  oshaReport      String?          @db.Text
+  investigatedBy  String?
+  investigatedAt  DateTime?
+  resolvedAt      DateTime?
+  notes           String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([incidentDate])
+  @@map("safety_incidents")
+}

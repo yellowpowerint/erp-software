@@ -1019,4 +1019,438 @@ export class AiService {
       })),
     };
   }
+
+  // ==================== Safety Assistant ====================
+
+  async reportIncident(data: {
+    type: string;
+    severity: string;
+    location: string;
+    incidentDate: Date;
+    reportedBy: string;
+    description: string;
+    injuries?: string;
+    witnesses?: string[];
+    photoUrls?: string[];
+  }) {
+    const incidentCount = await this.prisma.safetyIncident.count();
+    const incidentNumber = `INC-${Date.now()}-${incidentCount + 1}`;
+
+    const incident = await this.prisma.safetyIncident.create({
+      data: {
+        incidentNumber,
+        type: data.type as any,
+        severity: data.severity as any,
+        location: data.location,
+        incidentDate: data.incidentDate,
+        reportedBy: data.reportedBy,
+        description: data.description,
+        injuries: data.injuries,
+        witnesses: data.witnesses || [],
+        photoUrls: data.photoUrls || [],
+      },
+    });
+
+    // Immediately run AI analysis
+    const analysis = await this.analyzeIncident(incident.id);
+
+    return {
+      incident,
+      analysis,
+    };
+  }
+
+  async getIncidents(filters?: {
+    type?: string;
+    severity?: string;
+    status?: string;
+  }) {
+    const where: any = {};
+    if (filters?.type) where.type = filters.type;
+    if (filters?.severity) where.severity = filters.severity;
+    if (filters?.status) where.status = filters.status;
+
+    return this.prisma.safetyIncident.findMany({
+      where,
+      orderBy: { incidentDate: 'desc' },
+    });
+  }
+
+  async getIncidentById(id: string) {
+    return this.prisma.safetyIncident.findUnique({
+      where: { id },
+    });
+  }
+
+  async analyzeIncident(incidentId: string) {
+    const incident = await this.prisma.safetyIncident.findUnique({
+      where: { id: incidentId },
+    });
+
+    if (!incident) {
+      throw new Error('Incident not found');
+    }
+
+    // AI Analysis (Simulated - in production, use OpenAI Vision API or similar)
+    const aiAnalysis = this.generateIncidentAnalysis(incident);
+    const rootCause = this.identifyRootCause(incident);
+    const correctiveActions = this.generateCorrectiveActions(incident);
+    const oshaReportable = this.determineOSHAReportability(incident);
+    const oshaReport = oshaReportable
+      ? this.generateOSHAReport(incident, aiAnalysis, rootCause)
+      : null;
+
+    // Update incident with AI analysis
+    await this.prisma.safetyIncident.update({
+      where: { id: incidentId },
+      data: {
+        aiAnalysis: aiAnalysis.summary,
+        rootCause: rootCause.analysis,
+        correctiveActions: correctiveActions.join('\n'),
+        oshaReportable,
+        oshaReport,
+      },
+    });
+
+    return {
+      analysis: aiAnalysis,
+      rootCause,
+      correctiveActions,
+      oshaReportable,
+      oshaReport,
+    };
+  }
+
+  private generateIncidentAnalysis(incident: any): {
+    summary: string;
+    hazardsIdentified: string[];
+    affectedAreas: string[];
+    immediateActions: string[];
+  } {
+    const hazards: string[] = [];
+    const areas: string[] = [];
+    const actions: string[] = [];
+
+    // Analyze based on incident type
+    switch (incident.type) {
+      case 'INJURY':
+        hazards.push('Physical hazard leading to personnel injury');
+        hazards.push('Inadequate PPE usage or equipment failure');
+        areas.push('Work safety protocols');
+        areas.push('Training requirements');
+        actions.push('Provide immediate medical attention');
+        actions.push('Secure the area to prevent further injuries');
+        actions.push('Document all evidence and witness statements');
+        break;
+
+      case 'NEAR_MISS':
+        hazards.push('Potential hazard identified before injury occurred');
+        areas.push('Preventive measures');
+        areas.push('Hazard identification procedures');
+        actions.push('Investigate the root cause immediately');
+        actions.push('Implement preventive controls');
+        actions.push('Update safety protocols if needed');
+        break;
+
+      case 'EQUIPMENT_DAMAGE':
+        hazards.push('Equipment failure or operational error');
+        hazards.push('Potential for operational disruption');
+        areas.push('Equipment maintenance');
+        areas.push('Operator training');
+        actions.push('Isolate damaged equipment');
+        actions.push('Assess repair vs replacement');
+        actions.push('Review maintenance schedules');
+        break;
+
+      case 'ENVIRONMENTAL':
+        hazards.push('Environmental impact or contamination');
+        hazards.push('Regulatory compliance risk');
+        areas.push('Environmental controls');
+        areas.push('Spill response procedures');
+        actions.push('Contain and mitigate environmental impact');
+        actions.push('Notify environmental authorities if required');
+        actions.push('Implement cleanup procedures');
+        break;
+
+      case 'FIRE':
+        hazards.push('Fire hazard with potential for severe damage');
+        hazards.push('Risk to personnel and assets');
+        areas.push('Fire prevention systems');
+        areas.push('Emergency response');
+        actions.push('Ensure fire is completely extinguished');
+        actions.push('Account for all personnel');
+        actions.push('Investigate ignition source');
+        break;
+
+      case 'CHEMICAL_SPILL':
+        hazards.push('Chemical exposure hazard');
+        hazards.push('Environmental contamination risk');
+        areas.push('Chemical handling procedures');
+        areas.push('Spill containment systems');
+        actions.push('Evacuate affected area immediately');
+        actions.push('Deploy spill containment measures');
+        actions.push('Ensure proper PPE for cleanup crew');
+        break;
+
+      default:
+        hazards.push('Unclassified safety hazard');
+        areas.push('General safety procedures');
+        actions.push('Investigate and document incident details');
+    }
+
+    // Severity-based recommendations
+    if (
+      incident.severity === 'CRITICAL' ||
+      incident.severity === 'FATAL'
+    ) {
+      actions.push('URGENT: Notify senior management immediately');
+      actions.push('Consider temporary shutdown of affected operations');
+      actions.push('Engage external safety consultants');
+    }
+
+    const summary = `Incident Type: ${incident.type}. Severity: ${incident.severity}. Location: ${incident.location}. This incident requires immediate attention and thorough investigation. ${hazards.length} primary hazards have been identified. ${areas.length} areas require review and potential improvement.`;
+
+    return {
+      summary,
+      hazardsIdentified: hazards,
+      affectedAreas: areas,
+      immediateActions: actions,
+    };
+  }
+
+  private identifyRootCause(incident: any): {
+    analysis: string;
+    contributingFactors: string[];
+    recommendations: string[];
+  } {
+    const factors: string[] = [];
+    const recommendations: string[] = [];
+
+    // Common root cause analysis
+    factors.push('Human factors: Training adequacy, fatigue, awareness');
+    factors.push('Equipment factors: Maintenance status, age, suitability');
+    factors.push('Environmental factors: Lighting, weather, workspace conditions');
+    factors.push('Procedural factors: SOPs followed, supervision, communication');
+
+    recommendations.push(
+      'Conduct detailed investigation with all stakeholders',
+    );
+    recommendations.push('Review and update relevant SOPs and training materials');
+    recommendations.push(
+      'Implement corrective actions to prevent recurrence',
+    );
+
+    // Severity-specific analysis
+    if (incident.severity === 'CRITICAL' || incident.severity === 'FATAL') {
+      recommendations.push('Engage third-party safety investigation team');
+      recommendations.push('Consider comprehensive safety audit');
+    }
+
+    const analysis = `Root cause analysis indicates multiple contributing factors across human, equipment, environmental, and procedural domains. A comprehensive investigation is recommended to identify the primary cause and implement effective preventive measures. Based on the ${incident.severity.toLowerCase()} severity, this incident requires thorough examination and swift corrective action.`;
+
+    return {
+      analysis,
+      contributingFactors: factors,
+      recommendations,
+    };
+  }
+
+  private generateCorrectiveActions(incident: any): string[] {
+    const actions: string[] = [];
+
+    // Type-specific actions
+    switch (incident.type) {
+      case 'INJURY':
+        actions.push(
+          'Mandatory refresher safety training for all personnel in affected area',
+        );
+        actions.push('Review and enhance PPE requirements');
+        actions.push('Implement additional supervision during high-risk operations');
+        actions.push('Establish buddy system for hazardous tasks');
+        break;
+
+      case 'NEAR_MISS':
+        actions.push('Share lessons learned across all teams');
+        actions.push('Implement additional hazard identification checks');
+        actions.push('Recognize and reward the reporting individual');
+        break;
+
+      case 'EQUIPMENT_DAMAGE':
+        actions.push('Immediate equipment inspection and testing');
+        actions.push('Review maintenance schedules and procedures');
+        actions.push('Additional operator training on equipment care');
+        actions.push('Implement pre-operation inspection checklists');
+        break;
+
+      case 'ENVIRONMENTAL':
+        actions.push('Enhance spill containment systems');
+        actions.push('Increase frequency of environmental inspections');
+        actions.push('Update emergency response procedures');
+        actions.push('Provide specialized environmental training');
+        break;
+
+      case 'FIRE':
+        actions.push('Inspect and test all fire suppression systems');
+        actions.push('Conduct fire safety drills');
+        actions.push('Review hot work permit procedures');
+        actions.push('Enhance fire watch protocols');
+        break;
+
+      case 'CHEMICAL_SPILL':
+        actions.push('Review chemical storage and handling procedures');
+        actions.push('Enhance secondary containment systems');
+        actions.push('Update chemical spill response training');
+        actions.push('Ensure adequate spill kit availability');
+        break;
+    }
+
+    // Universal actions
+    actions.push('Document all corrective actions and track completion');
+    actions.push('Conduct follow-up inspection within 30 days');
+    actions.push('Update incident database and trend analysis');
+
+    return actions;
+  }
+
+  private determineOSHAReportability(incident: any): boolean {
+    // Simplified OSHA reportability determination
+    // In production, this would follow actual OSHA 300/301 criteria
+
+    if (incident.severity === 'FATAL') return true;
+    if (incident.severity === 'CRITICAL') return true;
+
+    if (
+      incident.type === 'INJURY' &&
+      (incident.severity === 'SERIOUS' || incident.severity === 'MODERATE')
+    ) {
+      return true;
+    }
+
+    if (
+      incident.type === 'ENVIRONMENTAL' &&
+      incident.severity === 'SERIOUS'
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private generateOSHAReport(
+    incident: any,
+    analysis: any,
+    rootCause: any,
+  ): string {
+    const report = `
+OSHA INCIDENT REPORT
+====================
+
+INCIDENT DETAILS
+----------------
+Incident Number: ${incident.incidentNumber}
+Date of Incident: ${new Date(incident.incidentDate).toLocaleDateString()}
+Time of Incident: ${new Date(incident.incidentDate).toLocaleTimeString()}
+Location: ${incident.location}
+Reported By: ${incident.reportedBy}
+
+INCIDENT CLASSIFICATION
+-----------------------
+Type: ${incident.type}
+Severity: ${incident.severity}
+OSHA Recordable: Yes
+
+DESCRIPTION OF INCIDENT
+-----------------------
+${incident.description}
+
+INJURIES/ILLNESSES (if applicable)
+----------------------------------
+${incident.injuries || 'No injuries reported'}
+
+WITNESSES
+---------
+${incident.witnesses?.join(', ') || 'None recorded'}
+
+AI ANALYSIS SUMMARY
+-------------------
+${analysis.summary}
+
+HAZARDS IDENTIFIED
+------------------
+${analysis.hazardsIdentified.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}
+
+ROOT CAUSE ANALYSIS
+-------------------
+${rootCause.analysis}
+
+Contributing Factors:
+${rootCause.contributingFactors.map((f: string, i: number) => `${i + 1}. ${f}`).join('\n')}
+
+CORRECTIVE ACTIONS REQUIRED
+----------------------------
+${this.generateCorrectiveActions(incident).map((a: string, i: number) => `${i + 1}. ${a}`).join('\n')}
+
+REGULATORY COMPLIANCE
+---------------------
+This incident meets OSHA reporting criteria and must be:
+- Recorded in OSHA 300 Log within 7 calendar days
+- Reported to OSHA within required timeframe based on severity
+- Investigated thoroughly with findings documented
+- Monitored for similar incidents (trend analysis)
+
+REPORT GENERATED
+----------------
+Date: ${new Date().toLocaleString()}
+Generated By: AI Safety Assistant
+Status: PRELIMINARY - Requires human review and validation
+
+This report is AI-generated and must be reviewed by qualified safety personnel before submission to OSHA.
+`;
+
+    return report;
+  }
+
+  async getSafetyStats() {
+    const [
+      totalIncidents,
+      openIncidents,
+      incidentsByType,
+      incidentsBySeverity,
+      oshaReportable,
+    ] = await Promise.all([
+      this.prisma.safetyIncident.count(),
+      this.prisma.safetyIncident.count({
+        where: {
+          status: {
+            in: ['REPORTED', 'INVESTIGATING'],
+          },
+        },
+      }),
+      this.prisma.safetyIncident.groupBy({
+        by: ['type'],
+        _count: true,
+      }),
+      this.prisma.safetyIncident.groupBy({
+        by: ['severity'],
+        _count: true,
+      }),
+      this.prisma.safetyIncident.count({
+        where: { oshaReportable: true },
+      }),
+    ]);
+
+    return {
+      totalIncidents,
+      openIncidents,
+      oshaReportable,
+      incidentsByType: incidentsByType.map((item) => ({
+        type: item.type,
+        count: item._count,
+      })),
+      incidentsBySeverity: incidentsBySeverity.map((item) => ({
+        severity: item.severity,
+        count: item._count,
+      })),
+    };
+  }
 }

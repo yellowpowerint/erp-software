@@ -322,6 +322,13 @@ export const menuItems: MenuItem[] = [
         path: '/ai/knowledge-engine',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER, UserRole.SAFETY_OFFICER, UserRole.HR_MANAGER],
       },
+      {
+        id: 'ai-safety',
+        label: 'Safety Assistant',
+        icon: Brain,
+        path: '/ai/safety-assistant',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER, UserRole.SAFETY_OFFICER],
+      },
     ],
   },
   {

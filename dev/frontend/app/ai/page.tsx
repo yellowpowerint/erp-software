@@ -211,6 +211,23 @@ function AiDashboardContent() {
                 <span>Ask Questions</span>
               </div>
             </Link>
+
+            <Link
+              href="/ai/safety-assistant"
+              className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900">Safety Assistant</h3>
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Incident analysis, root cause identification, and automatic OSHA report generation.
+              </p>
+              <div className="flex items-center space-x-2 text-indigo-600 text-sm font-medium">
+                <Brain className="w-4 h-4" />
+                <span>Analyze Incidents</span>
+              </div>
+            </Link>
           </div>
         </>
       )}
