@@ -27,99 +27,6 @@ function AuditLogsContent() {
     dateTo: '',
   });
 
-  const mockLogs: AuditLog[] = [
-        {
-          id: '1',
-          timestamp: new Date(Date.now() - 1000 * 60 * 15),
-          action: 'USER_LOGIN',
-          userId: 'user1',
-          details: 'User successfully logged in',
-          category: 'Authentication',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '2',
-          timestamp: new Date(Date.now() - 1000 * 60 * 30),
-          action: 'USER_CREATED',
-          userId: 'admin',
-          details: 'Created new user: jane.smith',
-          category: 'User Management',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '3',
-          timestamp: new Date(Date.now() - 1000 * 60 * 45),
-          action: 'CONFIG_UPDATED',
-          userId: 'admin',
-          details: 'System configuration updated',
-          category: 'System',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '4',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60),
-          action: 'PASSWORD_CHANGED',
-          userId: 'user2',
-          details: 'User changed their password',
-          category: 'Security',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '5',
-          timestamp: new Date(Date.now() - 1000 * 60 * 90),
-          action: 'USER_DEACTIVATED',
-          userId: 'admin',
-          details: 'Deactivated user: old.user',
-          category: 'User Management',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '6',
-          timestamp: new Date(Date.now() - 1000 * 60 * 120),
-          action: 'APPROVAL_CREATED',
-          userId: 'manager',
-          details: 'Created approval workflow for Purchase Requests',
-          category: 'Workflows',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '7',
-          timestamp: new Date(Date.now() - 1000 * 60 * 150),
-          action: 'ROLE_UPDATED',
-          userId: 'admin',
-          details: 'Updated role for user: employee to DEPARTMENT_HEAD',
-          category: 'User Management',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '8',
-          timestamp: new Date(Date.now() - 1000 * 60 * 180),
-          action: 'DATA_EXPORT',
-          userId: 'cfo',
-          details: 'Exported financial report data',
-          category: 'Data',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '9',
-          timestamp: new Date(Date.now() - 1000 * 60 * 210),
-          action: 'FAILED_LOGIN',
-          userId: 'unknown',
-          details: 'Failed login attempt - invalid credentials',
-          category: 'Security',
-          ipAddress: 'Hidden',
-        },
-        {
-          id: '10',
-          timestamp: new Date(Date.now() - 1000 * 60 * 240),
-          action: 'SETTINGS_VIEWED',
-          userId: 'manager',
-          details: 'Viewed system settings page',
-          category: 'System',
-          ipAddress: 'Hidden',
-        },
-      ];
-  
   const fetchLogs = async () => {
     try {
       const response = await api.get('/settings/audit-logs', {
@@ -136,10 +43,10 @@ function AuditLogsContent() {
         ipAddress: log.ipAddress,
       }));
 
-      setLogs(apiLogs.length > 0 ? apiLogs : mockLogs);
+      setLogs(apiLogs);
     } catch (error) {
       console.error('Failed to fetch audit logs:', error);
-      setLogs(mockLogs);
+      setLogs([]);
     } finally {
       setLoading(false);
     }

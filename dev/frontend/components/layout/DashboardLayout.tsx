@@ -25,6 +25,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <main className="flex-1 p-6">
           {children}
         </main>
+
+        {/* Footer */}
+        <footer className="mt-auto border-t border-gray-200 bg-white px-6 py-3 text-xs text-gray-500 text-center">
+          © 2025 Yellow Power Int&apos;l ERP v1.0
+        </footer>
       </div>
     </div>
   );

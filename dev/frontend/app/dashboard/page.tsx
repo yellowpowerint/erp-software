@@ -44,12 +44,7 @@ function DashboardContent() {
 
   const stats = user ? getRoleBasedStats(user.role) : [];
 
-  const recentActivities = [
-    { action: 'Invoice #1234 approved', user: 'John CEO', time: '2 hours ago' },
-    { action: 'New purchase request submitted', user: 'Alice Johnson', time: '4 hours ago' },
-    { action: 'Equipment maintenance completed', user: 'Tom Wilson', time: '6 hours ago' },
-    { action: 'Stock alert: Diesel fuel low', user: 'System', time: '8 hours ago' },
-  ];
+  const recentActivities: Array<{ action: string; user: string; time: string }> = [];
 
   return (
     <DashboardLayout>
@@ -108,19 +103,26 @@ function DashboardContent() {
             <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-indigo-600 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                    <p className="text-xs text-gray-500">
-                      {activity.user} • {activity.time}
-                    </p>
+            {recentActivities.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No recent activity yet. As your team starts using the system, key events
+                will appear here.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-indigo-600 rounded-full mt-2" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                      <p className="text-xs text-gray-500">
+                        {activity.user} • {activity.time}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -132,16 +134,10 @@ function DashboardContent() {
               <AlertCircle className="w-5 h-5 text-orange-500" />
               <h2 className="text-lg font-semibold text-gray-900">Alerts</h2>
             </div>
-            <div className="space-y-3">
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm font-medium text-red-900">3 Critical Stock Items</p>
-                <p className="text-xs text-red-700 mt-1">Immediate action required</p>
-              </div>
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm font-medium text-yellow-900">12 Pending Approvals</p>
-                <p className="text-xs text-yellow-700 mt-1">Awaiting your review</p>
-              </div>
-            </div>
+            <p className="text-sm text-gray-500">
+              Alerts for low stock, safety incidents, and pending approvals will appear
+              here as the system is used.
+            </p>
           </div>
 
           {/* User Info */}
@@ -173,13 +169,6 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* Success Message */}
-      <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-        <p className="text-sm text-indigo-800">
-          <strong>🎉 Session 2.2 Complete!</strong> Dashboard now has role-based stats, quick actions, and analytics charts.
-          Try logging in with different user roles to see personalized dashboards!
-        </p>
-      </div>
     </DashboardLayout>
   );
 }

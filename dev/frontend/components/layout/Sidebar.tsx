@@ -88,7 +88,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <button
                     onClick={() => toggleExpand(item.id)}
                     className={cn(
-                      'w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors',
+                      'w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors whitespace-nowrap',
                       activeParent
                         ? 'bg-indigo-600 text-white'
                         : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -109,14 +109,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     href={item.path || '#'}
                     onClick={onClose}
                     className={cn(
-                      'flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors',
+                      'flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors whitespace-nowrap',
                       activeItem
                         ? 'bg-indigo-600 text-white'
                         : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     )}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-xs font-medium truncate">{item.label}</span>
                   </Link>
                 )}
 
@@ -133,7 +133,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             href={child.path || '#'}
                             onClick={onClose}
                             className={cn(
-                              'block px-3 py-2 rounded-lg text-sm transition-colors',
+                              'block px-3 py-2 rounded-lg text-xs transition-colors whitespace-nowrap truncate',
                               activeChild
                                 ? 'bg-indigo-700 text-white'
                                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -150,12 +150,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 bg-gray-900">
-          <div className="text-xs text-gray-500 text-center">
-            © 2025 Mining ERP v1.0
-          </div>
-        </div>
       </aside>
     </>
   );

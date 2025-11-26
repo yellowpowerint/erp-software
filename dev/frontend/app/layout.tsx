@@ -3,8 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
-  title: "Mining ERP System",
-  description: "Integrated Mining ERP with AI Automation Platform",
+  title: "Yellow Power Int'l ERP",
+  description: "Yellow Power Int'l ERP for mining operations with workflow automation and AI insights",
 };
 
 export default function RootLayout({

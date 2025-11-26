@@ -25,7 +25,7 @@ describe('AuditLogsPage', () => {
   it('renders the audit logs heading and statistics section', async () => {
     render(<AuditLogsPage />);
 
-    const heading = await screen.findByText(/Audit Logs/i);
+    const heading = await screen.findByRole('heading', { name: /Audit Logs/i });
     expect(heading).toBeInTheDocument();
 
     const totalEventsLabel = await screen.findByText('Total Events');
