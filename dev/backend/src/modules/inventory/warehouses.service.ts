@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateWarehouseDto } from './dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { CreateWarehouseDto } from "./dto";
 
 @Injectable()
 export class WarehousesService {
@@ -14,7 +18,7 @@ export class WarehousesService {
     });
 
     if (existing) {
-      throw new BadRequestException('Warehouse code already exists');
+      throw new BadRequestException("Warehouse code already exists");
     }
 
     return this.prisma.warehouse.create({
@@ -43,7 +47,7 @@ export class WarehousesService {
         },
       },
       orderBy: {
-        name: 'asc',
+        name: "asc",
       },
     });
   }
@@ -55,7 +59,7 @@ export class WarehousesService {
       include: {
         stockItems: {
           orderBy: {
-            name: 'asc',
+            name: "asc",
           },
         },
         _count: {
@@ -68,7 +72,7 @@ export class WarehousesService {
     });
 
     if (!warehouse) {
-      throw new NotFoundException('Warehouse not found');
+      throw new NotFoundException("Warehouse not found");
     }
 
     return warehouse;
@@ -85,7 +89,7 @@ export class WarehousesService {
       });
 
       if (existing) {
-        throw new BadRequestException('Warehouse code already exists');
+        throw new BadRequestException("Warehouse code already exists");
       }
     }
 
@@ -108,7 +112,9 @@ export class WarehousesService {
 
     // Check if warehouse has stock items
     if (warehouse._count.stockItems > 0) {
-      throw new BadRequestException('Cannot delete warehouse with stock items. Move or delete items first.');
+      throw new BadRequestException(
+        "Cannot delete warehouse with stock items. Move or delete items first.",
+      );
     }
 
     return this.prisma.warehouse.delete({
@@ -120,22 +126,23 @@ export class WarehousesService {
   async seedDefaultWarehouses() {
     const warehouses = [
       {
-        code: 'WH-MAIN',
-        name: 'Main Warehouse',
-        location: 'Accra, Ghana',
-        description: 'Primary storage facility for all mining equipment and consumables',
+        code: "WH-MAIN",
+        name: "Main Warehouse",
+        location: "Accra, Ghana",
+        description:
+          "Primary storage facility for all mining equipment and consumables",
       },
       {
-        code: 'WH-SITE-01',
-        name: 'Tarkwa Mine Site Warehouse',
-        location: 'Tarkwa, Western Region',
-        description: 'On-site warehouse at Tarkwa mining operations',
+        code: "WH-SITE-01",
+        name: "Tarkwa Mine Site Warehouse",
+        location: "Tarkwa, Western Region",
+        description: "On-site warehouse at Tarkwa mining operations",
       },
       {
-        code: 'WH-TOOLS',
-        name: 'Tools & Equipment Store',
-        location: 'Accra, Ghana',
-        description: 'Specialized storage for tools and small equipment',
+        code: "WH-TOOLS",
+        name: "Tools & Equipment Store",
+        location: "Accra, Ghana",
+        description: "Specialized storage for tools and small equipment",
       },
     ];
 

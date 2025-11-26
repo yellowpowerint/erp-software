@@ -1,8 +1,24 @@
-import { IsNotEmpty, IsEnum, IsInt, IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+} from "class-validator";
 
 export class StockMovementDto {
   @IsNotEmpty()
-  @IsEnum(['STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT', 'TRANSFER', 'RETURN', 'DAMAGED', 'EXPIRED'])
+  @IsEnum([
+    "STOCK_IN",
+    "STOCK_OUT",
+    "ADJUSTMENT",
+    "TRANSFER",
+    "RETURN",
+    "DAMAGED",
+    "EXPIRED",
+  ])
   movementType: string;
 
   @IsNotEmpty()

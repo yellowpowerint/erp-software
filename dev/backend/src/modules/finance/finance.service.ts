@@ -1,12 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 import {
   PaymentStatus,
   PaymentMethod,
   ExpenseCategory,
   BudgetPeriod,
   ApprovalStatus,
-} from '@prisma/client';
+} from "@prisma/client";
 
 @Injectable()
 export class FinanceService {
@@ -87,7 +87,7 @@ export class FinanceService {
           },
         },
       },
-      orderBy: { paymentDate: 'desc' },
+      orderBy: { paymentDate: "desc" },
     });
   }
 
@@ -231,7 +231,7 @@ export class FinanceService {
           },
         },
       },
-      orderBy: { expenseDate: 'desc' },
+      orderBy: { expenseDate: "desc" },
     });
   }
 
@@ -370,7 +370,7 @@ export class FinanceService {
           },
         },
       },
-      orderBy: { startDate: 'desc' },
+      orderBy: { startDate: "desc" },
     });
   }
 
@@ -469,7 +469,7 @@ export class FinanceService {
 
     return this.prisma.supplier.findMany({
       where,
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -478,7 +478,7 @@ export class FinanceService {
       where: { id },
       include: {
         payments: {
-          orderBy: { paymentDate: 'desc' },
+          orderBy: { paymentDate: "desc" },
           take: 10,
         },
       },
@@ -534,21 +534,21 @@ export class FinanceService {
       totalSuppliers,
     ] = await Promise.all([
       this.prisma.financePayment.count(),
-      this.prisma.financePayment.count({ where: { status: 'PENDING' } }),
+      this.prisma.financePayment.count({ where: { status: "PENDING" } }),
       this.prisma.expense.count(),
-      this.prisma.expense.count({ where: { status: 'PENDING' } }),
+      this.prisma.expense.count({ where: { status: "PENDING" } }),
       this.prisma.budget.count(),
       this.prisma.supplier.count({ where: { isActive: true } }),
     ]);
 
     // Calculate totals
     const paymentsSum = await this.prisma.financePayment.aggregate({
-      where: { status: 'COMPLETED' },
+      where: { status: "COMPLETED" },
       _sum: { amount: true },
     });
 
     const expensesSum = await this.prisma.expense.aggregate({
-      where: { status: 'APPROVED' },
+      where: { status: "APPROVED" },
       _sum: { amount: true },
     });
 

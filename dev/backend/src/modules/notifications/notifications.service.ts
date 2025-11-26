@@ -1,9 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 export interface CreateNotificationDto {
   userId: string;
-  type: 'APPROVAL_REQUEST' | 'APPROVAL_APPROVED' | 'APPROVAL_REJECTED' | 'SYSTEM_ALERT' | 'MENTION';
+  type:
+    | "APPROVAL_REQUEST"
+    | "APPROVAL_APPROVED"
+    | "APPROVAL_REJECTED"
+    | "SYSTEM_ALERT"
+    | "MENTION";
   title: string;
   message: string;
   referenceId?: string;
@@ -33,7 +38,7 @@ export class NotificationsService {
         ...(unreadOnly ? { read: false } : {}),
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       take: 50,
     });
@@ -86,7 +91,7 @@ export class NotificationsService {
     return this.prisma.user.findMany({
       where: {
         role: { in: roles as any },
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
       select: {
         id: true,
@@ -96,17 +101,24 @@ export class NotificationsService {
   }
 
   // Helper: Notify approvers for invoices
-  async notifyInvoiceApprovers(invoiceId: string, invoiceNumber: string, amount: number, creatorName: string) {
-    const approvers = await this.getUsersByRole(['CEO', 'CFO', 'ACCOUNTANT']);
-    
-    const notifications: CreateNotificationDto[] = approvers.map((approver) => ({
-      userId: approver.id,
-      type: 'APPROVAL_REQUEST',
-      title: 'New Invoice Awaiting Approval',
-      message: `${creatorName} submitted invoice ${invoiceNumber} for ₵${amount.toLocaleString()}`,
-      referenceId: invoiceId,
-      referenceType: 'invoice',
-    }));
+  async notifyInvoiceApprovers(
+    invoiceId: string,
+    invoiceNumber: string,
+    amount: number,
+    creatorName: string,
+  ) {
+    const approvers = await this.getUsersByRole(["CEO", "CFO", "ACCOUNTANT"]);
+
+    const notifications: CreateNotificationDto[] = approvers.map(
+      (approver) => ({
+        userId: approver.id,
+        type: "APPROVAL_REQUEST",
+        title: "New Invoice Awaiting Approval",
+        message: `${creatorName} submitted invoice ${invoiceNumber} for ₵${amount.toLocaleString()}`,
+        referenceId: invoiceId,
+        referenceType: "invoice",
+      }),
+    );
 
     if (notifications.length > 0) {
       await this.createBulkNotifications(notifications);
@@ -114,17 +126,28 @@ export class NotificationsService {
   }
 
   // Helper: Notify approvers for purchase requests
-  async notifyPurchaseRequestApprovers(requestId: string, requestNumber: string, title: string, creatorName: string) {
-    const approvers = await this.getUsersByRole(['CEO', 'CFO', 'PROCUREMENT_OFFICER']);
-    
-    const notifications: CreateNotificationDto[] = approvers.map((approver) => ({
-      userId: approver.id,
-      type: 'APPROVAL_REQUEST',
-      title: 'New Purchase Request',
-      message: `${creatorName} submitted purchase request "${title}" (${requestNumber})`,
-      referenceId: requestId,
-      referenceType: 'purchase_request',
-    }));
+  async notifyPurchaseRequestApprovers(
+    requestId: string,
+    requestNumber: string,
+    title: string,
+    creatorName: string,
+  ) {
+    const approvers = await this.getUsersByRole([
+      "CEO",
+      "CFO",
+      "PROCUREMENT_OFFICER",
+    ]);
+
+    const notifications: CreateNotificationDto[] = approvers.map(
+      (approver) => ({
+        userId: approver.id,
+        type: "APPROVAL_REQUEST",
+        title: "New Purchase Request",
+        message: `${creatorName} submitted purchase request "${title}" (${requestNumber})`,
+        referenceId: requestId,
+        referenceType: "purchase_request",
+      }),
+    );
 
     if (notifications.length > 0) {
       await this.createBulkNotifications(notifications);
@@ -132,17 +155,24 @@ export class NotificationsService {
   }
 
   // Helper: Notify approvers for IT requests
-  async notifyITRequestApprovers(requestId: string, requestNumber: string, title: string, creatorName: string) {
-    const approvers = await this.getUsersByRole(['CEO', 'CFO', 'IT_MANAGER']);
-    
-    const notifications: CreateNotificationDto[] = approvers.map((approver) => ({
-      userId: approver.id,
-      type: 'APPROVAL_REQUEST',
-      title: 'New IT Request',
-      message: `${creatorName} submitted IT request "${title}" (${requestNumber})`,
-      referenceId: requestId,
-      referenceType: 'it_request',
-    }));
+  async notifyITRequestApprovers(
+    requestId: string,
+    requestNumber: string,
+    title: string,
+    creatorName: string,
+  ) {
+    const approvers = await this.getUsersByRole(["CEO", "CFO", "IT_MANAGER"]);
+
+    const notifications: CreateNotificationDto[] = approvers.map(
+      (approver) => ({
+        userId: approver.id,
+        type: "APPROVAL_REQUEST",
+        title: "New IT Request",
+        message: `${creatorName} submitted IT request "${title}" (${requestNumber})`,
+        referenceId: requestId,
+        referenceType: "it_request",
+      }),
+    );
 
     if (notifications.length > 0) {
       await this.createBulkNotifications(notifications);
@@ -150,17 +180,24 @@ export class NotificationsService {
   }
 
   // Helper: Notify approvers for payment requests
-  async notifyPaymentRequestApprovers(requestId: string, requestNumber: string, amount: number, creatorName: string) {
-    const approvers = await this.getUsersByRole(['CEO', 'CFO', 'ACCOUNTANT']);
-    
-    const notifications: CreateNotificationDto[] = approvers.map((approver) => ({
-      userId: approver.id,
-      type: 'APPROVAL_REQUEST',
-      title: 'New Payment Request',
-      message: `${creatorName} submitted payment request ${requestNumber} for ₵${amount.toLocaleString()}`,
-      referenceId: requestId,
-      referenceType: 'payment_request',
-    }));
+  async notifyPaymentRequestApprovers(
+    requestId: string,
+    requestNumber: string,
+    amount: number,
+    creatorName: string,
+  ) {
+    const approvers = await this.getUsersByRole(["CEO", "CFO", "ACCOUNTANT"]);
+
+    const notifications: CreateNotificationDto[] = approvers.map(
+      (approver) => ({
+        userId: approver.id,
+        type: "APPROVAL_REQUEST",
+        title: "New Payment Request",
+        message: `${creatorName} submitted payment request ${requestNumber} for ₵${amount.toLocaleString()}`,
+        referenceId: requestId,
+        referenceType: "payment_request",
+      }),
+    );
 
     if (notifications.length > 0) {
       await this.createBulkNotifications(notifications);
@@ -177,13 +214,13 @@ export class NotificationsService {
   ) {
     await this.createNotification({
       userId: creatorId,
-      type: approved ? 'APPROVAL_APPROVED' : 'APPROVAL_REJECTED',
+      type: approved ? "APPROVAL_APPROVED" : "APPROVAL_REJECTED",
       title: approved ? `${itemType} Approved` : `${itemType} Rejected`,
       message: approved
         ? `Your ${itemType} ${itemNumber} was approved by ${approverName}`
         : `Your ${itemType} ${itemNumber} was rejected by ${approverName}`,
       referenceId: itemNumber,
-      referenceType: itemType.toLowerCase().replace(' ', '_'),
+      referenceType: itemType.toLowerCase().replace(" ", "_"),
     });
   }
 }

@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 export interface CreateProductionLogDto {
   projectId?: string;
@@ -96,7 +96,7 @@ export class OperationsService {
         },
       },
       orderBy: {
-        date: 'desc',
+        date: "desc",
       },
       take: 100,
     });
@@ -111,7 +111,7 @@ export class OperationsService {
     });
 
     if (!log) {
-      throw new NotFoundException('Production log not found');
+      throw new NotFoundException("Production log not found");
     }
 
     return log;
@@ -165,7 +165,7 @@ export class OperationsService {
     return this.prisma.shift.findMany({
       where,
       orderBy: {
-        date: 'desc',
+        date: "desc",
       },
     });
   }
@@ -173,7 +173,7 @@ export class OperationsService {
   async getShiftById(id: string) {
     const shift = await this.prisma.shift.findUnique({ where: { id } });
     if (!shift) {
-      throw new NotFoundException('Shift not found');
+      throw new NotFoundException("Shift not found");
     }
     return shift;
   }
@@ -209,7 +209,7 @@ export class OperationsService {
         description: dto.description,
         findings: dto.findings,
         recommendations: dto.recommendations,
-        priority: dto.priority || 'MEDIUM',
+        priority: dto.priority || "MEDIUM",
         attachments: dto.attachments || [],
       },
       include: {
@@ -223,11 +223,7 @@ export class OperationsService {
     });
   }
 
-  async getFieldReports(
-    projectId?: string,
-    startDate?: Date,
-    endDate?: Date,
-  ) {
+  async getFieldReports(projectId?: string, startDate?: Date, endDate?: Date) {
     const where: any = {};
     if (projectId) where.projectId = projectId;
     if (startDate || endDate) {
@@ -247,7 +243,7 @@ export class OperationsService {
         },
       },
       orderBy: {
-        reportDate: 'desc',
+        reportDate: "desc",
       },
     });
   }
@@ -261,7 +257,7 @@ export class OperationsService {
     });
 
     if (!report) {
-      throw new NotFoundException('Field report not found');
+      throw new NotFoundException("Field report not found");
     }
 
     return report;
@@ -292,20 +288,21 @@ export class OperationsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [totalProductionLogs, todayLogs, activeShifts, totalFieldReports] = await Promise.all([
-      this.prisma.productionLog.count(),
-      this.prisma.productionLog.count({
-        where: {
-          date: { gte: today },
-        },
-      }),
-      this.prisma.shift.count({
-        where: {
-          date: { gte: today },
-        },
-      }),
-      this.prisma.fieldReport.count(),
-    ]);
+    const [totalProductionLogs, todayLogs, activeShifts, totalFieldReports] =
+      await Promise.all([
+        this.prisma.productionLog.count(),
+        this.prisma.productionLog.count({
+          where: {
+            date: { gte: today },
+          },
+        }),
+        this.prisma.shift.count({
+          where: {
+            date: { gte: today },
+          },
+        }),
+        this.prisma.fieldReport.count(),
+      ]);
 
     // Get production summary
     const recentLogs = await this.prisma.productionLog.findMany({
@@ -318,11 +315,14 @@ export class OperationsService {
       },
     });
 
-    const productionByActivity = recentLogs.reduce((acc, log) => {
-      const activity = log.activityType;
-      acc[activity] = (acc[activity] || 0) + log.quantity;
-      return acc;
-    }, {} as Record<string, number>);
+    const productionByActivity = recentLogs.reduce(
+      (acc, log) => {
+        const activity = log.activityType;
+        acc[activity] = (acc[activity] || 0) + log.quantity;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalProductionLogs,
@@ -351,41 +351,50 @@ export class OperationsService {
         unit: true,
         shiftType: true,
       },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
 
     // Aggregate by activity type
-    const byActivity = logs.reduce((acc, log) => {
-      const activity = log.activityType;
-      if (!acc[activity]) {
-        acc[activity] = { activity, totalQuantity: 0, count: 0 };
-      }
-      acc[activity].totalQuantity += log.quantity;
-      acc[activity].count++;
-      return acc;
-    }, {} as Record<string, any>);
+    const byActivity = logs.reduce(
+      (acc, log) => {
+        const activity = log.activityType;
+        if (!acc[activity]) {
+          acc[activity] = { activity, totalQuantity: 0, count: 0 };
+        }
+        acc[activity].totalQuantity += log.quantity;
+        acc[activity].count++;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
     // Aggregate by shift type
-    const byShift = logs.reduce((acc, log) => {
-      const shift = log.shiftType;
-      if (!acc[shift]) {
-        acc[shift] = { shift, totalQuantity: 0, count: 0 };
-      }
-      acc[shift].totalQuantity += log.quantity;
-      acc[shift].count++;
-      return acc;
-    }, {} as Record<string, any>);
+    const byShift = logs.reduce(
+      (acc, log) => {
+        const shift = log.shiftType;
+        if (!acc[shift]) {
+          acc[shift] = { shift, totalQuantity: 0, count: 0 };
+        }
+        acc[shift].totalQuantity += log.quantity;
+        acc[shift].count++;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
     // Daily production trend
-    const dailyProduction = logs.reduce((acc, log) => {
-      const date = log.date.toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = { date, quantity: 0, count: 0 };
-      }
-      acc[date].quantity += log.quantity;
-      acc[date].count++;
-      return acc;
-    }, {} as Record<string, any>);
+    const dailyProduction = logs.reduce(
+      (acc, log) => {
+        const date = log.date.toISOString().split("T")[0];
+        if (!acc[date]) {
+          acc[date] = { date, quantity: 0, count: 0 };
+        }
+        acc[date].quantity += log.quantity;
+        acc[date].count++;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
     return {
       totalLogs: logs.length,
@@ -417,23 +426,26 @@ export class OperationsService {
       },
     });
 
-    const equipmentStats = logs.reduce((acc, log) => {
-      const equipment = log.equipmentUsed || 'Unknown';
-      if (!acc[equipment]) {
-        acc[equipment] = {
-          equipment,
-          usageCount: 0,
-          totalProduction: 0,
-          lastUsed: log.date,
-        };
-      }
-      acc[equipment].usageCount++;
-      acc[equipment].totalProduction += log.quantity;
-      if (log.date > acc[equipment].lastUsed) {
-        acc[equipment].lastUsed = log.date;
-      }
-      return acc;
-    }, {} as Record<string, any>);
+    const equipmentStats = logs.reduce(
+      (acc, log) => {
+        const equipment = log.equipmentUsed || "Unknown";
+        if (!acc[equipment]) {
+          acc[equipment] = {
+            equipment,
+            usageCount: 0,
+            totalProduction: 0,
+            lastUsed: log.date,
+          };
+        }
+        acc[equipment].usageCount++;
+        acc[equipment].totalProduction += log.quantity;
+        if (log.date > acc[equipment].lastUsed) {
+          acc[equipment].lastUsed = log.date;
+        }
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
     return {
       totalEquipment: Object.keys(equipmentStats).length,
@@ -475,12 +487,15 @@ export class OperationsService {
     const shiftPerformance = shifts.map((shift) => {
       const production = logs.filter(
         (log) =>
-          log.date.toISOString().split('T')[0] ===
-            shift.date.toISOString().split('T')[0] &&
+          log.date.toISOString().split("T")[0] ===
+            shift.date.toISOString().split("T")[0] &&
           log.shiftType === shift.shiftType,
       );
 
-      const totalProduction = production.reduce((sum, p) => sum + p.quantity, 0);
+      const totalProduction = production.reduce(
+        (sum, p) => sum + p.quantity,
+        0,
+      );
 
       return {
         date: shift.date,
@@ -488,25 +503,29 @@ export class OperationsService {
         supervisor: shift.supervisor,
         crewSize: shift.crew.length,
         totalProduction,
-        productionPerCrew: shift.crew.length > 0 ? totalProduction / shift.crew.length : 0,
+        productionPerCrew:
+          shift.crew.length > 0 ? totalProduction / shift.crew.length : 0,
       };
     });
 
     // Aggregate by shift type
-    const byShiftType = shiftPerformance.reduce((acc, shift) => {
-      const type = shift.shiftType;
-      if (!acc[type]) {
-        acc[type] = {
-          shiftType: type,
-          totalShifts: 0,
-          totalProduction: 0,
-          avgProduction: 0,
-        };
-      }
-      acc[type].totalShifts++;
-      acc[type].totalProduction += shift.totalProduction;
-      return acc;
-    }, {} as Record<string, any>);
+    const byShiftType = shiftPerformance.reduce(
+      (acc, shift) => {
+        const type = shift.shiftType;
+        if (!acc[type]) {
+          acc[type] = {
+            shiftType: type,
+            totalShifts: 0,
+            totalProduction: 0,
+            avgProduction: 0,
+          };
+        }
+        acc[type].totalShifts++;
+        acc[type].totalProduction += shift.totalProduction;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
     // Calculate averages
     Object.values(byShiftType).forEach((type: any) => {
@@ -515,7 +534,9 @@ export class OperationsService {
 
     return {
       totalShifts: shifts.length,
-      shiftPerformance: shiftPerformance.sort((a, b) => b.totalProduction - a.totalProduction),
+      shiftPerformance: shiftPerformance.sort(
+        (a, b) => b.totalProduction - a.totalProduction,
+      ),
       byShiftType: Object.values(byShiftType),
     };
   }
@@ -524,7 +545,7 @@ export class OperationsService {
   async getProjectProgressReport() {
     const projects = await this.prisma.project.findMany({
       where: {
-        status: { in: ['PLANNING', 'ACTIVE', 'ON_HOLD'] },
+        status: { in: ["PLANNING", "ACTIVE", "ON_HOLD"] },
       },
       include: {
         productionLogs: {
@@ -554,9 +575,14 @@ export class OperationsService {
       status: project.status,
       progress: project.progress,
       productionLogs: project.productionLogs.length,
-      totalProduction: project.productionLogs.reduce((sum, log) => sum + log.quantity, 0),
+      totalProduction: project.productionLogs.reduce(
+        (sum, log) => sum + log.quantity,
+        0,
+      ),
       fieldReports: project.fieldReports.length,
-      criticalReports: project.fieldReports.filter((r) => r.priority === 'CRITICAL').length,
+      criticalReports: project.fieldReports.filter(
+        (r) => r.priority === "CRITICAL",
+      ).length,
       milestones: project._count.milestones,
       tasks: project._count.tasks,
     }));

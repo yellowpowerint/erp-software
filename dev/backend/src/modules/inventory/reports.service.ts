@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
 export class InventoryReportsService {
@@ -22,39 +22,47 @@ export class InventoryReportsService {
     });
 
     const totalValue = items.reduce(
-      (sum, item) => sum + (item.currentQuantity * (item.unitPrice || 0)),
+      (sum, item) => sum + item.currentQuantity * (item.unitPrice || 0),
       0,
     );
 
-    const byCategory = items.reduce((acc, item) => {
-      const category = item.category;
-      if (!acc[category]) {
-        acc[category] = {
-          category,
-          itemCount: 0,
-          totalQuantity: 0,
-          totalValue: 0,
-        };
-      }
-      acc[category].itemCount++;
-      acc[category].totalQuantity += item.currentQuantity;
-      acc[category].totalValue += item.currentQuantity * (item.unitPrice || 0);
-      return acc;
-    }, {} as Record<string, any>);
+    const byCategory = items.reduce(
+      (acc, item) => {
+        const category = item.category;
+        if (!acc[category]) {
+          acc[category] = {
+            category,
+            itemCount: 0,
+            totalQuantity: 0,
+            totalValue: 0,
+          };
+        }
+        acc[category].itemCount++;
+        acc[category].totalQuantity += item.currentQuantity;
+        acc[category].totalValue +=
+          item.currentQuantity * (item.unitPrice || 0);
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
-    const byWarehouse = items.reduce((acc, item) => {
-      const warehouseName = item.warehouse.name;
-      if (!acc[warehouseName]) {
-        acc[warehouseName] = {
-          warehouse: warehouseName,
-          itemCount: 0,
-          totalValue: 0,
-        };
-      }
-      acc[warehouseName].itemCount++;
-      acc[warehouseName].totalValue += item.currentQuantity * (item.unitPrice || 0);
-      return acc;
-    }, {} as Record<string, any>);
+    const byWarehouse = items.reduce(
+      (acc, item) => {
+        const warehouseName = item.warehouse.name;
+        if (!acc[warehouseName]) {
+          acc[warehouseName] = {
+            warehouse: warehouseName,
+            itemCount: 0,
+            totalValue: 0,
+          };
+        }
+        acc[warehouseName].itemCount++;
+        acc[warehouseName].totalValue +=
+          item.currentQuantity * (item.unitPrice || 0);
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
     return {
       totalValue,
@@ -96,7 +104,7 @@ export class InventoryReportsService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
@@ -122,17 +130,24 @@ export class InventoryReportsService {
       }
       byCategory[category].count++;
 
-      if (movement.movementType.includes('IN') || movement.movementType === 'RETURN') {
+      if (
+        movement.movementType.includes("IN") ||
+        movement.movementType === "RETURN"
+      ) {
         summary.stockIn += movement.quantity;
         summary.totalValueIn += movement.totalValue || 0;
         byCategory[category].in += movement.quantity;
-      } else if (movement.movementType === 'STOCK_OUT' || movement.movementType === 'DAMAGED' || movement.movementType === 'EXPIRED') {
+      } else if (
+        movement.movementType === "STOCK_OUT" ||
+        movement.movementType === "DAMAGED" ||
+        movement.movementType === "EXPIRED"
+      ) {
         summary.stockOut += movement.quantity;
         summary.totalValueOut += movement.totalValue || 0;
         byCategory[category].out += movement.quantity;
-      } else if (movement.movementType === 'ADJUSTMENT') {
+      } else if (movement.movementType === "ADJUSTMENT") {
         summary.adjustments++;
-      } else if (movement.movementType === 'TRANSFER') {
+      } else if (movement.movementType === "TRANSFER") {
         summary.transfers++;
       }
     });
@@ -153,7 +168,7 @@ export class InventoryReportsService {
     const movements = await this.prisma.stockMovement.findMany({
       where: {
         createdAt: { gte: startDate },
-        movementType: 'STOCK_OUT',
+        movementType: "STOCK_OUT",
       },
       include: {
         item: {
@@ -192,17 +207,22 @@ export class InventoryReportsService {
     // Calculate averages and predict reorder
     Object.values(itemUsage).forEach((item: any) => {
       item.averageUsage = item.totalUsed / days;
-      item.daysUntilReorder = item.currentQuantity > 0 
-        ? Math.floor((item.currentQuantity - item.reorderLevel) / (item.averageUsage || 1))
-        : 0;
+      item.daysUntilReorder =
+        item.currentQuantity > 0
+          ? Math.floor(
+              (item.currentQuantity - item.reorderLevel) /
+                (item.averageUsage || 1),
+            )
+          : 0;
     });
 
     const topMovers = Object.values(itemUsage)
       .sort((a: any, b: any) => b.totalUsed - a.totalUsed)
       .slice(0, 10);
 
-    const needsReorder = Object.values(itemUsage)
-      .filter((item: any) => item.daysUntilReorder <= 7 && item.daysUntilReorder >= 0);
+    const needsReorder = Object.values(itemUsage).filter(
+      (item: any) => item.daysUntilReorder <= 7 && item.daysUntilReorder >= 0,
+    );
 
     return {
       period: `${days} days`,
@@ -234,7 +254,7 @@ export class InventoryReportsService {
         },
       },
       orderBy: {
-        expiryDate: 'asc',
+        expiryDate: "asc",
       },
     });
 
@@ -258,12 +278,12 @@ export class InventoryReportsService {
     });
 
     const expiringValue = expiringItems.reduce(
-      (sum, item) => sum + (item.currentQuantity * (item.unitPrice || 0)),
+      (sum, item) => sum + item.currentQuantity * (item.unitPrice || 0),
       0,
     );
 
     const expiredValue = expiredItems.reduce(
-      (sum, item) => sum + (item.currentQuantity * (item.unitPrice || 0)),
+      (sum, item) => sum + item.currentQuantity * (item.unitPrice || 0),
       0,
     );
 
@@ -297,21 +317,23 @@ export class InventoryReportsService {
         },
         movements: {
           where: {
-            movementType: 'STOCK_OUT',
+            movementType: "STOCK_OUT",
           },
           take: 10,
           orderBy: {
-            createdAt: 'desc',
+            createdAt: "desc",
           },
         },
       },
     });
 
     const suggestions = lowStockItems.map((item) => {
-      const recentUsage = item.movements.reduce((sum, m) => sum + m.quantity, 0);
-      const averageUsage = item.movements.length > 0 
-        ? recentUsage / item.movements.length 
-        : 0;
+      const recentUsage = item.movements.reduce(
+        (sum, m) => sum + m.quantity,
+        0,
+      );
+      const averageUsage =
+        item.movements.length > 0 ? recentUsage / item.movements.length : 0;
 
       const suggestedOrderQuantity = Math.max(
         item.reorderLevel * 2 - item.currentQuantity,
@@ -328,13 +350,13 @@ export class InventoryReportsService {
         suggestedOrderQuantity,
         estimatedCost: suggestedOrderQuantity * (item.unitPrice || 0),
         supplier: item.supplier,
-        priority: item.currentQuantity === 0 ? 'URGENT' : 'HIGH',
+        priority: item.currentQuantity === 0 ? "URGENT" : "HIGH",
       };
     });
 
     return suggestions.sort((a, b) => {
-      if (a.priority === 'URGENT' && b.priority !== 'URGENT') return -1;
-      if (b.priority === 'URGENT' && a.priority !== 'URGENT') return 1;
+      if (a.priority === "URGENT" && b.priority !== "URGENT") return -1;
+      if (b.priority === "URGENT" && a.priority !== "URGENT") return 1;
       return a.currentQuantity - b.currentQuantity;
     });
   }
@@ -349,7 +371,7 @@ export class InventoryReportsService {
         createdAt: { gte: thirtyDaysAgo },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: "asc",
       },
     });
 
@@ -357,7 +379,7 @@ export class InventoryReportsService {
     const dailyData: Record<string, any> = {};
 
     movements.forEach((movement) => {
-      const date = movement.createdAt.toISOString().split('T')[0];
+      const date = movement.createdAt.toISOString().split("T")[0];
       if (!dailyData[date]) {
         dailyData[date] = {
           date,
@@ -369,10 +391,13 @@ export class InventoryReportsService {
         };
       }
       dailyData[date].movements++;
-      if (movement.movementType.includes('IN') || movement.movementType === 'RETURN') {
+      if (
+        movement.movementType.includes("IN") ||
+        movement.movementType === "RETURN"
+      ) {
         dailyData[date].stockIn += movement.quantity;
         dailyData[date].valueIn += movement.totalValue || 0;
-      } else if (movement.movementType === 'STOCK_OUT') {
+      } else if (movement.movementType === "STOCK_OUT") {
         dailyData[date].stockOut += movement.quantity;
         dailyData[date].valueOut += movement.totalValue || 0;
       }

@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 export interface CreateAssetDto {
   assetCode: string;
@@ -50,7 +54,7 @@ export class AssetsService {
     });
 
     if (existing) {
-      throw new BadRequestException('Asset code already exists');
+      throw new BadRequestException("Asset code already exists");
     }
 
     return this.prisma.asset.create({
@@ -69,7 +73,9 @@ export class AssetsService {
         location: dto.location,
         assignedTo: dto.assignedTo,
         notes: dto.notes,
-        warrantyExpiry: dto.warrantyExpiry ? new Date(dto.warrantyExpiry) : null,
+        warrantyExpiry: dto.warrantyExpiry
+          ? new Date(dto.warrantyExpiry)
+          : null,
       },
     });
   }
@@ -89,7 +95,7 @@ export class AssetsService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }
@@ -100,7 +106,7 @@ export class AssetsService {
       include: {
         maintenanceLogs: {
           orderBy: {
-            performedAt: 'desc',
+            performedAt: "desc",
           },
           take: 20,
         },
@@ -108,7 +114,7 @@ export class AssetsService {
     });
 
     if (!asset) {
-      throw new NotFoundException('Asset not found');
+      throw new NotFoundException("Asset not found");
     }
 
     return asset;
@@ -128,7 +134,9 @@ export class AssetsService {
         assignedTo: dto.assignedTo,
         notes: dto.notes,
         currentValue: dto.currentValue,
-        nextMaintenanceAt: dto.nextMaintenanceAt ? new Date(dto.nextMaintenanceAt) : undefined,
+        nextMaintenanceAt: dto.nextMaintenanceAt
+          ? new Date(dto.nextMaintenanceAt)
+          : undefined,
       },
     });
   }
@@ -139,7 +147,7 @@ export class AssetsService {
   }
 
   async addMaintenanceLog(assetId: string, dto: CreateMaintenanceLogDto) {
-    const asset = await this.getAssetById(assetId);
+    await this.getAssetById(assetId);
 
     const log = await this.prisma.maintenanceLog.create({
       data: {
@@ -158,7 +166,9 @@ export class AssetsService {
       where: { id: assetId },
       data: {
         lastMaintenanceAt: new Date(dto.performedAt),
-        nextMaintenanceAt: dto.nextDueDate ? new Date(dto.nextDueDate) : undefined,
+        nextMaintenanceAt: dto.nextDueDate
+          ? new Date(dto.nextDueDate)
+          : undefined,
       },
     });
 
@@ -179,25 +189,29 @@ export class AssetsService {
         },
       },
       orderBy: {
-        performedAt: 'desc',
+        performedAt: "desc",
       },
       take: 100,
     });
   }
 
   async getAssetStats() {
-    const [totalAssets, activeAssets, maintenanceAssets, criticalAssets] = await Promise.all([
-      this.prisma.asset.count(),
-      this.prisma.asset.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.asset.count({ where: { status: 'MAINTENANCE' } }),
-      this.prisma.asset.count({ where: { condition: 'CRITICAL' } }),
-    ]);
+    const [totalAssets, activeAssets, maintenanceAssets, criticalAssets] =
+      await Promise.all([
+        this.prisma.asset.count(),
+        this.prisma.asset.count({ where: { status: "ACTIVE" } }),
+        this.prisma.asset.count({ where: { status: "MAINTENANCE" } }),
+        this.prisma.asset.count({ where: { condition: "CRITICAL" } }),
+      ]);
 
     const assets = await this.prisma.asset.findMany({
       select: { purchasePrice: true, currentValue: true },
     });
 
-    const totalValue = assets.reduce((sum, a) => sum + (a.currentValue || a.purchasePrice), 0);
+    const totalValue = assets.reduce(
+      (sum, a) => sum + (a.currentValue || a.purchasePrice),
+      0,
+    );
 
     return {
       totalAssets,
@@ -217,11 +231,11 @@ export class AssetsService {
           lte: today,
         },
         status: {
-          not: 'RETIRED',
+          not: "RETIRED",
         },
       },
       orderBy: {
-        nextMaintenanceAt: 'asc',
+        nextMaintenanceAt: "asc",
       },
     });
   }

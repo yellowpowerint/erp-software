@@ -1,30 +1,22 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Param,
-  Query,
-  Body,
-} from '@nestjs/common';
-import { SafetyService } from './safety.service';
+import { Controller, Get, Post, Put, Param, Query, Body } from "@nestjs/common";
+import { SafetyService } from "./safety.service";
 
-@Controller('safety')
+@Controller("safety")
 export class SafetyController {
   constructor(private readonly safetyService: SafetyService) {}
 
   // Inspections
-  @Post('inspections')
+  @Post("inspections")
   createInspection(@Body() body: any) {
     return this.safetyService.createInspection(body);
   }
 
-  @Get('inspections')
+  @Get("inspections")
   getInspections(
-    @Query('type') type?: string,
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("type") type?: string,
+    @Query("status") status?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.safetyService.getInspections({
       type,
@@ -34,33 +26,33 @@ export class SafetyController {
     });
   }
 
-  @Get('inspections/:id')
-  getInspectionById(@Param('id') id: string) {
+  @Get("inspections/:id")
+  getInspectionById(@Param("id") id: string) {
     return this.safetyService.getInspectionById(id);
   }
 
-  @Put('inspections/:id')
-  updateInspection(@Param('id') id: string, @Body() body: any) {
+  @Put("inspections/:id")
+  updateInspection(@Param("id") id: string, @Body() body: any) {
     return this.safetyService.updateInspection(id, body);
   }
 
-  @Put('inspections/:id/complete')
-  completeInspection(@Param('id') id: string, @Body() body: any) {
+  @Put("inspections/:id/complete")
+  completeInspection(@Param("id") id: string, @Body() body: any) {
     return this.safetyService.completeInspection(id, body);
   }
 
   // Trainings
-  @Post('trainings')
+  @Post("trainings")
   createTraining(@Body() body: any) {
     return this.safetyService.createTraining(body);
   }
 
-  @Get('trainings')
+  @Get("trainings")
   getTrainings(
-    @Query('type') type?: string,
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("type") type?: string,
+    @Query("status") status?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.safetyService.getTrainings({
       type,
@@ -70,66 +62,75 @@ export class SafetyController {
     });
   }
 
-  @Get('trainings/:id')
-  getTrainingById(@Param('id') id: string) {
+  @Get("trainings/:id")
+  getTrainingById(@Param("id") id: string) {
     return this.safetyService.getTrainingById(id);
   }
 
-  @Put('trainings/:id')
-  updateTraining(@Param('id') id: string, @Body() body: any) {
+  @Put("trainings/:id")
+  updateTraining(@Param("id") id: string, @Body() body: any) {
     return this.safetyService.updateTraining(id, body);
   }
 
-  @Put('trainings/:id/participants')
-  addParticipants(@Param('id') id: string, @Body() body: { participants: string[] }) {
+  @Put("trainings/:id/participants")
+  addParticipants(
+    @Param("id") id: string,
+    @Body() body: { participants: string[] },
+  ) {
     return this.safetyService.addParticipants(id, body.participants);
   }
 
-  @Put('trainings/:id/complete')
-  completeTraining(@Param('id') id: string, @Body() body: { completedBy: string[] }) {
+  @Put("trainings/:id/complete")
+  completeTraining(
+    @Param("id") id: string,
+    @Body() body: { completedBy: string[] },
+  ) {
     return this.safetyService.completeTraining(id, body.completedBy);
   }
 
   // Certifications
-  @Post('certifications')
+  @Post("certifications")
   createCertification(@Body() body: any) {
     return this.safetyService.createCertification(body);
   }
 
-  @Get('certifications')
+  @Get("certifications")
   getCertifications(
-    @Query('employeeId') employeeId?: string,
-    @Query('status') status?: string,
+    @Query("employeeId") employeeId?: string,
+    @Query("status") status?: string,
   ) {
     return this.safetyService.getCertifications({ employeeId, status });
   }
 
-  @Get('certifications/:id')
-  getCertificationById(@Param('id') id: string) {
+  @Get("certifications/:id")
+  getCertificationById(@Param("id") id: string) {
     return this.safetyService.getCertificationById(id);
   }
 
-  @Put('certifications/:id/status')
-  updateCertificationStatus(@Param('id') id: string, @Body() body: { status: string }) {
+  @Put("certifications/:id/status")
+  updateCertificationStatus(
+    @Param("id") id: string,
+    @Body() body: { status: string },
+  ) {
     return this.safetyService.updateCertificationStatus(id, body.status);
   }
 
-  @Put('certifications/:id/renew')
-  renewCertification(@Param('id') id: string, @Body() body: any) {
+  @Put("certifications/:id/renew")
+  renewCertification(@Param("id") id: string, @Body() body: any) {
     return this.safetyService.renewCertification(id, body);
   }
 
   // Drills
-  @Post('drills')
+  @Post("drills")
   createDrill(@Body() body: any) {
     return this.safetyService.createDrill(body);
   }
 
-  @Get('drills')
+  @Get("drills")
   getDrills(
-    @Query('type') type?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("type") type?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.safetyService.getDrills({
       type,
@@ -138,18 +139,18 @@ export class SafetyController {
     });
   }
 
-  @Get('drills/:id')
-  getDrillById(@Param('id') id: string) {
+  @Get("drills/:id")
+  getDrillById(@Param("id") id: string) {
     return this.safetyService.getDrillById(id);
   }
 
-  @Put('drills/:id/complete')
-  completeDrill(@Param('id') id: string, @Body() body: any) {
+  @Put("drills/:id/complete")
+  completeDrill(@Param("id") id: string, @Body() body: any) {
     return this.safetyService.completeDrill(id, body);
   }
 
   // Statistics
-  @Get('stats')
+  @Get("stats")
   getSafetyStats() {
     return this.safetyService.getSafetyStats();
   }

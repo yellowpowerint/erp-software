@@ -1,8 +1,14 @@
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+} from "class-validator";
 
 export class CreateITRequestDto {
   @IsNotEmpty()
-  @IsEnum(['EQUIPMENT', 'SOFTWARE', 'ACCESS', 'SUPPORT', 'OTHER'])
+  @IsEnum(["EQUIPMENT", "SOFTWARE", "ACCESS", "SUPPORT", "OTHER"])
   requestType: string;
 
   @IsNotEmpty()
@@ -18,7 +24,7 @@ export class CreateITRequestDto {
   justification: string;
 
   @IsOptional()
-  @IsEnum(['LOW', 'NORMAL', 'HIGH', 'URGENT'])
+  @IsEnum(["LOW", "NORMAL", "HIGH", "URGENT"])
   priority?: string;
 
   @IsOptional()

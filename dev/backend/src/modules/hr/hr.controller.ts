@@ -7,54 +7,54 @@ import {
   Param,
   Query,
   Body,
-} from '@nestjs/common';
-import { HrService } from './hr.service';
+} from "@nestjs/common";
+import { HrService } from "./hr.service";
 
-@Controller('hr')
+@Controller("hr")
 export class HrController {
   constructor(private readonly hrService: HrService) {}
 
   // Employees
-  @Post('employees')
+  @Post("employees")
   createEmployee(@Body() body: any) {
     return this.hrService.createEmployee(body);
   }
 
-  @Get('employees')
+  @Get("employees")
   getEmployees(
-    @Query('department') department?: string,
-    @Query('status') status?: string,
-    @Query('employmentType') employmentType?: string,
+    @Query("department") department?: string,
+    @Query("status") status?: string,
+    @Query("employmentType") employmentType?: string,
   ) {
     return this.hrService.getEmployees({ department, status, employmentType });
   }
 
-  @Get('employees/:id')
-  getEmployeeById(@Param('id') id: string) {
+  @Get("employees/:id")
+  getEmployeeById(@Param("id") id: string) {
     return this.hrService.getEmployeeById(id);
   }
 
-  @Put('employees/:id')
-  updateEmployee(@Param('id') id: string, @Body() body: any) {
+  @Put("employees/:id")
+  updateEmployee(@Param("id") id: string, @Body() body: any) {
     return this.hrService.updateEmployee(id, body);
   }
 
-  @Delete('employees/:id')
-  deleteEmployee(@Param('id') id: string) {
+  @Delete("employees/:id")
+  deleteEmployee(@Param("id") id: string) {
     return this.hrService.deleteEmployee(id);
   }
 
   // Attendance
-  @Post('attendance')
+  @Post("attendance")
   markAttendance(@Body() body: any) {
     return this.hrService.markAttendance(body);
   }
 
-  @Get('attendance')
+  @Get("attendance")
   getAttendance(
-    @Query('employeeId') employeeId?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("employeeId") employeeId?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.hrService.getAttendance({
       employeeId,
@@ -64,129 +64,133 @@ export class HrController {
   }
 
   // Leave Requests
-  @Post('leave-requests')
+  @Post("leave-requests")
   createLeaveRequest(@Body() body: any) {
     return this.hrService.createLeaveRequest(body);
   }
 
-  @Get('leave-requests')
+  @Get("leave-requests")
   getLeaveRequests(
-    @Query('employeeId') employeeId?: string,
-    @Query('status') status?: string,
-    @Query('leaveType') leaveType?: string,
+    @Query("employeeId") employeeId?: string,
+    @Query("status") status?: string,
+    @Query("leaveType") leaveType?: string,
   ) {
     return this.hrService.getLeaveRequests({ employeeId, status, leaveType });
   }
 
-  @Get('leave-requests/:id')
-  getLeaveRequestById(@Param('id') id: string) {
+  @Get("leave-requests/:id")
+  getLeaveRequestById(@Param("id") id: string) {
     return this.hrService.getLeaveRequestById(id);
   }
 
-  @Put('leave-requests/:id/status')
-  updateLeaveStatus(@Param('id') id: string, @Body() body: any) {
+  @Put("leave-requests/:id/status")
+  updateLeaveStatus(@Param("id") id: string, @Body() body: any) {
     return this.hrService.updateLeaveStatus(id, body);
   }
 
   // Performance Reviews
-  @Post('performance-reviews')
+  @Post("performance-reviews")
   createPerformanceReview(@Body() body: any) {
     return this.hrService.createPerformanceReview(body);
   }
 
-  @Get('performance-reviews')
-  getPerformanceReviews(@Query('employeeId') employeeId?: string) {
+  @Get("performance-reviews")
+  getPerformanceReviews(@Query("employeeId") employeeId?: string) {
     return this.hrService.getPerformanceReviews({ employeeId });
   }
 
   // Statistics
-  @Get('stats')
+  @Get("stats")
   getHrStats() {
     return this.hrService.getHrStats();
   }
 
   // Recruitment & AI HR Assistant
-  @Post('recruitment/generate-job-description')
+  @Post("recruitment/generate-job-description")
   generateJobDescription(@Body() body: any) {
     return this.hrService.generateJobDescription(body);
   }
 
-  @Post('recruitment/jobs')
+  @Post("recruitment/jobs")
   createJobPosting(@Body() body: any) {
     return this.hrService.createJobPosting(body);
   }
 
-  @Get('recruitment/jobs')
+  @Get("recruitment/jobs")
   getJobPostings(
-    @Query('status') status?: string,
-    @Query('department') department?: string,
+    @Query("status") status?: string,
+    @Query("department") department?: string,
   ) {
     return this.hrService.getJobPostings({ status, department });
   }
 
-  @Get('recruitment/jobs/:id')
-  getJobPostingById(@Param('id') id: string) {
+  @Get("recruitment/jobs/:id")
+  getJobPostingById(@Param("id") id: string) {
     return this.hrService.getJobPostingById(id);
   }
 
-  @Post('recruitment/candidates')
+  @Post("recruitment/candidates")
   createCandidate(@Body() body: any) {
     return this.hrService.createCandidate(body);
   }
 
-  @Get('recruitment/candidates')
+  @Get("recruitment/candidates")
   getCandidates() {
     return this.hrService.getCandidates();
   }
 
-  @Post('recruitment/parse-cv')
+  @Post("recruitment/parse-cv")
   parseCV(@Body() body: any) {
     return this.hrService.parseCV(body);
   }
 
-  @Post('recruitment/applications')
+  @Post("recruitment/applications")
   createApplication(@Body() body: any) {
     return this.hrService.createApplication(body);
   }
 
-  @Get('recruitment/applications')
+  @Get("recruitment/applications")
   getApplications(
-    @Query('jobPostingId') jobPostingId?: string,
-    @Query('candidateId') candidateId?: string,
-    @Query('status') status?: string,
+    @Query("jobPostingId") jobPostingId?: string,
+    @Query("candidateId") candidateId?: string,
+    @Query("status") status?: string,
   ) {
-    return this.hrService.getApplications({ jobPostingId, candidateId, status });
+    return this.hrService.getApplications({
+      jobPostingId,
+      candidateId,
+      status,
+    });
   }
 
-  @Post('recruitment/screen-candidate')
+  @Post("recruitment/screen-candidate")
   screenCandidate(@Body() body: any) {
     return this.hrService.screenCandidate(body);
   }
 
-  @Post('recruitment/rank-candidates/:jobPostingId')
-  rankCandidates(@Param('jobPostingId') jobPostingId: string) {
+  @Post("recruitment/rank-candidates/:jobPostingId")
+  rankCandidates(@Param("jobPostingId") jobPostingId: string) {
     return this.hrService.rankCandidates(jobPostingId);
   }
 
-  @Post('recruitment/interviews')
+  @Post("recruitment/interviews")
   createInterview(@Body() body: any) {
     return this.hrService.createInterview(body);
   }
 
-  @Get('recruitment/interviews')
+  @Get("recruitment/interviews")
   getInterviews(
-    @Query('candidateId') candidateId?: string,
-    @Query('status') status?: string,
+    @Query("candidateId") candidateId?: string,
+    @Query("status") status?: string,
   ) {
     return this.hrService.getInterviews({ candidateId, status });
   }
 
-  @Post('recruitment/generate-interview-summary/:id')
-  generateInterviewSummary(@Param('id') id: string) {
+  @Post("recruitment/generate-interview-summary/:id")
+  generateInterviewSummary(@Param("id") id: string) {
     return this.hrService.generateInterviewSummary(id);
   }
 
-  @Get('recruitment/stats')
+  @Get("recruitment/stats")
   getRecruitmentStats() {
     return this.hrService.getRecruitmentStats();
   }

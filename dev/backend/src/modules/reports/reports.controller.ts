@@ -1,19 +1,19 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ReportsService } from './reports.service';
+import { Controller, Get, Query } from "@nestjs/common";
+import { ReportsService } from "./reports.service";
 
-@Controller('reports')
+@Controller("reports")
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @Get('dashboard')
+  @Get("dashboard")
   getDashboardAnalytics() {
     return this.reportsService.getDashboardAnalytics();
   }
 
-  @Get('financial/summary')
+  @Get("financial/summary")
   getFinancialSummary(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.reportsService.getFinancialSummary(
       startDate ? new Date(startDate) : undefined,
@@ -21,35 +21,35 @@ export class ReportsController {
     );
   }
 
-  @Get('financial/budget-analysis')
+  @Get("financial/budget-analysis")
   getBudgetAnalysis() {
     return this.reportsService.getBudgetAnalysis();
   }
 
-  @Get('operational/inventory')
+  @Get("operational/inventory")
   getInventoryReport() {
     return this.reportsService.getInventoryReport();
   }
 
-  @Get('operational/assets')
+  @Get("operational/assets")
   getAssetReport() {
     return this.reportsService.getAssetReport();
   }
 
-  @Get('operational/projects')
-  getProjectReport(@Query('status') status?: string) {
+  @Get("operational/projects")
+  getProjectReport(@Query("status") status?: string) {
     return this.reportsService.getProjectReport(status);
   }
 
-  @Get('hr')
+  @Get("hr")
   getHRReport() {
     return this.reportsService.getHRReport();
   }
 
-  @Get('safety')
+  @Get("safety")
   getSafetyReport(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.reportsService.getSafetyReport(
       startDate ? new Date(startDate) : undefined,

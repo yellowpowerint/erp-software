@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
 export class AiService {
@@ -14,23 +14,23 @@ export class AiService {
         milestones: true,
         tasks: true,
         productionLogs: {
-          orderBy: { date: 'desc' },
+          orderBy: { date: "desc" },
           take: 10,
         },
         fieldReports: {
-          where: { priority: 'CRITICAL' },
-          orderBy: { reportDate: 'desc' },
+          where: { priority: "CRITICAL" },
+          orderBy: { reportDate: "desc" },
           take: 5,
         },
         expenses: {
-          where: { status: 'APPROVED' },
+          where: { status: "APPROVED" },
         },
         budgets: true,
       },
     });
 
     if (!project) {
-      throw new Error('Project not found');
+      throw new Error("Project not found");
     }
 
     // Calculate statistics
@@ -39,7 +39,7 @@ export class AiService {
     ).length;
     const totalMilestones = project.milestones.length;
     const completedTasks = project.tasks.filter(
-      (t) => t.status === 'COMPLETED',
+      (t) => t.status === "COMPLETED",
     ).length;
     const totalTasks = project.tasks.length;
     const totalExpenses = project.expenses.reduce(
@@ -91,7 +91,9 @@ export class AiService {
           completed: completedTasks,
           total: totalTasks,
           percentage:
-            totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+            totalTasks > 0
+              ? Math.round((completedTasks / totalTasks) * 100)
+              : 0,
         },
         budget: {
           estimated: project.estimatedBudget || 0,
@@ -118,23 +120,23 @@ export class AiService {
       ((project.estimatedBudget || 0) - project.actualCost) /
       (project.estimatedBudget || 1);
 
-    if (progress >= 90 && budgetVariance >= 0) return 'EXCELLENT';
-    if (progress >= 70 && budgetVariance >= -0.1) return 'GOOD';
-    if (progress >= 50 && budgetVariance >= -0.2) return 'FAIR';
-    if (progress >= 30) return 'AT_RISK';
-    return 'CRITICAL';
+    if (progress >= 90 && budgetVariance >= 0) return "EXCELLENT";
+    if (progress >= 70 && budgetVariance >= -0.1) return "GOOD";
+    if (progress >= 50 && budgetVariance >= -0.2) return "FAIR";
+    if (progress >= 30) return "AT_RISK";
+    return "CRITICAL";
   }
 
   private generateTextSummary(project: any, stats: any): string {
     const healthDescriptions = {
       EXCELLENT:
-        'The project is performing exceptionally well, ahead of schedule and within budget.',
-      GOOD: 'The project is progressing well with minor deviations from the plan.',
-      FAIR: 'The project is progressing but requires attention to stay on track.',
+        "The project is performing exceptionally well, ahead of schedule and within budget.",
+      GOOD: "The project is progressing well with minor deviations from the plan.",
+      FAIR: "The project is progressing but requires attention to stay on track.",
       AT_RISK:
-        'The project is facing challenges and needs immediate management attention.',
+        "The project is facing challenges and needs immediate management attention.",
       CRITICAL:
-        'The project is in critical condition and requires urgent intervention.',
+        "The project is in critical condition and requires urgent intervention.",
     };
 
     const health = this.calculateProjectHealth(project);
@@ -147,21 +149,20 @@ export class AiService {
 
     // Progress insights
     if (project.progress >= 75) {
-      insights.push('Project is in advanced stage of completion.');
+      insights.push("Project is in advanced stage of completion.");
     } else if (project.progress < 30) {
-      insights.push('Project is in early phase and requires close monitoring.');
+      insights.push("Project is in early phase and requires close monitoring.");
     }
 
     // Budget insights
-    const budgetVariance =
-      (project.estimatedBudget || 0) - project.actualCost;
+    const budgetVariance = (project.estimatedBudget || 0) - project.actualCost;
     if (budgetVariance < 0) {
       insights.push(
         `Project is over budget by ${Math.abs(budgetVariance).toLocaleString()}. Cost management required.`,
       );
     } else if (budgetVariance > (project.estimatedBudget || 0) * 0.2) {
       insights.push(
-        'Project is significantly under budget. Consider expanding scope.',
+        "Project is significantly under budget. Consider expanding scope.",
       );
     }
 
@@ -169,7 +170,7 @@ export class AiService {
     const taskCompletion = (stats.completedTasks / stats.totalTasks) * 100;
     if (taskCompletion < project.progress - 10) {
       insights.push(
-        'Task completion is lagging behind overall progress. Review task assignments.',
+        "Task completion is lagging behind overall progress. Review task assignments.",
       );
     }
 
@@ -187,45 +188,51 @@ export class AiService {
     const recommendations: string[] = [];
     const totalMilestones = project.milestones.length;
 
-    if (project.status === 'ACTIVE' && project.progress < 50) {
+    if (project.status === "ACTIVE" && project.progress < 50) {
       recommendations.push(
-        'Consider increasing resource allocation to accelerate progress.',
+        "Consider increasing resource allocation to accelerate progress.",
       );
     }
 
     if (project.actualCost > (project.estimatedBudget || 0) * 0.9) {
       recommendations.push(
-        'Budget is nearly exhausted. Conduct cost review and consider budget adjustment.',
+        "Budget is nearly exhausted. Conduct cost review and consider budget adjustment.",
       );
     }
 
     if (project.fieldReports.length > 0) {
       recommendations.push(
-        'Address critical field reports to prevent project delays.',
+        "Address critical field reports to prevent project delays.",
       );
     }
 
-    if (totalMilestones > 0 && project.milestones.filter((m) => !m.isCompleted).length > totalMilestones * 0.3) {
+    if (
+      totalMilestones > 0 &&
+      project.milestones.filter((m) => !m.isCompleted).length >
+        totalMilestones * 0.3
+    ) {
       recommendations.push(
-        'Focus on completing pending milestones to maintain project momentum.',
+        "Focus on completing pending milestones to maintain project momentum.",
       );
     }
 
     recommendations.push(
-      'Schedule regular stakeholder updates to maintain transparency.',
+      "Schedule regular stakeholder updates to maintain transparency.",
     );
 
     return recommendations;
   }
 
-  private identifyRisks(project: any): Array<{ level: string; description: string }> {
+  private identifyRisks(
+    project: any,
+  ): Array<{ level: string; description: string }> {
     const risks: Array<{ level: string; description: string }> = [];
 
     // Budget risk
     if (project.actualCost > (project.estimatedBudget || 0)) {
       risks.push({
-        level: 'HIGH',
-        description: 'Project has exceeded estimated budget',
+        level: "HIGH",
+        description: "Project has exceeded estimated budget",
       });
     }
 
@@ -238,23 +245,23 @@ export class AiService {
 
     if (daysRemaining < 30 && project.progress < 80) {
       risks.push({
-        level: 'HIGH',
-        description: 'Project timeline at risk - less than 30 days remaining',
+        level: "HIGH",
+        description: "Project timeline at risk - less than 30 days remaining",
       });
     }
 
     // Critical issues risk
     if (project.fieldReports.length >= 3) {
       risks.push({
-        level: 'MEDIUM',
-        description: 'Multiple critical field reports indicate ongoing issues',
+        level: "MEDIUM",
+        description: "Multiple critical field reports indicate ongoing issues",
       });
     }
 
     if (risks.length === 0) {
       risks.push({
-        level: 'LOW',
-        description: 'No significant risks identified at this time',
+        level: "LOW",
+        description: "No significant risks identified at this time",
       });
     }
 
@@ -265,19 +272,19 @@ export class AiService {
     const steps: string[] = [];
 
     if (project.progress < 25) {
-      steps.push('Complete project setup and initial planning phase');
-      steps.push('Assign resources to critical path tasks');
+      steps.push("Complete project setup and initial planning phase");
+      steps.push("Assign resources to critical path tasks");
     } else if (project.progress < 75) {
-      steps.push('Monitor milestone completion rates');
-      steps.push('Address any blocked tasks or milestones');
-      steps.push('Conduct mid-project review with stakeholders');
+      steps.push("Monitor milestone completion rates");
+      steps.push("Address any blocked tasks or milestones");
+      steps.push("Conduct mid-project review with stakeholders");
     } else {
-      steps.push('Begin project closeout procedures');
-      steps.push('Document lessons learned');
-      steps.push('Plan transition and handover activities');
+      steps.push("Begin project closeout procedures");
+      steps.push("Document lessons learned");
+      steps.push("Plan transition and handover activities");
     }
 
-    steps.push('Update project documentation and progress reports');
+    steps.push("Update project documentation and progress reports");
 
     return steps;
   }
@@ -289,21 +296,25 @@ export class AiService {
     budgetRange?: { min: number; max: number };
   }) {
     // Get inventory low stock items (items below reorder level)
-    const lowStockItems = await this.prisma.stockItem.findMany({
-      where: {},
-      include: {
-        warehouse: true,
-      },
-      take: 50,
-    }).then(items => items.filter(item => item.currentQuantity <= item.reorderLevel));
+    const lowStockItems = await this.prisma.stockItem
+      .findMany({
+        where: {},
+        include: {
+          warehouse: true,
+        },
+        take: 50,
+      })
+      .then((items) =>
+        items.filter((item) => item.currentQuantity <= item.reorderLevel),
+      );
 
     // Get recent expenses by category
     const expenses = await this.prisma.expense.findMany({
       where: {
-        status: 'APPROVED',
+        status: "APPROVED",
         category: filters?.category as any,
       },
-      orderBy: { expenseDate: 'desc' },
+      orderBy: { expenseDate: "desc" },
       take: 50,
     });
 
@@ -312,7 +323,7 @@ export class AiService {
       where: { isActive: true },
       include: {
         payments: {
-          where: { status: 'COMPLETED' },
+          where: { status: "COMPLETED" },
         },
       },
     });
@@ -338,7 +349,7 @@ export class AiService {
         category: item.category,
         currentQuantity: item.currentQuantity,
         reorderLevel: item.reorderLevel,
-        urgency: 'HIGH',
+        urgency: "HIGH",
         estimatedCost: item.unitPrice * item.reorderLevel * 1.2, // 20% buffer
         warehouse: item.warehouse?.name,
       }));
@@ -366,10 +377,13 @@ export class AiService {
     const savings: string[] = [];
 
     // Group expenses by category
-    const byCategory = expenses.reduce((acc, exp) => {
-      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-      return acc;
-    }, {} as Record<string, number>);
+    const byCategory = expenses.reduce(
+      (acc, exp) => {
+        acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     // Identify high-spend categories
     const sortedCategories = Object.entries(byCategory).sort(
@@ -377,17 +391,17 @@ export class AiService {
     );
 
     if (sortedCategories.length > 0) {
-      const [topCategory, topAmount] = sortedCategories[0];
+      const [topCategory] = sortedCategories[0];
       savings.push(
         `${topCategory} represents the highest expense category. Consider negotiating bulk discounts.`,
       );
     }
 
     savings.push(
-      'Review supplier contracts for potential renegotiation opportunities.',
+      "Review supplier contracts for potential renegotiation opportunities.",
     );
     savings.push(
-      'Consider consolidating suppliers to achieve volume discounts.',
+      "Consider consolidating suppliers to achieve volume discounts.",
     );
 
     return savings;
@@ -404,8 +418,7 @@ export class AiService {
     const alerts: string[] = [];
 
     budgets.forEach((budget) => {
-      const utilization =
-        (budget.spentAmount / budget.allocatedAmount) * 100;
+      const utilization = (budget.spentAmount / budget.allocatedAmount) * 100;
       if (utilization > 90) {
         alerts.push(
           `${budget.name}: ${utilization.toFixed(1)}% utilized - approaching limit`,
@@ -424,16 +437,16 @@ export class AiService {
     if (month >= 5 && month <= 8) {
       // Rainy season in Ghana
       recommendations.push(
-        'Rainy season: Stock up on waterproofing materials and drainage equipment',
+        "Rainy season: Stock up on waterproofing materials and drainage equipment",
       );
       recommendations.push(
-        'Consider increasing fuel reserves as transportation may be affected',
+        "Consider increasing fuel reserves as transportation may be affected",
       );
     } else {
       recommendations.push(
-        'Dry season: Optimal time for major equipment purchases and installations',
+        "Dry season: Optimal time for major equipment purchases and installations",
       );
-      recommendations.push('Plan for increased dust control measures');
+      recommendations.push("Plan for increased dust control measures");
     }
 
     return recommendations;
@@ -453,7 +466,7 @@ export class AiService {
     }
 
     opportunities.push(
-      'Coordinate with other departments to consolidate purchase orders.',
+      "Coordinate with other departments to consolidate purchase orders.",
     );
 
     return opportunities;
@@ -463,12 +476,12 @@ export class AiService {
 
   async getDashboardInsights() {
     const [projects, expenses, budgets, assets] = await Promise.all([
-      this.prisma.project.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.expense.count({ where: { status: 'PENDING' } }),
+      this.prisma.project.count({ where: { status: "ACTIVE" } }),
+      this.prisma.expense.count({ where: { status: "PENDING" } }),
       this.prisma.budget.findMany({
         where: { endDate: { gte: new Date() } },
       }),
-      this.prisma.asset.count({ where: { status: 'MAINTENANCE' } }),
+      this.prisma.asset.count({ where: { status: "MAINTENANCE" } }),
     ]);
 
     const insights: string[] = [];
@@ -519,12 +532,12 @@ export class AiService {
     const assets = await this.prisma.asset.findMany({
       where: {
         status: {
-          in: ['ACTIVE', 'MAINTENANCE'],
+          in: ["ACTIVE", "MAINTENANCE"],
         },
       },
       include: {
         maintenanceLogs: {
-          orderBy: { performedAt: 'desc' },
+          orderBy: { performedAt: "desc" },
           take: 10,
         },
       },
@@ -560,7 +573,14 @@ export class AiService {
           0,
         ),
         maintenanceCount: asset.maintenanceLogs.length,
-        urgency: riskScore > 70 ? 'CRITICAL' : riskScore > 50 ? 'HIGH' : riskScore > 30 ? 'MEDIUM' : 'LOW',
+        urgency:
+          riskScore > 70
+            ? "CRITICAL"
+            : riskScore > 50
+              ? "HIGH"
+              : riskScore > 30
+                ? "MEDIUM"
+                : "LOW",
       };
     });
 
@@ -574,11 +594,11 @@ export class AiService {
       summary,
       statistics: {
         totalAssets: assets.length,
-        criticalRisk: predictions.filter((p) => p.riskLevel === 'CRITICAL')
+        criticalRisk: predictions.filter((p) => p.riskLevel === "CRITICAL")
           .length,
-        highRisk: predictions.filter((p) => p.riskLevel === 'HIGH').length,
-        mediumRisk: predictions.filter((p) => p.riskLevel === 'MEDIUM').length,
-        lowRisk: predictions.filter((p) => p.riskLevel === 'LOW').length,
+        highRisk: predictions.filter((p) => p.riskLevel === "HIGH").length,
+        mediumRisk: predictions.filter((p) => p.riskLevel === "MEDIUM").length,
+        lowRisk: predictions.filter((p) => p.riskLevel === "LOW").length,
         overdueMaintenances: predictions.filter(
           (p) => p.daysUntilMaintenance < 0,
         ).length,
@@ -637,10 +657,10 @@ export class AiService {
   }
 
   private getRiskLevel(riskScore: number): string {
-    if (riskScore >= 70) return 'CRITICAL';
-    if (riskScore >= 50) return 'HIGH';
-    if (riskScore >= 30) return 'MEDIUM';
-    return 'LOW';
+    if (riskScore >= 70) return "CRITICAL";
+    if (riskScore >= 50) return "HIGH";
+    if (riskScore >= 30) return "MEDIUM";
+    return "LOW";
   }
 
   private calculateDaysUntilMaintenance(asset: any): number {
@@ -682,14 +702,14 @@ export class AiService {
 
     if (riskScore >= 70) {
       recommendations.push(
-        'URGENT: Schedule immediate inspection and maintenance.',
+        "URGENT: Schedule immediate inspection and maintenance.",
       );
       recommendations.push(
-        'Consider temporary equipment substitution to prevent breakdown.',
+        "Consider temporary equipment substitution to prevent breakdown.",
       );
     } else if (riskScore >= 50) {
       recommendations.push(
-        'Schedule maintenance within next 7 days to prevent breakdown.',
+        "Schedule maintenance within next 7 days to prevent breakdown.",
       );
     }
 
@@ -703,9 +723,9 @@ export class AiService {
       );
     }
 
-    if (asset.condition === 'POOR' || asset.condition === 'CRITICAL') {
+    if (asset.condition === "POOR" || asset.condition === "CRITICAL") {
       recommendations.push(
-        'Asset condition is deteriorating. Consider replacement or major overhaul.',
+        "Asset condition is deteriorating. Consider replacement or major overhaul.",
       );
     }
 
@@ -714,29 +734,31 @@ export class AiService {
       (1000 * 60 * 60 * 24 * 365);
     if (ageInYears > 10) {
       recommendations.push(
-        'Equipment is over 10 years old. Evaluate cost of maintenance vs. replacement.',
+        "Equipment is over 10 years old. Evaluate cost of maintenance vs. replacement.",
       );
     }
 
     if (asset.maintenanceLogs.length === 0) {
       recommendations.push(
-        'No maintenance history found. Schedule initial inspection.',
+        "No maintenance history found. Schedule initial inspection.",
       );
     }
 
     if (recommendations.length === 0) {
-      recommendations.push('Continue regular maintenance schedule.');
+      recommendations.push("Continue regular maintenance schedule.");
     }
 
     return recommendations;
   }
 
   private generateMaintenanceSummary(predictions: any[]): string {
-    const critical = predictions.filter((p) => p.riskLevel === 'CRITICAL')
-      .length;
-    const high = predictions.filter((p) => p.riskLevel === 'HIGH').length;
-    const overdue = predictions.filter((p) => p.daysUntilMaintenance < 0)
-      .length;
+    const critical = predictions.filter(
+      (p) => p.riskLevel === "CRITICAL",
+    ).length;
+    const high = predictions.filter((p) => p.riskLevel === "HIGH").length;
+    const overdue = predictions.filter(
+      (p) => p.daysUntilMaintenance < 0,
+    ).length;
 
     if (critical > 0) {
       return `CRITICAL: ${critical} asset(s) at high risk of breakdown. Immediate action required.`;
@@ -767,7 +789,7 @@ export class AiService {
 
     return this.prisma.knowledgeDocument.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -830,12 +852,12 @@ export class AiService {
     return this.prisma.knowledgeDocument.findMany({
       where: {
         OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-          { content: { contains: query, mode: 'insensitive' } },
-          { category: { contains: query, mode: 'insensitive' } },
+          { title: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+          { content: { contains: query, mode: "insensitive" } },
+          { category: { contains: query, mode: "insensitive" } },
         ],
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
       take: 10,
     });
@@ -848,7 +870,7 @@ export class AiService {
     if (relevantDocs.length === 0) {
       return {
         answer:
-          'I could not find any relevant information in the knowledge base to answer your question. Please try rephrasing your question or ensure relevant documents are uploaded.',
+          "I could not find any relevant information in the knowledge base to answer your question. Please try rephrasing your question or ensure relevant documents are uploaded.",
         sources: [],
         confidence: 0,
       };
@@ -887,9 +909,9 @@ export class AiService {
 
     // Safety-related questions
     if (
-      lowerQuestion.includes('safety') ||
-      lowerQuestion.includes('ppe') ||
-      lowerQuestion.includes('protective equipment')
+      lowerQuestion.includes("safety") ||
+      lowerQuestion.includes("ppe") ||
+      lowerQuestion.includes("protective equipment")
     ) {
       return {
         text: `Based on the safety documentation in our knowledge base, all personnel must wear appropriate Personal Protective Equipment (PPE) including hard hats, safety boots, high-visibility vests, and safety glasses when in operational areas. Additional equipment such as respirators, ear protection, or harnesses may be required depending on the specific task. All safety procedures must be followed as outlined in our Standard Operating Procedures (SOPs). Regular safety training and equipment inspections are mandatory.`,
@@ -899,9 +921,9 @@ export class AiService {
 
     // Maintenance-related questions
     if (
-      lowerQuestion.includes('maintenance') ||
-      lowerQuestion.includes('equipment') ||
-      lowerQuestion.includes('repair')
+      lowerQuestion.includes("maintenance") ||
+      lowerQuestion.includes("equipment") ||
+      lowerQuestion.includes("repair")
     ) {
       return {
         text: `According to our maintenance manuals, all heavy equipment should undergo preventive maintenance every 250 operating hours or monthly, whichever comes first. Daily pre-operation inspections are mandatory and must be logged. Any equipment showing signs of wear, unusual sounds, or operational issues should be immediately taken out of service and reported to the maintenance supervisor. Maintenance records must be kept for the entire lifecycle of each piece of equipment.`,
@@ -911,9 +933,9 @@ export class AiService {
 
     // Operational procedures
     if (
-      lowerQuestion.includes('procedure') ||
-      lowerQuestion.includes('process') ||
-      lowerQuestion.includes('how to')
+      lowerQuestion.includes("procedure") ||
+      lowerQuestion.includes("process") ||
+      lowerQuestion.includes("how to")
     ) {
       return {
         text: `Based on our Standard Operating Procedures (SOPs), all operational activities must follow established protocols. This includes obtaining necessary approvals, conducting pre-operation safety checks, using appropriate equipment, following environmental guidelines, and maintaining accurate records. Each task should be performed by qualified personnel who have received proper training. Any deviations from standard procedures must be documented and approved by a supervisor.`,
@@ -923,9 +945,9 @@ export class AiService {
 
     // Regulatory and compliance
     if (
-      lowerQuestion.includes('regulation') ||
-      lowerQuestion.includes('compliance') ||
-      lowerQuestion.includes('legal')
+      lowerQuestion.includes("regulation") ||
+      lowerQuestion.includes("compliance") ||
+      lowerQuestion.includes("legal")
     ) {
       return {
         text: `Our operations must comply with all local and international mining regulations, including environmental protection laws, worker safety standards (OSHA), and mineral rights legislation. Regular audits are conducted to ensure compliance. All permits and licenses must be current and displayed. Environmental impact assessments must be conducted before starting new operations. Non-compliance can result in fines, operational shutdowns, or legal action.`,
@@ -934,7 +956,7 @@ export class AiService {
     }
 
     // General answer based on document availability
-    const docTypes = documents.map((d) => d.type).join(', ');
+    const docTypes = documents.map((d) => d.type).join(", ");
     return {
       text: `I found relevant information in our ${documents.length} document(s) (${docTypes}). The documents contain detailed information about your question. For the most accurate and complete answer, I recommend reviewing the source documents provided below. Key points from the documents suggest established procedures and guidelines are in place for this topic. Please refer to the specific documents for detailed instructions and requirements.`,
       confidence: 70,
@@ -944,68 +966,72 @@ export class AiService {
   private extractRelevantExcerpt(content: string, question: string): string {
     // Extract a relevant snippet from the document
     // In production, use semantic search to find the most relevant paragraph
-    const sentences = content.split('.').filter((s) => s.trim().length > 20);
-    
+    const sentences = content.split(".").filter((s) => s.trim().length > 20);
+
     // Simple keyword matching
     const keywords = question
       .toLowerCase()
-      .split(' ')
+      .split(" ")
       .filter((w) => w.length > 3);
 
     for (const sentence of sentences) {
       const lowerSentence = sentence.toLowerCase();
-      const matchCount = keywords.filter((k) => lowerSentence.includes(k))
-        .length;
+      const matchCount = keywords.filter((k) =>
+        lowerSentence.includes(k),
+      ).length;
 
       if (matchCount > 0) {
-        return sentence.trim() + '.';
+        return sentence.trim() + ".";
       }
     }
 
     // Fallback to first substantial sentence
-    return sentences[0]?.trim() + '.' || content.substring(0, 200) + '...';
+    return sentences[0]?.trim() + "." || content.substring(0, 200) + "...";
   }
 
   private generateRelatedQuestions(question: string): string[] {
     const lowerQuestion = question.toLowerCase();
 
-    if (lowerQuestion.includes('safety')) {
+    if (lowerQuestion.includes("safety")) {
       return [
-        'What PPE is required for underground operations?',
-        'How often are safety inspections conducted?',
-        'What is the emergency evacuation procedure?',
+        "What PPE is required for underground operations?",
+        "How often are safety inspections conducted?",
+        "What is the emergency evacuation procedure?",
       ];
     }
 
-    if (lowerQuestion.includes('maintenance')) {
+    if (lowerQuestion.includes("maintenance")) {
       return [
-        'What is the maintenance schedule for heavy equipment?',
-        'How do I report equipment malfunctions?',
-        'Who approves major maintenance work?',
+        "What is the maintenance schedule for heavy equipment?",
+        "How do I report equipment malfunctions?",
+        "Who approves major maintenance work?",
       ];
     }
 
-    if (lowerQuestion.includes('procedure') || lowerQuestion.includes('process')) {
+    if (
+      lowerQuestion.includes("procedure") ||
+      lowerQuestion.includes("process")
+    ) {
       return [
-        'Where can I find the complete SOP manual?',
-        'Who do I contact for procedure clarifications?',
-        'How are procedures updated?',
+        "Where can I find the complete SOP manual?",
+        "Who do I contact for procedure clarifications?",
+        "How are procedures updated?",
       ];
     }
 
     return [
-      'What documents are available in the knowledge base?',
-      'How do I request additional information?',
-      'Where can I find training materials?',
+      "What documents are available in the knowledge base?",
+      "How do I request additional information?",
+      "Where can I find training materials?",
     ];
   }
 
   async getKnowledgeBaseStats() {
     const [totalDocs, activeDoc, docsByType] = await Promise.all([
       this.prisma.knowledgeDocument.count(),
-      this.prisma.knowledgeDocument.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.knowledgeDocument.count({ where: { status: "ACTIVE" } }),
       this.prisma.knowledgeDocument.groupBy({
-        by: ['type'],
+        by: ["type"],
         _count: true,
       }),
     ]);
@@ -1072,7 +1098,7 @@ export class AiService {
 
     return this.prisma.safetyIncident.findMany({
       where,
-      orderBy: { incidentDate: 'desc' },
+      orderBy: { incidentDate: "desc" },
     });
   }
 
@@ -1088,7 +1114,7 @@ export class AiService {
     });
 
     if (!incident) {
-      throw new Error('Incident not found');
+      throw new Error("Incident not found");
     }
 
     // AI Analysis (Simulated - in production, use OpenAI Vision API or similar)
@@ -1106,7 +1132,7 @@ export class AiService {
       data: {
         aiAnalysis: aiAnalysis.summary,
         rootCause: rootCause.analysis,
-        correctiveActions: correctiveActions.join('\n'),
+        correctiveActions: correctiveActions.join("\n"),
         oshaReportable,
         oshaReport,
       },
@@ -1133,79 +1159,76 @@ export class AiService {
 
     // Analyze based on incident type
     switch (incident.type) {
-      case 'INJURY':
-        hazards.push('Physical hazard leading to personnel injury');
-        hazards.push('Inadequate PPE usage or equipment failure');
-        areas.push('Work safety protocols');
-        areas.push('Training requirements');
-        actions.push('Provide immediate medical attention');
-        actions.push('Secure the area to prevent further injuries');
-        actions.push('Document all evidence and witness statements');
+      case "INJURY":
+        hazards.push("Physical hazard leading to personnel injury");
+        hazards.push("Inadequate PPE usage or equipment failure");
+        areas.push("Work safety protocols");
+        areas.push("Training requirements");
+        actions.push("Provide immediate medical attention");
+        actions.push("Secure the area to prevent further injuries");
+        actions.push("Document all evidence and witness statements");
         break;
 
-      case 'NEAR_MISS':
-        hazards.push('Potential hazard identified before injury occurred');
-        areas.push('Preventive measures');
-        areas.push('Hazard identification procedures');
-        actions.push('Investigate the root cause immediately');
-        actions.push('Implement preventive controls');
-        actions.push('Update safety protocols if needed');
+      case "NEAR_MISS":
+        hazards.push("Potential hazard identified before injury occurred");
+        areas.push("Preventive measures");
+        areas.push("Hazard identification procedures");
+        actions.push("Investigate the root cause immediately");
+        actions.push("Implement preventive controls");
+        actions.push("Update safety protocols if needed");
         break;
 
-      case 'EQUIPMENT_DAMAGE':
-        hazards.push('Equipment failure or operational error');
-        hazards.push('Potential for operational disruption');
-        areas.push('Equipment maintenance');
-        areas.push('Operator training');
-        actions.push('Isolate damaged equipment');
-        actions.push('Assess repair vs replacement');
-        actions.push('Review maintenance schedules');
+      case "EQUIPMENT_DAMAGE":
+        hazards.push("Equipment failure or operational error");
+        hazards.push("Potential for operational disruption");
+        areas.push("Equipment maintenance");
+        areas.push("Operator training");
+        actions.push("Isolate damaged equipment");
+        actions.push("Assess repair vs replacement");
+        actions.push("Review maintenance schedules");
         break;
 
-      case 'ENVIRONMENTAL':
-        hazards.push('Environmental impact or contamination');
-        hazards.push('Regulatory compliance risk');
-        areas.push('Environmental controls');
-        areas.push('Spill response procedures');
-        actions.push('Contain and mitigate environmental impact');
-        actions.push('Notify environmental authorities if required');
-        actions.push('Implement cleanup procedures');
+      case "ENVIRONMENTAL":
+        hazards.push("Environmental impact or contamination");
+        hazards.push("Regulatory compliance risk");
+        areas.push("Environmental controls");
+        areas.push("Spill response procedures");
+        actions.push("Contain and mitigate environmental impact");
+        actions.push("Notify environmental authorities if required");
+        actions.push("Implement cleanup procedures");
         break;
 
-      case 'FIRE':
-        hazards.push('Fire hazard with potential for severe damage');
-        hazards.push('Risk to personnel and assets');
-        areas.push('Fire prevention systems');
-        areas.push('Emergency response');
-        actions.push('Ensure fire is completely extinguished');
-        actions.push('Account for all personnel');
-        actions.push('Investigate ignition source');
+      case "FIRE":
+        hazards.push("Fire hazard with potential for severe damage");
+        hazards.push("Risk to personnel and assets");
+        areas.push("Fire prevention systems");
+        areas.push("Emergency response");
+        actions.push("Ensure fire is completely extinguished");
+        actions.push("Account for all personnel");
+        actions.push("Investigate ignition source");
         break;
 
-      case 'CHEMICAL_SPILL':
-        hazards.push('Chemical exposure hazard');
-        hazards.push('Environmental contamination risk');
-        areas.push('Chemical handling procedures');
-        areas.push('Spill containment systems');
-        actions.push('Evacuate affected area immediately');
-        actions.push('Deploy spill containment measures');
-        actions.push('Ensure proper PPE for cleanup crew');
+      case "CHEMICAL_SPILL":
+        hazards.push("Chemical exposure hazard");
+        hazards.push("Environmental contamination risk");
+        areas.push("Chemical handling procedures");
+        areas.push("Spill containment systems");
+        actions.push("Evacuate affected area immediately");
+        actions.push("Deploy spill containment measures");
+        actions.push("Ensure proper PPE for cleanup crew");
         break;
 
       default:
-        hazards.push('Unclassified safety hazard');
-        areas.push('General safety procedures');
-        actions.push('Investigate and document incident details');
+        hazards.push("Unclassified safety hazard");
+        areas.push("General safety procedures");
+        actions.push("Investigate and document incident details");
     }
 
     // Severity-based recommendations
-    if (
-      incident.severity === 'CRITICAL' ||
-      incident.severity === 'FATAL'
-    ) {
-      actions.push('URGENT: Notify senior management immediately');
-      actions.push('Consider temporary shutdown of affected operations');
-      actions.push('Engage external safety consultants');
+    if (incident.severity === "CRITICAL" || incident.severity === "FATAL") {
+      actions.push("URGENT: Notify senior management immediately");
+      actions.push("Consider temporary shutdown of affected operations");
+      actions.push("Engage external safety consultants");
     }
 
     const summary = `Incident Type: ${incident.type}. Severity: ${incident.severity}. Location: ${incident.location}. This incident requires immediate attention and thorough investigation. ${hazards.length} primary hazards have been identified. ${areas.length} areas require review and potential improvement.`;
@@ -1227,23 +1250,27 @@ export class AiService {
     const recommendations: string[] = [];
 
     // Common root cause analysis
-    factors.push('Human factors: Training adequacy, fatigue, awareness');
-    factors.push('Equipment factors: Maintenance status, age, suitability');
-    factors.push('Environmental factors: Lighting, weather, workspace conditions');
-    factors.push('Procedural factors: SOPs followed, supervision, communication');
+    factors.push("Human factors: Training adequacy, fatigue, awareness");
+    factors.push("Equipment factors: Maintenance status, age, suitability");
+    factors.push(
+      "Environmental factors: Lighting, weather, workspace conditions",
+    );
+    factors.push(
+      "Procedural factors: SOPs followed, supervision, communication",
+    );
 
     recommendations.push(
-      'Conduct detailed investigation with all stakeholders',
+      "Conduct detailed investigation with all stakeholders",
     );
-    recommendations.push('Review and update relevant SOPs and training materials');
     recommendations.push(
-      'Implement corrective actions to prevent recurrence',
+      "Review and update relevant SOPs and training materials",
     );
+    recommendations.push("Implement corrective actions to prevent recurrence");
 
     // Severity-specific analysis
-    if (incident.severity === 'CRITICAL' || incident.severity === 'FATAL') {
-      recommendations.push('Engage third-party safety investigation team');
-      recommendations.push('Consider comprehensive safety audit');
+    if (incident.severity === "CRITICAL" || incident.severity === "FATAL") {
+      recommendations.push("Engage third-party safety investigation team");
+      recommendations.push("Consider comprehensive safety audit");
     }
 
     const analysis = `Root cause analysis indicates multiple contributing factors across human, equipment, environmental, and procedural domains. A comprehensive investigation is recommended to identify the primary cause and implement effective preventive measures. Based on the ${incident.severity.toLowerCase()} severity, this incident requires thorough examination and swift corrective action.`;
@@ -1260,54 +1287,56 @@ export class AiService {
 
     // Type-specific actions
     switch (incident.type) {
-      case 'INJURY':
+      case "INJURY":
         actions.push(
-          'Mandatory refresher safety training for all personnel in affected area',
+          "Mandatory refresher safety training for all personnel in affected area",
         );
-        actions.push('Review and enhance PPE requirements');
-        actions.push('Implement additional supervision during high-risk operations');
-        actions.push('Establish buddy system for hazardous tasks');
+        actions.push("Review and enhance PPE requirements");
+        actions.push(
+          "Implement additional supervision during high-risk operations",
+        );
+        actions.push("Establish buddy system for hazardous tasks");
         break;
 
-      case 'NEAR_MISS':
-        actions.push('Share lessons learned across all teams');
-        actions.push('Implement additional hazard identification checks');
-        actions.push('Recognize and reward the reporting individual');
+      case "NEAR_MISS":
+        actions.push("Share lessons learned across all teams");
+        actions.push("Implement additional hazard identification checks");
+        actions.push("Recognize and reward the reporting individual");
         break;
 
-      case 'EQUIPMENT_DAMAGE':
-        actions.push('Immediate equipment inspection and testing');
-        actions.push('Review maintenance schedules and procedures');
-        actions.push('Additional operator training on equipment care');
-        actions.push('Implement pre-operation inspection checklists');
+      case "EQUIPMENT_DAMAGE":
+        actions.push("Immediate equipment inspection and testing");
+        actions.push("Review maintenance schedules and procedures");
+        actions.push("Additional operator training on equipment care");
+        actions.push("Implement pre-operation inspection checklists");
         break;
 
-      case 'ENVIRONMENTAL':
-        actions.push('Enhance spill containment systems');
-        actions.push('Increase frequency of environmental inspections');
-        actions.push('Update emergency response procedures');
-        actions.push('Provide specialized environmental training');
+      case "ENVIRONMENTAL":
+        actions.push("Enhance spill containment systems");
+        actions.push("Increase frequency of environmental inspections");
+        actions.push("Update emergency response procedures");
+        actions.push("Provide specialized environmental training");
         break;
 
-      case 'FIRE':
-        actions.push('Inspect and test all fire suppression systems');
-        actions.push('Conduct fire safety drills');
-        actions.push('Review hot work permit procedures');
-        actions.push('Enhance fire watch protocols');
+      case "FIRE":
+        actions.push("Inspect and test all fire suppression systems");
+        actions.push("Conduct fire safety drills");
+        actions.push("Review hot work permit procedures");
+        actions.push("Enhance fire watch protocols");
         break;
 
-      case 'CHEMICAL_SPILL':
-        actions.push('Review chemical storage and handling procedures');
-        actions.push('Enhance secondary containment systems');
-        actions.push('Update chemical spill response training');
-        actions.push('Ensure adequate spill kit availability');
+      case "CHEMICAL_SPILL":
+        actions.push("Review chemical storage and handling procedures");
+        actions.push("Enhance secondary containment systems");
+        actions.push("Update chemical spill response training");
+        actions.push("Ensure adequate spill kit availability");
         break;
     }
 
     // Universal actions
-    actions.push('Document all corrective actions and track completion');
-    actions.push('Conduct follow-up inspection within 30 days');
-    actions.push('Update incident database and trend analysis');
+    actions.push("Document all corrective actions and track completion");
+    actions.push("Conduct follow-up inspection within 30 days");
+    actions.push("Update incident database and trend analysis");
 
     return actions;
   }
@@ -1316,20 +1345,17 @@ export class AiService {
     // Simplified OSHA reportability determination
     // In production, this would follow actual OSHA 300/301 criteria
 
-    if (incident.severity === 'FATAL') return true;
-    if (incident.severity === 'CRITICAL') return true;
+    if (incident.severity === "FATAL") return true;
+    if (incident.severity === "CRITICAL") return true;
 
     if (
-      incident.type === 'INJURY' &&
-      (incident.severity === 'SERIOUS' || incident.severity === 'MODERATE')
+      incident.type === "INJURY" &&
+      (incident.severity === "SERIOUS" || incident.severity === "MODERATE")
     ) {
       return true;
     }
 
-    if (
-      incident.type === 'ENVIRONMENTAL' &&
-      incident.severity === 'SERIOUS'
-    ) {
+    if (incident.type === "ENVIRONMENTAL" && incident.severity === "SERIOUS") {
       return true;
     }
 
@@ -1365,11 +1391,11 @@ ${incident.description}
 
 INJURIES/ILLNESSES (if applicable)
 ----------------------------------
-${incident.injuries || 'No injuries reported'}
+${incident.injuries || "No injuries reported"}
 
 WITNESSES
 ---------
-${incident.witnesses?.join(', ') || 'None recorded'}
+${incident.witnesses?.join(", ") || "None recorded"}
 
 AI ANALYSIS SUMMARY
 -------------------
@@ -1377,18 +1403,20 @@ ${analysis.summary}
 
 HAZARDS IDENTIFIED
 ------------------
-${analysis.hazardsIdentified.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}
+${analysis.hazardsIdentified.map((h: string, i: number) => `${i + 1}. ${h}`).join("\n")}
 
 ROOT CAUSE ANALYSIS
 -------------------
 ${rootCause.analysis}
 
 Contributing Factors:
-${rootCause.contributingFactors.map((f: string, i: number) => `${i + 1}. ${f}`).join('\n')}
+${rootCause.contributingFactors.map((f: string, i: number) => `${i + 1}. ${f}`).join("\n")}
 
 CORRECTIVE ACTIONS REQUIRED
 ----------------------------
-${this.generateCorrectiveActions(incident).map((a: string, i: number) => `${i + 1}. ${a}`).join('\n')}
+${this.generateCorrectiveActions(incident)
+  .map((a: string, i: number) => `${i + 1}. ${a}`)
+  .join("\n")}
 
 REGULATORY COMPLIANCE
 ---------------------
@@ -1422,16 +1450,16 @@ This report is AI-generated and must be reviewed by qualified safety personnel b
       this.prisma.safetyIncident.count({
         where: {
           status: {
-            in: ['REPORTED', 'INVESTIGATING'],
+            in: ["REPORTED", "INVESTIGATING"],
           },
         },
       }),
       this.prisma.safetyIncident.groupBy({
-        by: ['type'],
+        by: ["type"],
         _count: true,
       }),
       this.prisma.safetyIncident.groupBy({
-        by: ['severity'],
+        by: ["severity"],
         _count: true,
       }),
       this.prisma.safetyIncident.count({

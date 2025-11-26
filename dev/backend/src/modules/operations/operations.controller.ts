@@ -1,27 +1,49 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
-import { OperationsService, CreateProductionLogDto, CreateShiftDto, CreateFieldReportDto } from './operations.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from "@nestjs/common";
+import {
+  OperationsService,
+  CreateProductionLogDto,
+  CreateShiftDto,
+  CreateFieldReportDto,
+} from "./operations.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
+import { RolesGuard } from "../auth/guards/roles.guard";
 
-@Controller('operations')
+@Controller("operations")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OperationsController {
   constructor(private readonly operationsService: OperationsService) {}
 
   // Production Logs
-  @Post('production-logs')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER', 'EMPLOYEE')
-  createProductionLog(@Body() dto: CreateProductionLogDto, @Request() req: any) {
-    return this.operationsService.createProductionLog({ ...dto, createdById: req.user.id });
+  @Post("production-logs")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER", "EMPLOYEE")
+  createProductionLog(
+    @Body() dto: CreateProductionLogDto,
+    @Request() req: any,
+  ) {
+    return this.operationsService.createProductionLog({
+      ...dto,
+      createdById: req.user.id,
+    });
   }
 
-  @Get('production-logs')
+  @Get("production-logs")
   getProductionLogs(
-    @Query('projectId') projectId?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('shiftType') shiftType?: string,
+    @Query("projectId") projectId?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("shiftType") shiftType?: string,
   ) {
     return this.operationsService.getProductionLogs(
       projectId,
@@ -31,35 +53,38 @@ export class OperationsController {
     );
   }
 
-  @Get('production-logs/:id')
-  getProductionLogById(@Param('id') id: string) {
+  @Get("production-logs/:id")
+  getProductionLogById(@Param("id") id: string) {
     return this.operationsService.getProductionLogById(id);
   }
 
-  @Put('production-logs/:id')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER')
-  updateProductionLog(@Param('id') id: string, @Body() data: Partial<CreateProductionLogDto>) {
+  @Put("production-logs/:id")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
+  updateProductionLog(
+    @Param("id") id: string,
+    @Body() data: Partial<CreateProductionLogDto>,
+  ) {
     return this.operationsService.updateProductionLog(id, data);
   }
 
-  @Delete('production-logs/:id')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER')
-  deleteProductionLog(@Param('id') id: string) {
+  @Delete("production-logs/:id")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
+  deleteProductionLog(@Param("id") id: string) {
     return this.operationsService.deleteProductionLog(id);
   }
 
   // Shifts
-  @Post('shifts')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER')
+  @Post("shifts")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
   createShift(@Body() dto: CreateShiftDto) {
     return this.operationsService.createShift(dto);
   }
 
-  @Get('shifts')
+  @Get("shifts")
   getShifts(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('shiftType') shiftType?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("shiftType") shiftType?: string,
   ) {
     return this.operationsService.getShifts(
       startDate ? new Date(startDate) : undefined,
@@ -68,35 +93,35 @@ export class OperationsController {
     );
   }
 
-  @Get('shifts/:id')
-  getShiftById(@Param('id') id: string) {
+  @Get("shifts/:id")
+  getShiftById(@Param("id") id: string) {
     return this.operationsService.getShiftById(id);
   }
 
-  @Put('shifts/:id')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER')
-  updateShift(@Param('id') id: string, @Body() data: Partial<CreateShiftDto>) {
+  @Put("shifts/:id")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
+  updateShift(@Param("id") id: string, @Body() data: Partial<CreateShiftDto>) {
     return this.operationsService.updateShift(id, data);
   }
 
-  @Delete('shifts/:id')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER')
-  deleteShift(@Param('id') id: string) {
+  @Delete("shifts/:id")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
+  deleteShift(@Param("id") id: string) {
     return this.operationsService.deleteShift(id);
   }
 
   // Field Reports
-  @Post('field-reports')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER', 'EMPLOYEE')
+  @Post("field-reports")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER", "EMPLOYEE")
   createFieldReport(@Body() dto: CreateFieldReportDto) {
     return this.operationsService.createFieldReport(dto);
   }
 
-  @Get('field-reports')
+  @Get("field-reports")
   getFieldReports(
-    @Query('projectId') projectId?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("projectId") projectId?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.operationsService.getFieldReports(
       projectId,
@@ -105,34 +130,37 @@ export class OperationsController {
     );
   }
 
-  @Get('field-reports/:id')
-  getFieldReportById(@Param('id') id: string) {
+  @Get("field-reports/:id")
+  getFieldReportById(@Param("id") id: string) {
     return this.operationsService.getFieldReportById(id);
   }
 
-  @Put('field-reports/:id')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER')
-  updateFieldReport(@Param('id') id: string, @Body() data: Partial<CreateFieldReportDto>) {
+  @Put("field-reports/:id")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
+  updateFieldReport(
+    @Param("id") id: string,
+    @Body() data: Partial<CreateFieldReportDto>,
+  ) {
     return this.operationsService.updateFieldReport(id, data);
   }
 
-  @Delete('field-reports/:id')
-  @Roles('SUPER_ADMIN', 'OPERATIONS_MANAGER')
-  deleteFieldReport(@Param('id') id: string) {
+  @Delete("field-reports/:id")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
+  deleteFieldReport(@Param("id") id: string) {
     return this.operationsService.deleteFieldReport(id);
   }
 
   // Statistics
-  @Get('stats')
+  @Get("stats")
   getOperationsStats() {
     return this.operationsService.getOperationsStats();
   }
 
   // Reports
-  @Get('reports/production')
+  @Get("reports/production")
   getProductionReport(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.operationsService.getProductionReport(
       startDate ? new Date(startDate) : undefined,
@@ -140,10 +168,10 @@ export class OperationsController {
     );
   }
 
-  @Get('reports/equipment-utilization')
+  @Get("reports/equipment-utilization")
   getEquipmentUtilizationReport(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.operationsService.getEquipmentUtilizationReport(
       startDate ? new Date(startDate) : undefined,
@@ -151,10 +179,10 @@ export class OperationsController {
     );
   }
 
-  @Get('reports/shift-performance')
+  @Get("reports/shift-performance")
   getShiftPerformanceReport(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     return this.operationsService.getShiftPerformanceReport(
       startDate ? new Date(startDate) : undefined,
@@ -162,7 +190,7 @@ export class OperationsController {
     );
   }
 
-  @Get('reports/project-progress')
+  @Get("reports/project-progress")
   getProjectProgressReport() {
     return this.operationsService.getProjectProgressReport();
   }

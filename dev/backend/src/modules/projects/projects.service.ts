@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 export interface CreateProjectDto {
   projectCode: string;
@@ -56,7 +60,7 @@ export class ProjectsService {
     });
 
     if (existing) {
-      throw new BadRequestException('Project code already exists');
+      throw new BadRequestException("Project code already exists");
     }
 
     return this.prisma.project.create({
@@ -64,8 +68,8 @@ export class ProjectsService {
         projectCode: dto.projectCode,
         name: dto.name,
         description: dto.description,
-        status: dto.status as any || 'PLANNING',
-        priority: dto.priority as any || 'MEDIUM',
+        status: (dto.status as any) || "PLANNING",
+        priority: (dto.priority as any) || "MEDIUM",
         location: dto.location,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : null,
@@ -96,7 +100,7 @@ export class ProjectsService {
         },
       },
       orderBy: {
-        startDate: 'desc',
+        startDate: "desc",
       },
     });
   }
@@ -107,19 +111,19 @@ export class ProjectsService {
       include: {
         milestones: {
           orderBy: {
-            order: 'asc',
+            order: "asc",
           },
         },
         tasks: {
           orderBy: {
-            order: 'asc',
+            order: "asc",
           },
         },
       },
     });
 
     if (!project) {
-      throw new NotFoundException('Project not found');
+      throw new NotFoundException("Project not found");
     }
 
     return project;
@@ -157,19 +161,26 @@ export class ProjectsService {
   }
 
   async getProjectStats() {
-    const [totalProjects, activeProjects, completedProjects, onHoldProjects] = await Promise.all([
-      this.prisma.project.count(),
-      this.prisma.project.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.project.count({ where: { status: 'COMPLETED' } }),
-      this.prisma.project.count({ where: { status: 'ON_HOLD' } }),
-    ]);
+    const [totalProjects, activeProjects, completedProjects, onHoldProjects] =
+      await Promise.all([
+        this.prisma.project.count(),
+        this.prisma.project.count({ where: { status: "ACTIVE" } }),
+        this.prisma.project.count({ where: { status: "COMPLETED" } }),
+        this.prisma.project.count({ where: { status: "ON_HOLD" } }),
+      ]);
 
     const projects = await this.prisma.project.findMany({
       select: { estimatedBudget: true, actualCost: true },
     });
 
-    const totalBudget = projects.reduce((sum, p) => sum + (p.estimatedBudget || 0), 0);
-    const totalSpent = projects.reduce((sum, p) => sum + (p.actualCost || 0), 0);
+    const totalBudget = projects.reduce(
+      (sum, p) => sum + (p.estimatedBudget || 0),
+      0,
+    );
+    const totalSpent = projects.reduce(
+      (sum, p) => sum + (p.actualCost || 0),
+      0,
+    );
 
     return {
       totalProjects,
@@ -196,10 +207,13 @@ export class ProjectsService {
     });
   }
 
-  async updateMilestone(id: string, data: Partial<CreateMilestoneDto> & { isCompleted?: boolean }) {
+  async updateMilestone(
+    id: string,
+    data: Partial<CreateMilestoneDto> & { isCompleted?: boolean },
+  ) {
     const milestone = await this.prisma.milestone.findUnique({ where: { id } });
     if (!milestone) {
-      throw new NotFoundException('Milestone not found');
+      throw new NotFoundException("Milestone not found");
     }
 
     return this.prisma.milestone.update({
@@ -218,7 +232,7 @@ export class ProjectsService {
   async deleteMilestone(id: string) {
     const milestone = await this.prisma.milestone.findUnique({ where: { id } });
     if (!milestone) {
-      throw new NotFoundException('Milestone not found');
+      throw new NotFoundException("Milestone not found");
     }
     return this.prisma.milestone.delete({ where: { id } });
   }
@@ -232,7 +246,7 @@ export class ProjectsService {
         projectId,
         title: dto.title,
         description: dto.description,
-        status: dto.status as any || 'PENDING',
+        status: (dto.status as any) || "PENDING",
         assignedTo: dto.assignedTo,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
         order: dto.order || 0,
@@ -240,10 +254,13 @@ export class ProjectsService {
     });
   }
 
-  async updateTask(id: string, data: Partial<CreateTaskDto> & { isCompleted?: boolean }) {
+  async updateTask(
+    id: string,
+    data: Partial<CreateTaskDto> & { isCompleted?: boolean },
+  ) {
     const task = await this.prisma.task.findUnique({ where: { id } });
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException("Task not found");
     }
 
     return this.prisma.task.update({
@@ -264,29 +281,29 @@ export class ProjectsService {
   async deleteTask(id: string) {
     const task = await this.prisma.task.findUnique({ where: { id } });
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException("Task not found");
     }
     return this.prisma.task.delete({ where: { id } });
   }
 
   async getProjectTimeline(id: string) {
     const project = await this.getProjectById(id);
-    
-    const milestones = project.milestones.map(m => ({
+
+    const milestones = project.milestones.map((m) => ({
       id: m.id,
       name: m.name,
       date: m.dueDate,
       isCompleted: m.isCompleted,
-      type: 'milestone',
+      type: "milestone",
     }));
 
-    const tasks = project.tasks.map(t => ({
+    const tasks = project.tasks.map((t) => ({
       id: t.id,
       name: t.title,
       date: t.dueDate,
       isCompleted: t.isCompleted,
       assignedTo: t.assignedTo,
-      type: 'task',
+      type: "task",
     }));
 
     const timeline = [...milestones, ...tasks].sort((a, b) => {

@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { CreateITRequestDto, ApprovalActionDto } from './dto';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { CreateITRequestDto, ApprovalActionDto } from "./dto";
 
 @Injectable()
 export class ITRequestsService {
@@ -13,7 +17,7 @@ export class ITRequestsService {
   async createITRequest(userId: string, dto: CreateITRequestDto) {
     // Generate request number
     const count = await this.prisma.iTRequest.count();
-    const requestNumber = `IT-${String(count + 1).padStart(6, '0')}`;
+    const requestNumber = `IT-${String(count + 1).padStart(6, "0")}`;
 
     const request = await this.prisma.iTRequest.create({
       data: {
@@ -22,9 +26,9 @@ export class ITRequestsService {
         title: dto.title,
         description: dto.description,
         justification: dto.justification,
-        priority: dto.priority || 'NORMAL',
+        priority: dto.priority || "NORMAL",
         estimatedCost: dto.estimatedCost,
-        currency: dto.currency || 'GHS',
+        currency: dto.currency || "GHS",
         createdById: userId,
         attachmentUrl: dto.attachmentUrl,
         notes: dto.notes,
@@ -43,7 +47,7 @@ export class ITRequestsService {
     });
 
     // Send notifications to IT Manager and CEO
-    const creatorName = `${request.createdBy?.firstName || ''} ${request.createdBy?.lastName || ''}`;
+    const creatorName = `${request.createdBy?.firstName || ""} ${request.createdBy?.lastName || ""}`;
     await this.notificationsService.notifyITRequestApprovers(
       request.id,
       request.requestNumber,
@@ -57,7 +61,9 @@ export class ITRequestsService {
   async getITRequests(userId: string, userRole: string) {
     // IT Managers, CEOs, and CFOs see all
     // Others see only their own
-    const canSeeAll = ['CEO', 'CFO', 'IT_MANAGER', 'SUPER_ADMIN'].includes(userRole);
+    const canSeeAll = ["CEO", "CFO", "IT_MANAGER", "SUPER_ADMIN"].includes(
+      userRole,
+    );
 
     return this.prisma.iTRequest.findMany({
       where: canSeeAll ? {} : { createdById: userId },
@@ -84,12 +90,12 @@ export class ITRequestsService {
             },
           },
           orderBy: {
-            createdAt: 'desc',
+            createdAt: "desc",
           },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }
@@ -120,40 +126,49 @@ export class ITRequestsService {
             },
           },
           orderBy: {
-            createdAt: 'desc',
+            createdAt: "desc",
           },
         },
       },
     });
 
     if (!request) {
-      throw new NotFoundException('IT request not found');
+      throw new NotFoundException("IT request not found");
     }
 
     return request;
   }
 
-  async approveITRequest(requestId: string, userId: string, userRole: string, dto: ApprovalActionDto) {
+  async approveITRequest(
+    requestId: string,
+    userId: string,
+    userRole: string,
+    dto: ApprovalActionDto,
+  ) {
     // Check if user can approve (IT_MANAGER, CEO, CFO)
-    const canApprove = ['CEO', 'CFO', 'IT_MANAGER', 'SUPER_ADMIN'].includes(userRole);
+    const canApprove = ["CEO", "CFO", "IT_MANAGER", "SUPER_ADMIN"].includes(
+      userRole,
+    );
     if (!canApprove) {
-      throw new ForbiddenException('You do not have permission to approve IT requests');
+      throw new ForbiddenException(
+        "You do not have permission to approve IT requests",
+      );
     }
 
     // Get request
     const request = await this.getITRequestById(requestId);
-    if (request.status !== 'PENDING') {
-      throw new ForbiddenException('IT request is not pending approval');
+    if (request.status !== "PENDING") {
+      throw new ForbiddenException("IT request is not pending approval");
     }
 
     // Create approval history
     await this.prisma.approvalHistory.create({
       data: {
-        type: 'IT_REQUEST',
+        type: "IT_REQUEST",
         referenceId: requestId,
         itRequestId: requestId,
         approverId: userId,
-        action: 'APPROVED',
+        action: "APPROVED",
         comments: dto.comments,
       },
     });
@@ -167,7 +182,7 @@ export class ITRequestsService {
     // Update request status
     const updatedRequest = await this.prisma.iTRequest.update({
       where: { id: requestId },
-      data: { status: 'APPROVED' },
+      data: { status: "APPROVED" },
       include: {
         createdBy: {
           select: {
@@ -198,7 +213,7 @@ export class ITRequestsService {
     await this.notificationsService.notifyCreatorOfApproval(
       request.createdBy.id,
       true,
-      'IT Request',
+      "IT Request",
       request.requestNumber,
       `${approver.firstName} ${approver.lastName}`,
     );
@@ -206,27 +221,36 @@ export class ITRequestsService {
     return updatedRequest;
   }
 
-  async rejectITRequest(requestId: string, userId: string, userRole: string, dto: ApprovalActionDto) {
+  async rejectITRequest(
+    requestId: string,
+    userId: string,
+    userRole: string,
+    dto: ApprovalActionDto,
+  ) {
     // Check if user can reject (IT_MANAGER, CEO, CFO)
-    const canReject = ['CEO', 'CFO', 'IT_MANAGER', 'SUPER_ADMIN'].includes(userRole);
+    const canReject = ["CEO", "CFO", "IT_MANAGER", "SUPER_ADMIN"].includes(
+      userRole,
+    );
     if (!canReject) {
-      throw new ForbiddenException('You do not have permission to reject IT requests');
+      throw new ForbiddenException(
+        "You do not have permission to reject IT requests",
+      );
     }
 
     // Get request
     const request = await this.getITRequestById(requestId);
-    if (request.status !== 'PENDING') {
-      throw new ForbiddenException('IT request is not pending approval');
+    if (request.status !== "PENDING") {
+      throw new ForbiddenException("IT request is not pending approval");
     }
 
     // Create approval history
     await this.prisma.approvalHistory.create({
       data: {
-        type: 'IT_REQUEST',
+        type: "IT_REQUEST",
         referenceId: requestId,
         itRequestId: requestId,
         approverId: userId,
-        action: 'REJECTED',
+        action: "REJECTED",
         comments: dto.comments,
       },
     });
@@ -240,7 +264,7 @@ export class ITRequestsService {
     // Update request status
     const updatedRequest = await this.prisma.iTRequest.update({
       where: { id: requestId },
-      data: { status: 'REJECTED' },
+      data: { status: "REJECTED" },
       include: {
         createdBy: {
           select: {
@@ -271,7 +295,7 @@ export class ITRequestsService {
     await this.notificationsService.notifyCreatorOfApproval(
       request.createdBy.id,
       false,
-      'IT Request',
+      "IT Request",
       request.requestNumber,
       `${approver.firstName} ${approver.lastName}`,
     );

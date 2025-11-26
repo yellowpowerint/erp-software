@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsInt, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsInt,
+  Min,
+} from "class-validator";
 
 export class UpdateStockItemDto {
   @IsOptional()
@@ -10,11 +17,31 @@ export class UpdateStockItemDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(['CONSUMABLES', 'EQUIPMENT', 'SPARE_PARTS', 'TOOLS', 'FUEL', 'CHEMICALS', 'SAFETY_GEAR', 'OFFICE_SUPPLIES', 'OTHER'])
+  @IsEnum([
+    "CONSUMABLES",
+    "EQUIPMENT",
+    "SPARE_PARTS",
+    "TOOLS",
+    "FUEL",
+    "CHEMICALS",
+    "SAFETY_GEAR",
+    "OFFICE_SUPPLIES",
+    "OTHER",
+  ])
   category?: string;
 
   @IsOptional()
-  @IsEnum(['PIECES', 'KILOGRAMS', 'LITERS', 'METERS', 'BOXES', 'PALLETS', 'TONS', 'GALLONS', 'UNITS'])
+  @IsEnum([
+    "PIECES",
+    "KILOGRAMS",
+    "LITERS",
+    "METERS",
+    "BOXES",
+    "PALLETS",
+    "TONS",
+    "GALLONS",
+    "UNITS",
+  ])
   unit?: string;
 
   @IsOptional()

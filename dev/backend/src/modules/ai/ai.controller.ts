@@ -1,22 +1,31 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body } from '@nestjs/common';
-import { AiService } from './ai.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Query,
+  Body,
+} from "@nestjs/common";
+import { AiService } from "./ai.service";
 
-@Controller('ai')
+@Controller("ai")
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   // Project Summary
-  @Get('project-summary/:id')
-  getProjectSummary(@Param('id') id: string) {
+  @Get("project-summary/:id")
+  getProjectSummary(@Param("id") id: string) {
     return this.aiService.generateProjectSummary(id);
   }
 
   // Procurement Advisor
-  @Get('procurement-advisor')
+  @Get("procurement-advisor")
   getProcurementAdvice(
-    @Query('category') category?: string,
-    @Query('minBudget') minBudget?: string,
-    @Query('maxBudget') maxBudget?: string,
+    @Query("category") category?: string,
+    @Query("minBudget") minBudget?: string,
+    @Query("maxBudget") maxBudget?: string,
   ) {
     return this.aiService.generateProcurementAdvice({
       category,
@@ -28,89 +37,89 @@ export class AiController {
   }
 
   // Dashboard Insights
-  @Get('dashboard-insights')
+  @Get("dashboard-insights")
   getDashboardInsights() {
     return this.aiService.getDashboardInsights();
   }
 
   // Maintenance Predictor
-  @Get('maintenance-predictor')
+  @Get("maintenance-predictor")
   getMaintenancePredictions() {
     return this.aiService.predictMaintenanceNeeds();
   }
 
   // Knowledge Engine - Documents
-  @Get('knowledge/documents')
+  @Get("knowledge/documents")
   getDocuments(
-    @Query('type') type?: string,
-    @Query('status') status?: string,
-    @Query('category') category?: string,
+    @Query("type") type?: string,
+    @Query("status") status?: string,
+    @Query("category") category?: string,
   ) {
     return this.aiService.getDocuments({ type, status, category });
   }
 
-  @Get('knowledge/documents/:id')
-  getDocumentById(@Param('id') id: string) {
+  @Get("knowledge/documents/:id")
+  getDocumentById(@Param("id") id: string) {
     return this.aiService.getDocumentById(id);
   }
 
-  @Post('knowledge/documents')
+  @Post("knowledge/documents")
   createDocument(@Body() body: any) {
     return this.aiService.createDocument(body);
   }
 
-  @Put('knowledge/documents/:id')
-  updateDocument(@Param('id') id: string, @Body() body: any) {
+  @Put("knowledge/documents/:id")
+  updateDocument(@Param("id") id: string, @Body() body: any) {
     return this.aiService.updateDocument(id, body);
   }
 
-  @Delete('knowledge/documents/:id')
-  deleteDocument(@Param('id') id: string) {
+  @Delete("knowledge/documents/:id")
+  deleteDocument(@Param("id") id: string) {
     return this.aiService.deleteDocument(id);
   }
 
   // Knowledge Engine - Search & Q&A
-  @Get('knowledge/search')
-  searchDocuments(@Query('q') query: string) {
+  @Get("knowledge/search")
+  searchDocuments(@Query("q") query: string) {
     return this.aiService.searchDocuments(query);
   }
 
-  @Post('knowledge/ask')
-  askQuestion(@Body('question') question: string) {
+  @Post("knowledge/ask")
+  askQuestion(@Body("question") question: string) {
     return this.aiService.askQuestion(question);
   }
 
-  @Get('knowledge/stats')
+  @Get("knowledge/stats")
   getKnowledgeBaseStats() {
     return this.aiService.getKnowledgeBaseStats();
   }
 
   // Safety Assistant
-  @Post('safety/report-incident')
+  @Post("safety/report-incident")
   reportIncident(@Body() body: any) {
     return this.aiService.reportIncident(body);
   }
 
-  @Get('safety/incidents')
+  @Get("safety/incidents")
   getIncidents(
-    @Query('type') type?: string,
-    @Query('severity') severity?: string,
-    @Query('status') status?: string,
+    @Query("type") type?: string,
+    @Query("severity") severity?: string,
+    @Query("status") status?: string,
   ) {
     return this.aiService.getIncidents({ type, severity, status });
   }
 
-  @Get('safety/incidents/:id')
-  getIncidentById(@Param('id') id: string) {
+  @Get("safety/incidents/:id")
+  getIncidentById(@Param("id") id: string) {
     return this.aiService.getIncidentById(id);
   }
 
-  @Post('safety/analyze/:id')
-  analyzeIncident(@Param('id') id: string) {
+  @Post("safety/analyze/:id")
+  analyzeIncident(@Param("id") id: string) {
     return this.aiService.analyzeIncident(id);
   }
 
-  @Get('safety/stats')
+  @Get("safety/stats")
   getSafetyStats() {
     return this.aiService.getSafetyStats();
   }

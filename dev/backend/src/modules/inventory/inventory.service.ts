@@ -1,6 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateStockItemDto, UpdateStockItemDto, StockMovementDto } from './dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import {
+  CreateStockItemDto,
+  UpdateStockItemDto,
+  StockMovementDto,
+} from "./dto";
 
 @Injectable()
 export class InventoryService {
@@ -14,7 +22,7 @@ export class InventoryService {
     });
 
     if (existing) {
-      throw new BadRequestException('Item code already exists');
+      throw new BadRequestException("Item code already exists");
     }
 
     // Verify warehouse exists
@@ -23,7 +31,7 @@ export class InventoryService {
     });
 
     if (!warehouse) {
-      throw new NotFoundException('Warehouse not found');
+      throw new NotFoundException("Warehouse not found");
     }
 
     return this.prisma.stockItem.create({
@@ -56,7 +64,11 @@ export class InventoryService {
   }
 
   // Get all stock items with filters
-  async getStockItems(warehouseId?: string, category?: string, lowStock?: boolean) {
+  async getStockItems(
+    warehouseId?: string,
+    category?: string,
+    lowStock?: boolean,
+  ) {
     const where: any = {};
 
     if (warehouseId) {
@@ -80,7 +92,7 @@ export class InventoryService {
         },
       },
       orderBy: {
-        name: 'asc',
+        name: "asc",
       },
     });
 
@@ -107,7 +119,7 @@ export class InventoryService {
         },
         movements: {
           orderBy: {
-            createdAt: 'desc',
+            createdAt: "desc",
           },
           take: 50,
         },
@@ -115,7 +127,7 @@ export class InventoryService {
     });
 
     if (!item) {
-      throw new NotFoundException('Stock item not found');
+      throw new NotFoundException("Stock item not found");
     }
 
     return item;
@@ -123,7 +135,7 @@ export class InventoryService {
 
   // Update stock item
   async updateStockItem(id: string, dto: UpdateStockItemDto) {
-    const item = await this.getStockItemById(id);
+    await this.getStockItemById(id);
 
     return this.prisma.stockItem.update({
       where: { id },
@@ -157,7 +169,9 @@ export class InventoryService {
     const item = await this.getStockItemById(id);
 
     if (item.currentQuantity > 0) {
-      throw new BadRequestException('Cannot delete item with stock. Remove all stock first.');
+      throw new BadRequestException(
+        "Cannot delete item with stock. Remove all stock first.",
+      );
     }
 
     return this.prisma.stockItem.delete({
@@ -166,7 +180,11 @@ export class InventoryService {
   }
 
   // Record stock movement
-  async recordStockMovement(itemId: string, userId: string, dto: StockMovementDto) {
+  async recordStockMovement(
+    itemId: string,
+    userId: string,
+    dto: StockMovementDto,
+  ) {
     const item = await this.getStockItemById(itemId);
 
     const previousQty = item.currentQuantity;
@@ -174,28 +192,28 @@ export class InventoryService {
 
     // Calculate new quantity based on movement type
     switch (dto.movementType) {
-      case 'STOCK_IN':
-      case 'RETURN':
+      case "STOCK_IN":
+      case "RETURN":
         newQty = previousQty + dto.quantity;
         break;
-      case 'STOCK_OUT':
-      case 'DAMAGED':
-      case 'EXPIRED':
+      case "STOCK_OUT":
+      case "DAMAGED":
+      case "EXPIRED":
         if (previousQty < dto.quantity) {
-          throw new BadRequestException('Insufficient stock');
+          throw new BadRequestException("Insufficient stock");
         }
         newQty = previousQty - dto.quantity;
         break;
-      case 'ADJUSTMENT':
+      case "ADJUSTMENT":
         // Adjustment can be positive or negative
         newQty = dto.quantity;
         break;
       default:
-        throw new BadRequestException('Invalid movement type');
+        throw new BadRequestException("Invalid movement type");
     }
 
     if (newQty < 0) {
-      throw new BadRequestException('Stock quantity cannot be negative');
+      throw new BadRequestException("Stock quantity cannot be negative");
     }
 
     // Calculate total value
@@ -231,7 +249,11 @@ export class InventoryService {
   }
 
   // Get stock movements
-  async getStockMovements(itemId?: string, warehouseId?: string, movementType?: string) {
+  async getStockMovements(
+    itemId?: string,
+    warehouseId?: string,
+    movementType?: string,
+  ) {
     const where: any = {};
 
     if (itemId) {
@@ -266,7 +288,7 @@ export class InventoryService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       take: 100,
     });
@@ -276,27 +298,28 @@ export class InventoryService {
   async getInventoryStats(warehouseId?: string) {
     const where = warehouseId ? { warehouseId } : {};
 
-    const [totalItems, lowStockItems, outOfStockItems, totalValue] = await Promise.all([
-      this.prisma.stockItem.count({ where }),
-      this.prisma.stockItem.count({
-        where: {
-          ...where,
-          currentQuantity: { lte: this.prisma.stockItem.fields.reorderLevel },
-        },
-      }),
-      this.prisma.stockItem.count({
-        where: {
-          ...where,
-          currentQuantity: 0,
-        },
-      }),
-      this.prisma.stockItem.aggregate({
-        where,
-        _sum: {
-          currentQuantity: true,
-        },
-      }),
-    ]);
+    const [totalItems, lowStockItems, outOfStockItems, totalValue] =
+      await Promise.all([
+        this.prisma.stockItem.count({ where }),
+        this.prisma.stockItem.count({
+          where: {
+            ...where,
+            currentQuantity: { lte: this.prisma.stockItem.fields.reorderLevel },
+          },
+        }),
+        this.prisma.stockItem.count({
+          where: {
+            ...where,
+            currentQuantity: 0,
+          },
+        }),
+        this.prisma.stockItem.aggregate({
+          where,
+          _sum: {
+            currentQuantity: true,
+          },
+        }),
+      ]);
 
     // Get total stock value
     const items = await this.prisma.stockItem.findMany({
@@ -308,7 +331,7 @@ export class InventoryService {
     });
 
     const stockValue = items.reduce((sum, item) => {
-      return sum + (item.currentQuantity * (item.unitPrice || 0));
+      return sum + item.currentQuantity * (item.unitPrice || 0);
     }, 0);
 
     return {
@@ -340,7 +363,7 @@ export class InventoryService {
         },
       },
       orderBy: {
-        currentQuantity: 'asc',
+        currentQuantity: "asc",
       },
     });
 

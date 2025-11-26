@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
 export class SafetyService {
@@ -46,7 +46,7 @@ export class SafetyService {
 
     return this.prisma.safetyInspection.findMany({
       where,
-      orderBy: { scheduledDate: 'desc' },
+      orderBy: { scheduledDate: "desc" },
     });
   }
 
@@ -56,7 +56,7 @@ export class SafetyService {
     });
 
     if (!inspection) {
-      throw new NotFoundException('Inspection not found');
+      throw new NotFoundException("Inspection not found");
     }
 
     return inspection;
@@ -75,24 +75,27 @@ export class SafetyService {
     });
   }
 
-  async completeInspection(id: string, data: {
-    passed: boolean;
-    score?: number;
-    findings?: string;
-    deficiencies?: string[];
-    recommendations?: string;
-    actionRequired?: boolean;
-    correctiveActions?: string;
-    dueDate?: Date;
-    checklistItems?: string[];
-    photoUrls?: string[];
-    notes?: string;
-  }) {
+  async completeInspection(
+    id: string,
+    data: {
+      passed: boolean;
+      score?: number;
+      findings?: string;
+      deficiencies?: string[];
+      recommendations?: string;
+      actionRequired?: boolean;
+      correctiveActions?: string;
+      dueDate?: Date;
+      checklistItems?: string[];
+      photoUrls?: string[];
+      notes?: string;
+    },
+  ) {
     return this.prisma.safetyInspection.update({
       where: { id },
       data: {
         ...data,
-        status: 'COMPLETED',
+        status: "COMPLETED",
         completedDate: new Date(),
       },
     });
@@ -148,7 +151,7 @@ export class SafetyService {
 
     return this.prisma.safetyTraining.findMany({
       where,
-      orderBy: { scheduledDate: 'desc' },
+      orderBy: { scheduledDate: "desc" },
     });
   }
 
@@ -158,7 +161,7 @@ export class SafetyService {
     });
 
     if (!training) {
-      throw new NotFoundException('Training not found');
+      throw new NotFoundException("Training not found");
     }
 
     return training;
@@ -196,7 +199,7 @@ export class SafetyService {
         attendanceCount: completedBy.length,
         completed: true,
         completedDate: new Date(),
-        status: 'COMPLETED',
+        status: "COMPLETED",
       },
     });
   }
@@ -227,17 +230,14 @@ export class SafetyService {
     });
   }
 
-  async getCertifications(filters?: {
-    employeeId?: string;
-    status?: string;
-  }) {
+  async getCertifications(filters?: { employeeId?: string; status?: string }) {
     const where: any = {};
     if (filters?.employeeId) where.employeeId = filters.employeeId;
     if (filters?.status) where.status = filters.status;
 
     return this.prisma.safetyCertification.findMany({
       where,
-      orderBy: { expiryDate: 'asc' },
+      orderBy: { expiryDate: "asc" },
     });
   }
 
@@ -247,7 +247,7 @@ export class SafetyService {
     });
 
     if (!cert) {
-      throw new NotFoundException('Certification not found');
+      throw new NotFoundException("Certification not found");
     }
 
     return cert;
@@ -260,17 +260,20 @@ export class SafetyService {
     });
   }
 
-  async renewCertification(id: string, data: {
-    issueDate: Date;
-    expiryDate: Date;
-    renewalDate: Date;
-    certificateUrl?: string;
-  }) {
+  async renewCertification(
+    id: string,
+    data: {
+      issueDate: Date;
+      expiryDate: Date;
+      renewalDate: Date;
+      certificateUrl?: string;
+    },
+  ) {
     return this.prisma.safetyCertification.update({
       where: { id },
       data: {
         ...data,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
   }
@@ -323,7 +326,7 @@ export class SafetyService {
 
     return this.prisma.safetyDrill.findMany({
       where,
-      orderBy: { scheduledDate: 'desc' },
+      orderBy: { scheduledDate: "desc" },
     });
   }
 
@@ -333,23 +336,26 @@ export class SafetyService {
     });
 
     if (!drill) {
-      throw new NotFoundException('Drill not found');
+      throw new NotFoundException("Drill not found");
     }
 
     return drill;
   }
 
-  async completeDrill(id: string, data: {
-    actualCount: number;
-    participants: string[];
-    successRating?: number;
-    results?: string;
-    strengths?: string[];
-    areasForImprovement?: string[];
-    lessonsLearned?: string;
-    followUpActions?: string;
-    actionRequired?: boolean;
-  }) {
+  async completeDrill(
+    id: string,
+    data: {
+      actualCount: number;
+      participants: string[];
+      successRating?: number;
+      results?: string;
+      strengths?: string[];
+      areasForImprovement?: string[];
+      lessonsLearned?: string;
+      followUpActions?: string;
+      actionRequired?: boolean;
+    },
+  ) {
     return this.prisma.safetyDrill.update({
       where: { id },
       data: {
@@ -377,19 +383,19 @@ export class SafetyService {
     ] = await Promise.all([
       this.prisma.safetyInspection.count(),
       this.prisma.safetyInspection.count({
-        where: { status: { in: ['SCHEDULED', 'IN_PROGRESS'] } },
+        where: { status: { in: ["SCHEDULED", "IN_PROGRESS"] } },
       }),
-      this.prisma.safetyInspection.count({ where: { status: 'FAILED' } }),
+      this.prisma.safetyInspection.count({ where: { status: "FAILED" } }),
       this.prisma.safetyTraining.count(),
       this.prisma.safetyTraining.count({
         where: {
-          status: 'SCHEDULED',
+          status: "SCHEDULED",
           scheduledDate: { gte: new Date() },
         },
       }),
-      this.prisma.safetyCertification.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.safetyCertification.count({ where: { status: "ACTIVE" } }),
       this.prisma.safetyCertification.count({
-        where: { status: 'EXPIRING_SOON' },
+        where: { status: "EXPIRING_SOON" },
       }),
       this.prisma.safetyDrill.count({
         where: {

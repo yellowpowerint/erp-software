@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
 export class HrService {
@@ -49,7 +49,7 @@ export class HrService {
 
     return this.prisma.employee.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -58,22 +58,22 @@ export class HrService {
       where: { id },
       include: {
         attendances: {
-          orderBy: { date: 'desc' },
+          orderBy: { date: "desc" },
           take: 30,
         },
         leaveRequests: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 10,
         },
         performanceReviews: {
-          orderBy: { reviewDate: 'desc' },
+          orderBy: { reviewDate: "desc" },
           take: 5,
         },
       },
     });
 
     if (!employee) {
-      throw new NotFoundException('Employee not found');
+      throw new NotFoundException("Employee not found");
     }
 
     return employee;
@@ -164,7 +164,7 @@ export class HrService {
           },
         },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
@@ -209,7 +209,7 @@ export class HrService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -222,7 +222,7 @@ export class HrService {
     });
 
     if (!leave) {
-      throw new NotFoundException('Leave request not found');
+      throw new NotFoundException("Leave request not found");
     }
 
     return leave;
@@ -241,7 +241,7 @@ export class HrService {
       data: {
         status: data.status as any,
         approvedById: data.approvedById,
-        approvedAt: data.status === 'APPROVED' ? new Date() : undefined,
+        approvedAt: data.status === "APPROVED" ? new Date() : undefined,
         rejectionReason: data.rejectionReason,
       },
     });
@@ -291,7 +291,7 @@ export class HrService {
           },
         },
       },
-      orderBy: { reviewDate: 'desc' },
+      orderBy: { reviewDate: "desc" },
     });
   }
 
@@ -306,12 +306,12 @@ export class HrService {
       todayAttendance,
     ] = await Promise.all([
       this.prisma.employee.count(),
-      this.prisma.employee.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.employee.count({ where: { status: "ACTIVE" } }),
       this.prisma.employee.groupBy({
-        by: ['department'],
+        by: ["department"],
         _count: true,
       }),
-      this.prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
+      this.prisma.leaveRequest.count({ where: { status: "PENDING" } }),
       this.prisma.attendance.count({
         where: {
           date: {
@@ -351,34 +351,35 @@ The successful candidate will be responsible for ${data.title.toLowerCase()} dut
 
     const responsibilities = [
       `Lead and execute ${data.title.toLowerCase()} initiatives within the ${data.department} department`,
-      'Collaborate with team members to achieve operational excellence',
-      'Maintain high standards of safety and compliance',
-      'Contribute to continuous improvement processes',
-      'Participate in training and development programs',
-    ].join('\n• ');
+      "Collaborate with team members to achieve operational excellence",
+      "Maintain high standards of safety and compliance",
+      "Contribute to continuous improvement processes",
+      "Participate in training and development programs",
+    ].join("\n• ");
 
     const requirements = [
       `Proven experience in ${data.title.toLowerCase()} or related field`,
-      data.requirements || 'Relevant educational background or equivalent experience',
-      'Strong communication and interpersonal skills',
-      'Ability to work effectively in a team environment',
-      'Commitment to safety and environmental standards',
-      'Mining industry experience preferred',
-    ].join('\n• ');
+      data.requirements ||
+        "Relevant educational background or equivalent experience",
+      "Strong communication and interpersonal skills",
+      "Ability to work effectively in a team environment",
+      "Commitment to safety and environmental standards",
+      "Mining industry experience preferred",
+    ].join("\n• ");
 
     const qualifications = [
-      'Bachelor\'s degree in relevant field or equivalent experience',
-      '2-5 years of experience in a similar role',
-      'Technical proficiency in industry-standard tools',
-      'Valid certifications as required for the role',
-      'Strong analytical and problem-solving abilities',
-    ].join('\n• ');
+      "Bachelor's degree in relevant field or equivalent experience",
+      "2-5 years of experience in a similar role",
+      "Technical proficiency in industry-standard tools",
+      "Valid certifications as required for the role",
+      "Strong analytical and problem-solving abilities",
+    ].join("\n• ");
 
     return {
       description,
-      responsibilities: '• ' + responsibilities,
-      requirements: '• ' + requirements,
-      qualifications: '• ' + qualifications,
+      responsibilities: "• " + responsibilities,
+      requirements: "• " + requirements,
+      qualifications: "• " + qualifications,
     };
   }
 
@@ -423,7 +424,7 @@ The successful candidate will be responsible for ${data.title.toLowerCase()} dut
       include: {
         applications: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -444,18 +445,19 @@ The successful candidate will be responsible for ${data.title.toLowerCase()} dut
   async parseCV(data: { candidateId: string; resumeText: string }) {
     // AI-powered CV parsing
     const skills = [
-      'Leadership',
-      'Project Management',
-      'Technical Analysis',
-      'Communication',
-      'Problem Solving',
+      "Leadership",
+      "Project Management",
+      "Technical Analysis",
+      "Communication",
+      "Problem Solving",
     ];
 
     const experience = `Professional with proven track record in the mining industry.
 Demonstrated expertise in operational excellence and team collaboration.
 Strong background in safety compliance and process improvement.`;
 
-    const education = 'Bachelor\'s Degree in relevant field\nProfessional certifications';
+    const education =
+      "Bachelor's Degree in relevant field\nProfessional certifications";
 
     const yearsExperience = Math.floor(Math.random() * 10) + 2;
 
@@ -482,7 +484,7 @@ Strong background in safety compliance and process improvement.`;
     });
 
     if (!application) {
-      throw new NotFoundException('Application not found');
+      throw new NotFoundException("Application not found");
     }
 
     // AI-powered screening
@@ -491,24 +493,25 @@ Strong background in safety compliance and process improvement.`;
     const experienceMatch = Math.random() * 30 + 65;
     const cultureFit = Math.random() * 25 + 70;
 
-    const aiRecommendation = aiScore >= 85
-      ? 'Highly Recommended - This candidate demonstrates exceptional qualifications and strong alignment with role requirements. Proceed to interview stage.'
-      : aiScore >= 75
-      ? 'Recommended - Candidate shows good potential and meets most job requirements. Consider for interview.'
-      : aiScore >= 65
-      ? 'Consider - Candidate meets basic requirements but may need additional evaluation.'
-      : 'Further Review Needed - Candidate may require skill development or additional experience.';
+    const aiRecommendation =
+      aiScore >= 85
+        ? "Highly Recommended - This candidate demonstrates exceptional qualifications and strong alignment with role requirements. Proceed to interview stage."
+        : aiScore >= 75
+          ? "Recommended - Candidate shows good potential and meets most job requirements. Consider for interview."
+          : aiScore >= 65
+            ? "Consider - Candidate meets basic requirements but may need additional evaluation."
+            : "Further Review Needed - Candidate may require skill development or additional experience.";
 
     const aiStrengths = [
-      'Strong technical background and relevant experience',
-      'Demonstrated leadership capabilities',
-      'Excellent communication skills',
-      'Proven track record in similar roles',
+      "Strong technical background and relevant experience",
+      "Demonstrated leadership capabilities",
+      "Excellent communication skills",
+      "Proven track record in similar roles",
     ];
 
     const aiWeaknesses = [
-      'Limited experience with specific mining equipment',
-      'May benefit from additional safety certifications',
+      "Limited experience with specific mining equipment",
+      "May benefit from additional safety certifications",
     ];
 
     // Update application with AI screening
@@ -578,7 +581,7 @@ Strong background in safety compliance and process improvement.`;
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -610,7 +613,7 @@ Strong background in safety compliance and process improvement.`;
         jobPosting: true,
         interviews: true,
       },
-      orderBy: { appliedAt: 'desc' },
+      orderBy: { appliedAt: "desc" },
     });
   }
 
@@ -619,7 +622,7 @@ Strong background in safety compliance and process improvement.`;
     const applications = await this.prisma.application.findMany({
       where: { jobPostingId, aiScreened: true },
       include: { candidate: true },
-      orderBy: { aiScore: 'desc' },
+      orderBy: { aiScore: "desc" },
     });
 
     // Assign ranks
@@ -646,7 +649,7 @@ Strong background in safety compliance and process improvement.`;
     });
 
     if (!interview) {
-      throw new NotFoundException('Interview not found');
+      throw new NotFoundException("Interview not found");
     }
 
     const aiSummary = `Interview conducted for ${interview.candidate.firstName} ${interview.candidate.lastName} for the position of ${interview.application.jobPosting.title}.
@@ -656,18 +659,19 @@ The candidate demonstrated strong technical knowledge and excellent communicatio
 Key discussion points included previous experience, technical competencies, and career aspirations. The candidate asked thoughtful questions about the role and team structure.`;
 
     const aiKeyPoints = [
-      'Strong technical background relevant to the position',
-      'Excellent communication and interpersonal skills',
-      'Demonstrated problem-solving abilities through real examples',
-      'Cultural fit appears positive',
-      'Salary expectations align with budget',
+      "Strong technical background relevant to the position",
+      "Excellent communication and interpersonal skills",
+      "Demonstrated problem-solving abilities through real examples",
+      "Cultural fit appears positive",
+      "Salary expectations align with budget",
     ];
 
-    const aiRecommendation = interview.rating && interview.rating >= 4
-      ? 'Strongly recommend moving forward with an offer. Candidate exceeds expectations.'
-      : interview.rating && interview.rating >= 3
-      ? 'Recommend for next interview round. Candidate shows good potential.'
-      : 'Consider other candidates or provide additional evaluation.';
+    const aiRecommendation =
+      interview.rating && interview.rating >= 4
+        ? "Strongly recommend moving forward with an offer. Candidate exceeds expectations."
+        : interview.rating && interview.rating >= 3
+          ? "Recommend for next interview round. Candidate shows good potential."
+          : "Consider other candidates or provide additional evaluation.";
 
     await this.prisma.interview.update({
       where: { id: interviewId },
@@ -710,7 +714,7 @@ Key discussion points included previous experience, technical competencies, and 
           include: { jobPosting: true },
         },
       },
-      orderBy: { scheduledDate: 'desc' },
+      orderBy: { scheduledDate: "desc" },
     });
   }
 
@@ -725,13 +729,13 @@ Key discussion points included previous experience, technical competencies, and 
       scheduledInterviews,
     ] = await Promise.all([
       this.prisma.jobPosting.count(),
-      this.prisma.jobPosting.count({ where: { status: 'OPEN' } }),
+      this.prisma.jobPosting.count({ where: { status: "OPEN" } }),
       this.prisma.candidate.count(),
       this.prisma.application.count(),
       this.prisma.application.count({
-        where: { status: 'SUBMITTED', aiScreened: false },
+        where: { status: "SUBMITTED", aiScreened: false },
       }),
-      this.prisma.interview.count({ where: { status: 'SCHEDULED' } }),
+      this.prisma.interview.count({ where: { status: "SCHEDULED" } }),
     ]);
 
     return {

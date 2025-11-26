@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 export interface CreateWorkflowDto {
   name: string;
@@ -36,7 +40,7 @@ export class WorkflowsService {
       include: {
         stages: {
           orderBy: {
-            stageOrder: 'asc',
+            stageOrder: "asc",
           },
         },
       },
@@ -50,12 +54,12 @@ export class WorkflowsService {
       include: {
         stages: {
           orderBy: {
-            stageOrder: 'asc',
+            stageOrder: "asc",
           },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }
@@ -67,14 +71,14 @@ export class WorkflowsService {
       include: {
         stages: {
           orderBy: {
-            stageOrder: 'asc',
+            stageOrder: "asc",
           },
         },
       },
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow not found');
+      throw new NotFoundException("Workflow not found");
     }
 
     return workflow;
@@ -90,7 +94,7 @@ export class WorkflowsService {
       include: {
         stages: {
           orderBy: {
-            stageOrder: 'asc',
+            stageOrder: "asc",
           },
         },
       },
@@ -98,7 +102,11 @@ export class WorkflowsService {
   }
 
   // Initialize workflow instance for an item
-  async initializeWorkflow(itemType: string, itemId: string, workflowId: string) {
+  async initializeWorkflow(
+    itemType: string,
+    itemId: string,
+    workflowId: string,
+  ) {
     // Check if instance already exists
     const existing = await this.prisma.workflowInstance.findUnique({
       where: {
@@ -119,14 +127,14 @@ export class WorkflowsService {
         itemType,
         itemId,
         currentStage: 1,
-        status: 'PENDING',
+        status: "PENDING",
       },
       include: {
         workflow: {
           include: {
             stages: {
               orderBy: {
-                stageOrder: 'asc',
+                stageOrder: "asc",
               },
             },
           },
@@ -149,7 +157,7 @@ export class WorkflowsService {
           include: {
             stages: {
               orderBy: {
-                stageOrder: 'asc',
+                stageOrder: "asc",
               },
             },
           },
@@ -159,7 +167,7 @@ export class WorkflowsService {
             stage: true,
           },
           orderBy: {
-            createdAt: 'desc',
+            createdAt: "desc",
           },
         },
       },
@@ -171,17 +179,17 @@ export class WorkflowsService {
     itemType: string,
     itemId: string,
     approverId: string,
-    action: 'APPROVED' | 'REJECTED',
+    action: "APPROVED" | "REJECTED",
     comments?: string,
   ) {
     const instance = await this.getWorkflowInstance(itemType, itemId);
 
     if (!instance) {
-      throw new NotFoundException('Workflow instance not found');
+      throw new NotFoundException("Workflow instance not found");
     }
 
-    if (instance.status !== 'PENDING') {
-      throw new BadRequestException('Workflow is not pending');
+    if (instance.status !== "PENDING") {
+      throw new BadRequestException("Workflow is not pending");
     }
 
     // Get current stage
@@ -190,7 +198,7 @@ export class WorkflowsService {
     );
 
     if (!currentStage) {
-      throw new BadRequestException('Invalid stage');
+      throw new BadRequestException("Invalid stage");
     }
 
     // Record the stage action
@@ -205,12 +213,12 @@ export class WorkflowsService {
     });
 
     // If rejected, mark workflow as rejected
-    if (action === 'REJECTED') {
+    if (action === "REJECTED") {
       await this.prisma.workflowInstance.update({
         where: { id: instance.id },
-        data: { status: 'REJECTED' },
+        data: { status: "REJECTED" },
       });
-      return { status: 'REJECTED', nextStage: null };
+      return { status: "REJECTED", nextStage: null };
     }
 
     // If approved, check if there are more stages
@@ -225,14 +233,14 @@ export class WorkflowsService {
         where: { id: instance.id },
         data: { currentStage: nextStageOrder },
       });
-      return { status: 'PENDING', nextStage: nextStage.stageName };
+      return { status: "PENDING", nextStage: nextStage.stageName };
     } else {
       // No more stages, approve the workflow
       await this.prisma.workflowInstance.update({
         where: { id: instance.id },
-        data: { status: 'APPROVED' },
+        data: { status: "APPROVED" },
       });
-      return { status: 'APPROVED', nextStage: null };
+      return { status: "APPROVED", nextStage: null };
     }
   }
 
@@ -256,7 +264,7 @@ export class WorkflowsService {
     const approvers = await this.prisma.user.findMany({
       where: {
         role: { in: currentStage.approverRoles as any },
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
       select: {
         id: true,
@@ -274,7 +282,7 @@ export class WorkflowsService {
   async canUserApprove(itemType: string, itemId: string, userRole: string) {
     const instance = await this.getWorkflowInstance(itemType, itemId);
 
-    if (!instance || instance.status !== 'PENDING') {
+    if (!instance || instance.status !== "PENDING") {
       return false;
     }
 
@@ -301,7 +309,7 @@ export class WorkflowsService {
       include: {
         stages: {
           orderBy: {
-            stageOrder: 'asc',
+            stageOrder: "asc",
           },
         },
       },
@@ -319,83 +327,83 @@ export class WorkflowsService {
   async seedDefaultWorkflows() {
     const workflows = [
       {
-        name: 'Standard Invoice Approval',
-        description: 'Two-level approval: CFO → CEO',
-        type: 'INVOICE',
+        name: "Standard Invoice Approval",
+        description: "Two-level approval: CFO → CEO",
+        type: "INVOICE",
         stages: [
           {
             stageOrder: 1,
-            stageName: 'CFO Review',
-            approverRoles: ['CFO', 'ACCOUNTANT'],
+            stageName: "CFO Review",
+            approverRoles: ["CFO", "ACCOUNTANT"],
             requiresAll: false,
           },
           {
             stageOrder: 2,
-            stageName: 'CEO Final Approval',
-            approverRoles: ['CEO'],
+            stageName: "CEO Final Approval",
+            approverRoles: ["CEO"],
             requiresAll: false,
           },
         ],
       },
       {
-        name: 'Purchase Request Approval',
-        description: 'Three-level approval: Dept Head → Procurement → CFO',
-        type: 'PURCHASE_REQUEST',
+        name: "Purchase Request Approval",
+        description: "Three-level approval: Dept Head → Procurement → CFO",
+        type: "PURCHASE_REQUEST",
         stages: [
           {
             stageOrder: 1,
-            stageName: 'Department Head Review',
-            approverRoles: ['DEPARTMENT_HEAD'],
+            stageName: "Department Head Review",
+            approverRoles: ["DEPARTMENT_HEAD"],
             requiresAll: false,
           },
           {
             stageOrder: 2,
-            stageName: 'Procurement Review',
-            approverRoles: ['PROCUREMENT_OFFICER'],
+            stageName: "Procurement Review",
+            approverRoles: ["PROCUREMENT_OFFICER"],
             requiresAll: false,
           },
           {
             stageOrder: 3,
-            stageName: 'CFO Final Approval',
-            approverRoles: ['CFO', 'CEO'],
+            stageName: "CFO Final Approval",
+            approverRoles: ["CFO", "CEO"],
             requiresAll: false,
           },
         ],
       },
       {
-        name: 'IT Request Approval',
-        description: 'Two-level approval: IT Manager → CFO',
-        type: 'IT_REQUEST',
+        name: "IT Request Approval",
+        description: "Two-level approval: IT Manager → CFO",
+        type: "IT_REQUEST",
         stages: [
           {
             stageOrder: 1,
-            stageName: 'IT Manager Review',
-            approverRoles: ['IT_MANAGER'],
+            stageName: "IT Manager Review",
+            approverRoles: ["IT_MANAGER"],
             requiresAll: false,
           },
           {
             stageOrder: 2,
-            stageName: 'CFO Budget Approval',
-            approverRoles: ['CFO', 'CEO'],
+            stageName: "CFO Budget Approval",
+            approverRoles: ["CFO", "CEO"],
             requiresAll: false,
           },
         ],
       },
       {
-        name: 'Payment Request Approval',
-        description: 'Two-level approval: Accountant → CFO',
-        type: 'PAYMENT_REQUEST',
+        name: "Payment Request Approval",
+        description: "Two-level approval: Accountant → CFO",
+        type: "PAYMENT_REQUEST",
         stages: [
           {
             stageOrder: 1,
-            stageName: 'Accountant Verification',
-            approverRoles: ['ACCOUNTANT'],
+            stageName: "Accountant Verification",
+            approverRoles: ["ACCOUNTANT"],
             requiresAll: false,
           },
           {
             stageOrder: 2,
-            stageName: 'CFO Authorization',
-            approverRoles: ['CFO', 'CEO'],
+            stageName: "CFO Authorization",
+            approverRoles: ["CFO", "CEO"],
             requiresAll: false,
           },
         ],
