@@ -70,6 +70,7 @@ function BudgetsPageContent() {
   };
 
   const canCreate = user && ['SUPER_ADMIN', 'CEO', 'CFO'].includes(user.role);
+  const canEdit = user && ['SUPER_ADMIN', 'CEO', 'CFO', 'ACCOUNTANT'].includes(user.role);
 
   // Calculate summary stats
   const totalAllocated = budgets.reduce((sum, b) => sum + b.allocatedAmount, 0);
@@ -227,10 +228,18 @@ function BudgetsPageContent() {
                       <span>👤 {budget.createdBy.firstName} {budget.createdBy.lastName}</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getUtilizationBg(utilization)}`}>
+                  <div className="text-right space-y-2">
+                    <span className={`block px-3 py-1 text-sm font-semibold rounded-full ${getUtilizationBg(utilization)}`}>
                       {utilization.toFixed(1)}% Used
                     </span>
+                    {canEdit && (
+                      <Link
+                        href={`/finance/budgets/${budget.id}/edit`}
+                        className="inline-flex items-center px-3 py-1 text-xs font-medium text-indigo-600 border border-indigo-200 rounded hover:bg-indigo-50"
+                      >
+                        Edit
+                      </Link>
+                    )}
                   </div>
                 </div>
 

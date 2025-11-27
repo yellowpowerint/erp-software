@@ -7,6 +7,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { ArrowLeft, Star, Phone, Mail, MapPin, CreditCard, Calendar, User, FileText } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { UserRole } from '@/types/auth';
 
 interface Payment {
   id: string;
@@ -42,6 +44,7 @@ interface Supplier {
 
 function SupplierDetailContent() {
   const params = useParams();
+  const { user } = useAuth();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -111,10 +114,16 @@ function SupplierDetailContent() {
   }
 
   const totalPayments = supplier.payments.reduce((sum, p) => p.status === 'COMPLETED' ? sum + p.amount : sum, 0);
+  const canEdit = user && [
+    UserRole.SUPER_ADMIN,
+    UserRole.CFO,
+    UserRole.ACCOUNTANT,
+    UserRole.PROCUREMENT_OFFICER,
+  ].includes(user.role);
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <Link
           href="/finance/suppliers"
           className="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-700 mb-4"
@@ -122,6 +131,14 @@ function SupplierDetailContent() {
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Suppliers</span>
         </Link>
+        {canEdit && (
+          <Link
+            href={`/finance/suppliers/${supplier.id}/edit`}
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 mb-4"
+          >
+            <span>Edit Supplier</span>
+          </Link>
+        )}
       </div>
 
       {/* Supplier Header */}
