@@ -6,6 +6,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Users, ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { UserRole } from '@/types/auth';
 
 interface Employee {
   id: string;
@@ -22,6 +24,7 @@ interface Employee {
 }
 
 function EmployeesPageContent() {
+  const { user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,6 +54,8 @@ function EmployeesPageContent() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const canCreate = user && [UserRole.SUPER_ADMIN, UserRole.HR_MANAGER].includes(user.role);
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -76,10 +81,15 @@ function EmployeesPageContent() {
               <p className="text-gray-600">Manage employee information</p>
             </div>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-            <Plus className="w-4 h-4" />
-            <span>Add Employee</span>
-          </button>
+          {canCreate && (
+            <Link
+              href="/hr/employees/new"
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Employee</span>
+            </Link>
+          )}
         </div>
       </div>
 
