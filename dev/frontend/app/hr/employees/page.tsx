@@ -54,7 +54,9 @@ function EmployeesPageContent() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const canCreate = user && [UserRole.SUPER_ADMIN, UserRole.HR_MANAGER].includes(user.role);
+  const canCreate =
+    user &&
+    [UserRole.SUPER_ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_HEAD].includes(user.role);
 
   if (loading) {
     return (

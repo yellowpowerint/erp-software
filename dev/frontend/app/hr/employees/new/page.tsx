@@ -331,7 +331,7 @@ function NewEmployeeContent() {
 export default function NewEmployeePage() {
   return (
     <ProtectedRoute
-      allowedRoles={[UserRole.SUPER_ADMIN, UserRole.HR_MANAGER]}
+      allowedRoles={[UserRole.SUPER_ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_HEAD]}
     >
       <NewEmployeeContent />
     </ProtectedRoute>
