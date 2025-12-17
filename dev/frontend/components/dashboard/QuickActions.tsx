@@ -17,7 +17,7 @@ const quickActions: QuickAction[] = [
   {
     label: 'Create Invoice',
     icon: FileText,
-    href: '/finance/invoices/new',
+    href: '/approvals/invoices/new',
     color: 'bg-blue-500 hover:bg-blue-600',
     roles: [UserRole.SUPER_ADMIN, UserRole.CFO, UserRole.ACCOUNTANT],
   },
@@ -31,7 +31,7 @@ const quickActions: QuickAction[] = [
   {
     label: 'Add Stock',
     icon: Package,
-    href: '/inventory/manage',
+    href: '/inventory/items/new',
     color: 'bg-orange-500 hover:bg-orange-600',
     roles: [UserRole.SUPER_ADMIN, UserRole.WAREHOUSE_MANAGER],
   },
@@ -52,7 +52,7 @@ const quickActions: QuickAction[] = [
   {
     label: 'Report Incident',
     icon: AlertCircle,
-    href: '/safety/incidents/new',
+    href: '/ai/safety-assistant',
     color: 'bg-red-500 hover:bg-red-600',
     roles: [UserRole.SUPER_ADMIN, UserRole.SAFETY_OFFICER, UserRole.OPERATIONS_MANAGER],
   },
