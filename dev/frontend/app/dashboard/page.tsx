@@ -9,6 +9,7 @@ import ProductionChart from '@/components/dashboard/ProductionChart';
 import ExpenseChart from '@/components/dashboard/ExpenseChart';
 import { getRoleBasedStats } from '@/lib/get-role-stats';
 import { AlertCircle, Clock } from 'lucide-react';
+import RecentDocumentsWidget from '@/components/documents/RecentDocumentsWidget';
 
 function DashboardContent() {
   const { user } = useAuth();
@@ -128,6 +129,8 @@ function DashboardContent() {
 
         {/* Alerts & Profile */}
         <div className="space-y-6">
+          <RecentDocumentsWidget limit={5} />
+
           {/* Alerts */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center space-x-2 mb-4">

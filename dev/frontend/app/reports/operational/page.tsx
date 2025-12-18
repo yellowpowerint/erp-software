@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { TrendingUp, TrendingDown, ArrowLeft, Package, Wrench, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import ExportReportPDFButton from '@/components/documents/ExportReportPDFButton';
 
 interface InventoryReport {
   summary: {
@@ -83,12 +84,24 @@ function OperationalReportsContent() {
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Reports</span>
         </Link>
-        <div className="flex items-center space-x-3">
-          <TrendingUp className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Operational Reports</h1>
-            <p className="text-gray-600">Inventory, assets, and projects analysis</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <TrendingUp className="w-8 h-8 text-blue-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Operational Reports</h1>
+              <p className="text-gray-600">Inventory, assets, and projects analysis</p>
+            </div>
           </div>
+          {(inventoryData || assetData || projectData) && (
+            <ExportReportPDFButton
+              title="Operational Report"
+              reportData={{ inventoryData, assetData, projectData }}
+              module="reports"
+              category="AUDIT_DOCUMENT"
+              referenceId="operational-report"
+              buttonText="Export as PDF"
+            />
+          )}
         </div>
       </div>
 

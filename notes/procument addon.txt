@@ -1,0 +1,10 @@
+1. Requisition Management: 
+2. Automated Approval Workflows: 
+3. Supplier/Vendor Management: 
+4. Request for Quotation (RFQ) and Bidding: 
+5. Purchase Order (PO) Generation & Management:
+6. Receiving & Inspection:  
+7. Invoice Matching & Payment Processing: Automated comparison of invoices against POs and goods received 
+8. Inventory Integration: 
+9. Reporting & Analytics:
+10. Integration: Seamless data flow with other systems

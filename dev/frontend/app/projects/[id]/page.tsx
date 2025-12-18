@@ -8,6 +8,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { ArrowLeft, Edit, CheckCircle, Clock, User } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import GeneratePDFButton from '@/components/documents/GeneratePDFButton';
 
 interface Project {
   id: string;
@@ -113,15 +114,24 @@ function ProjectDetailContent() {
             <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
             <p className="text-gray-600 mt-1">{project.projectCode}</p>
           </div>
-          {canManage && (
-            <Link
-              href={`/projects/${project.id}/edit`}
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Edit className="w-5 h-5" />
-              <span>Edit Project</span>
-            </Link>
-          )}
+          <div className="flex items-center space-x-3">
+            <GeneratePDFButton
+              documentType="project-report"
+              entityId={project.id}
+              variant="outline"
+              buttonText="Generate PDF Report"
+            />
+
+            {canManage && (
+              <Link
+                href={`/projects/${project.id}/edit`}
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Edit className="w-5 h-5" />
+                <span>Edit Project</span>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 

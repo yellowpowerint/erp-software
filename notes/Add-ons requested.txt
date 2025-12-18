@@ -1,0 +1,129 @@
+Add-ons requested:
+
+A. End-to-end Automated Procurement/ Supply Management Addon Requested by Solo, Procurement Manager = GHs5,300:
+1. Requisition Management: 
+2. Automated Approval Workflows: 
+3. Supplier/Vendor Management: 
+4. Request for Quotation (RFQ) and Bidding: 
+5. Purchase Order (PO) Generation & Management:
+6. Receiving & Inspection:  
+7. Invoice Matching & Payment Processing: Automated comparison of invoices against POs and goods received 
+8. Inventory Integration: 
+9. Reporting & Analytics:
+10. Integration: Seamless data flow with other systems
+
+
+B. Acrobat & Adobe Features Addon requested by Francis, Accountant = GHs4,000:
+## ✅ **1. Converting Documents to PDF (Universal Format)**
+
+Accounting teams exchange:
+
+* invoices
+* receipts
+* bank statements
+* purchase orders
+* audit documents
+* contracts
+
+Adobe tools make it easy to **convert any file format to a secure, professional PDF**—required for audits, tax filings, and records.
+
+---
+
+## ✅ **2. Editing and Cleaning Up PDFs**
+
+Accountants often need to:
+
+* correct errors on scanned invoices
+* combine multiple pages into one PDF
+* add missing pages or remove duplicates
+* rearrange pages
+
+Acrobat Standard DC allows all of this.
+
+---
+
+## ✅ **3. Filling and Signing Forms**
+
+For internal and external financial processes:
+
+* supplier onboarding
+* W-9 forms
+* tax forms
+* payroll documentation
+* approval memos
+
+Adobe provides **Fill & Sign**, which makes paperwork fast and compliant.
+
+---
+
+## ✅ **4. Protecting Sensitive Financial Data**
+
+Accounting departments handle sensitive documents.
+
+Acrobat Standard DC gives tools to:
+
+* password-protect PDFs
+* redact sensitive financial info
+* restrict printing or copying
+
+This is often required by auditors and regulators.
+
+---
+
+## ✅ **5. Creating Audit-Ready Documentation**
+
+When auditors request:
+
+* financial evidence
+* supporting documents
+* expense justifications
+
+Accountants can use Acrobat to:
+
+* merge files
+* add bookmarks
+* label and organize documents
+* create auditor-friendly PDF packages
+
+---
+
+## ✅ **6. OCR for Scanned Documents**
+
+A lot of receipts or bank statements come scanned.
+
+Acrobat’s **OCR (text recognition)** can:
+
+* make scanned receipts searchable
+* extract text
+* speed up data entry into accounting software
+
+This can save hours in bookkeeping.
+
+---
+
+## ✅ **7. Collaboration & Reviews**
+
+Accounting teams can share PDFs for:
+
+* approvals
+* comments
+* management review
+* audit trails
+
+Acrobat Studio provides collaborative review tools.
+
+---
+
+
+C. Fleet Management to manage tracks across sites and premises = GHs2,300:
+
+This module will allow the company to manage and track: 
+• Machines 
+• Company vehicles 
+• Equipment 
+• Operational usage 
+• Maintenance schedules 
+• Breakdown logs 
+• Fuel consumption 
+• Cost analysis
+

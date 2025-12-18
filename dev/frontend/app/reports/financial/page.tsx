@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { DollarSign, ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import ExportReportPDFButton from '@/components/documents/ExportReportPDFButton';
 
 interface FinancialSummary {
   summary: {
@@ -74,13 +75,25 @@ function FinancialReportsContent() {
               <p className="text-gray-600">Financial performance and budget analysis</p>
             </div>
           </div>
-          <button
-            onClick={fetchReport}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            <TrendingUp className="w-4 h-4" />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {data && (
+              <ExportReportPDFButton
+                title="Financial Report"
+                reportData={data}
+                module="reports"
+                category="AUDIT_DOCUMENT"
+                referenceId="financial-report"
+                buttonText="Export as PDF"
+              />
+            )}
+            <button
+              onClick={fetchReport}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 

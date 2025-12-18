@@ -95,6 +95,12 @@ model User {
   submittedExpenses     Expense[]         @relation("ExpenseSubmitter")
   approvedExpenses      Expense[]         @relation("ExpenseApprover")
   createdBudgets        Budget[]
+  uploadedDocuments     Document[]        @relation("DocumentUploader")
+  documentVersions      DocumentVersion[] @relation("VersionUploader")
+  documentSignatures    DocumentSignature[] @relation("DocumentSigner")
+  revokedSignatures     DocumentSignature[] @relation("SignatureRevoker")
+  documentAccessLogs    DocumentAccessLog[] @relation("DocumentAccessor")
+  createdSecurity       DocumentSecurity[]  @relation("SecurityCreator")
 
   @@map("users")
 }
@@ -1588,4 +1594,190 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// Document Management System (Phase 15.1)
+enum DocumentCategory {
+  INVOICE
+  RECEIPT
+  PURCHASE_ORDER
+  QUOTATION
+  CONTRACT
+  SAFETY_REPORT
+  INCIDENT_REPORT
+  COMPLIANCE_DOC
+  PROJECT_REPORT
+  HR_DOCUMENT
+  PAYROLL
+  TAX_FORM
+  AUDIT_DOCUMENT
+  TRAINING_MATERIAL
+  CERTIFICATE
+  EQUIPMENT_MANUAL
+  OTHER
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  fileName    String
+  originalName String
+  fileSize    Int
+  mimeType    String
+  fileUrl     String
+  category    DocumentCategory
+  module      String
+  referenceId String?
+  description String?
+  tags        String[]
+  version     Int      @default(1)
+  isLatest    Boolean  @default(true)
+  uploadedById String
+  uploadedBy  User     @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  versions    DocumentVersion[]
+  metadata    DocumentMetadata?
+  permissions DocumentPermission[]
+  signatures  DocumentSignature[] @relation("DocumentSignatures")
+  security    DocumentSecurity?   @relation("DocumentSecurity")
+  
+  @@index([module, referenceId])
+  @@index([category])
+  @@index([uploadedById])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber Int
+  fileName    String
+  fileUrl     String
+  fileSize    Int
+  uploadedById String
+  uploadedBy  User     @relation("VersionUploader", fields: [uploadedById], references: [id])
+  changeNotes String?
+  createdAt   DateTime @default(now())
+  
+  @@unique([documentId, versionNumber])
+  @@map("document_versions")
+}
+
+model DocumentMetadata {
+  id          String   @id @default(uuid())
+  documentId  String   @unique
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pageCount   Int?
+  author      String?
+  title       String?
+  subject     String?
+  keywords    String[]
+  createdDate DateTime?
+  modifiedDate DateTime?
+  extractedText String?  @db.Text
+  
+  @@map("document_metadata")
+}
+
+model DocumentPermission {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role        UserRole
+  canView     Boolean  @default(false)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  canShare    Boolean  @default(false)
+  
+  @@unique([documentId, role])
+  @@map("document_permissions")
+}
+
+// Phase 15.4: Digital Signatures & Document Security
+enum SignatureType {
+  DRAWN        // Hand-drawn signature
+  TYPED        // Typed name
+  UPLOADED     // Uploaded signature image
+  CERTIFICATE  // Digital certificate (future)
+}
+
+enum DocumentAction {
+  VIEWED
+  DOWNLOADED
+  EDITED
+  DELETED
+  SHARED
+  SIGNED
+  PERMISSION_CHANGED
+  SECURITY_UPDATED
+}
+
+model DocumentSignature {
+  id              String        @id @default(uuid())
+  documentId      String
+  document        Document      @relation("DocumentSignatures", fields: [documentId], references: [id], onDelete: Cascade)
+  signerId        String
+  signer          User          @relation("DocumentSigner", fields: [signerId], references: [id])
+  signatureData   String        @db.Text // Base64 encoded signature image
+  signatureType   SignatureType @default(DRAWN)
+  signatureHash   String        // Hash of signature for verification
+  ipAddress       String
+  userAgent       String
+  location        String?       // GPS coordinates if available
+  reason          String?       // Reason for signing (e.g., "Approved invoice")
+  metadata        Json?         // Additional metadata (device info, etc.)
+  isValid         Boolean       @default(true)
+  revokedAt       DateTime?
+  revokedById     String?
+  revokedBy       User?         @relation("SignatureRevoker", fields: [revokedById], references: [id])
+  revokeReason    String?
+  signedAt        DateTime      @default(now())
+  
+  @@index([documentId])
+  @@index([signerId])
+  @@index([signedAt])
+  @@map("document_signatures")
+}
+
+model DocumentAccessLog {
+  id          String         @id @default(uuid())
+  documentId  String
+  userId      String
+  user        User           @relation("DocumentAccessor", fields: [userId], references: [id])
+  action      DocumentAction
+  ipAddress   String
+  userAgent   String
+  metadata    Json?          // Additional context (e.g., download format, edit details)
+  accessedAt  DateTime       @default(now())
+  
+  @@index([documentId])
+  @@index([userId])
+  @@index([accessedAt])
+  @@map("document_access_logs")
+}
+
+model DocumentSecurity {
+  id                String    @id @default(uuid())
+  documentId        String    @unique
+  document          Document  @relation("DocumentSecurity", fields: [documentId], references: [id], onDelete: Cascade)
+  isPasswordProtected Boolean @default(false)
+  passwordHash      String?   // Hashed password for PDF protection
+  hasWatermark      Boolean   @default(false)
+  watermarkText     String?
+  isEncrypted       Boolean   @default(false)
+  encryptionKey     String?   // Encrypted key for sensitive documents
+  expiresAt         DateTime? // Document access expiration
+  maxDownloads      Int?      // Maximum number of downloads allowed
+  downloadCount     Int       @default(0)
+  requireSignature  Boolean   @default(false)
+  allowPrint        Boolean   @default(true)
+  allowCopy         Boolean   @default(true)
+  createdById       String
+  createdBy         User      @relation("SecurityCreator", fields: [createdById], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@map("document_security")
 }

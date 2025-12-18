@@ -8,6 +8,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { ShoppingCart, ArrowLeft, CheckCircle, XCircle, Clock, Package, DollarSign, User, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import GeneratePDFButton from '@/components/documents/GeneratePDFButton';
+import SignDocumentModal from '@/components/documents/SignDocumentModal';
+import { useDocuments } from '@/hooks/useDocuments';
 
 interface PurchaseRequest {
   id: string;
@@ -53,7 +56,11 @@ function PurchaseRequestDetailContent() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [comments, setComments] = useState('');
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const { signDocument, generatePDFPreview } = useDocuments();
 
   useEffect(() => {
     fetchRequest();
@@ -176,24 +183,49 @@ function PurchaseRequestDetailContent() {
       </div>
 
       {/* Action Buttons */}
-      {canApprove && isPending && (
-        <div className="mb-6 flex space-x-4">
-          <button
-            onClick={() => setShowApproveModal(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <CheckCircle className="w-5 h-5" />
-            <span>Approve Request</span>
-          </button>
-          <button
-            onClick={() => setShowRejectModal(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <XCircle className="w-5 h-5" />
-            <span>Reject Request</span>
-          </button>
-        </div>
-      )}
+      <div className="mb-6 flex space-x-4">
+        <GeneratePDFButton
+          documentType="purchase-order"
+          entityId={request.id}
+          variant="outline"
+          buttonText="Generate PDF"
+        />
+
+        <button
+          onClick={async () => {
+            try {
+              const url = await generatePDFPreview('purchase-order', request.id, {});
+              setDocumentUrl(url);
+              setShowSignModal(true);
+            } catch (err) {
+              console.error('Failed to generate PDF preview:', err);
+            }
+          }}
+          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          <ShoppingCart className="w-4 h-4" />
+          <span>Sign Document</span>
+        </button>
+
+        {canApprove && isPending && (
+          <>
+            <button
+              onClick={() => setShowApproveModal(true)}
+              className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <CheckCircle className="w-5 h-5" />
+              <span>Approve Request</span>
+            </button>
+            <button
+              onClick={() => setShowRejectModal(true)}
+              className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <XCircle className="w-5 h-5" />
+              <span>Reject Request</span>
+            </button>
+          </>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info */}
@@ -390,6 +422,29 @@ function PurchaseRequestDetailContent() {
           </div>
         </div>
       )}
+
+      {/* Sign Document Modal */}
+      <SignDocumentModal
+        isOpen={showSignModal}
+        onClose={() => {
+          setShowSignModal(false);
+          if (documentUrl) {
+            window.URL.revokeObjectURL(documentUrl);
+            setDocumentUrl(null);
+          }
+        }}
+        documentId={request.id}
+        documentName={`Purchase Request ${request.requestNumber}`}
+        documentUrl={documentUrl || undefined}
+        onSign={async (signatureData, reason) => {
+          await signDocument(request.id, signatureData, reason || `Signed purchase request ${request.requestNumber}`);
+          setShowSignModal(false);
+          if (documentUrl) {
+            window.URL.revokeObjectURL(documentUrl);
+            setDocumentUrl(null);
+          }
+        }}
+      />
 
       {/* Reject Modal */}
       {showRejectModal && (

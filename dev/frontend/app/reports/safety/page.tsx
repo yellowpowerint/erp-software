@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Shield, ArrowLeft, CheckCircle, XCircle, AlertTriangle, TrendingUp, Users, Award, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import ExportReportPDFButton from '@/components/documents/ExportReportPDFButton';
 
 interface SafetyReport {
   summary: {
@@ -78,13 +79,25 @@ function SafetyReportsContent() {
               <p className="text-gray-600">Safety inspections, training, and compliance analytics</p>
             </div>
           </div>
-          <button
-            onClick={fetchReport}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            <TrendingUp className="w-4 h-4" />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {data && (
+              <ExportReportPDFButton
+                title="Safety Report"
+                reportData={data}
+                module="reports"
+                category="SAFETY_REPORT"
+                referenceId="safety-report"
+                buttonText="Export as PDF"
+              />
+            )}
+            <button
+              onClick={fetchReport}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 

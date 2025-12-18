@@ -8,6 +8,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { FileText, ArrowLeft, CheckCircle, XCircle, Clock, Calendar, DollarSign, User, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import GeneratePDFButton from '@/components/documents/GeneratePDFButton';
+import SignDocumentModal from '@/components/documents/SignDocumentModal';
+import { useDocuments } from '@/hooks/useDocuments';
 
 interface Invoice {
   id: string;
@@ -50,7 +53,12 @@ function InvoiceDetailContent() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [comments, setComments] = useState('');
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  
+  const { signDocument, generatePDFPreview } = useDocuments();
 
   useEffect(() => {
     fetchInvoice();
@@ -72,7 +80,7 @@ function InvoiceDetailContent() {
   const handleApprove = async () => {
     setActionLoading(true);
     try {
-      await api.post(`/approvals/invoices/${params.id}/approve`, { comments });
+      await api.post(`/approvals/invoices/${params.id}/approve`, { comments: '' });
       alert('Invoice approved successfully!');
       setShowApproveModal(false);
       fetchInvoice();
@@ -85,13 +93,13 @@ function InvoiceDetailContent() {
   };
 
   const handleReject = async () => {
-    if (!comments.trim()) {
+    if (!rejectReason.trim()) {
       alert('Please provide a reason for rejection');
       return;
     }
     setActionLoading(true);
     try {
-      await api.post(`/approvals/invoices/${params.id}/reject`, { comments });
+      await api.post(`/approvals/invoices/${params.id}/reject`, { comments: rejectReason });
       alert('Invoice rejected');
       setShowRejectModal(false);
       fetchInvoice();
@@ -159,24 +167,49 @@ function InvoiceDetailContent() {
       </div>
 
       {/* Action Buttons */}
-      {canApprove && isPending && (
-        <div className="mb-6 flex space-x-4">
-          <button
-            onClick={() => setShowApproveModal(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <CheckCircle className="w-5 h-5" />
-            <span>Approve Invoice</span>
-          </button>
-          <button
-            onClick={() => setShowRejectModal(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <XCircle className="w-5 h-5" />
-            <span>Reject Invoice</span>
-          </button>
-        </div>
-      )}
+      <div className="mb-6 flex space-x-4">
+        <GeneratePDFButton
+          documentType="invoice"
+          entityId={invoice.id}
+          variant="outline"
+          buttonText="Generate PDF"
+        />
+
+        <button
+          onClick={async () => {
+            try {
+              const url = await generatePDFPreview('invoice', invoice.id, {});
+              setDocumentUrl(url);
+              setShowSignModal(true);
+            } catch (err) {
+              console.error('Failed to generate PDF preview:', err);
+            }
+          }}
+          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Sign Document</span>
+        </button>
+
+        {canApprove && isPending && (
+          <>
+            <button
+              onClick={() => setShowApproveModal(true)}
+              className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <CheckCircle className="w-5 h-5" />
+              <span>Approve Invoice</span>
+            </button>
+            <button
+              onClick={() => setShowRejectModal(true)}
+              className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <XCircle className="w-5 h-5" />
+              <span>Reject Invoice</span>
+            </button>
+          </>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info */}
@@ -357,6 +390,29 @@ function InvoiceDetailContent() {
           </div>
         </div>
       )}
+
+      {/* Sign Document Modal */}
+      <SignDocumentModal
+        isOpen={showSignModal}
+        onClose={() => {
+          setShowSignModal(false);
+          if (documentUrl) {
+            window.URL.revokeObjectURL(documentUrl);
+            setDocumentUrl(null);
+          }
+        }}
+        documentId={invoice.id}
+        documentName={`Invoice ${invoice.invoiceNumber}`}
+        documentUrl={documentUrl || undefined}
+        onSign={async (signatureData, reason) => {
+          await signDocument(invoice.id, signatureData, reason || `Signed invoice ${invoice.invoiceNumber}`);
+          setShowSignModal(false);
+          if (documentUrl) {
+            window.URL.revokeObjectURL(documentUrl);
+            setDocumentUrl(null);
+          }
+        }}
+      />
 
       {/* Reject Modal */}
       {showRejectModal && (
