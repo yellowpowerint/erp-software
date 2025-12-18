@@ -11,8 +11,21 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
+  const frontendUrlsRaw =
+    process.env.FRONTEND_URLS ||
+    process.env.FRONTEND_URL ||
+    "http://localhost:3000";
+  const allowedOrigins = frontendUrlsRaw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"), false);
+    },
     credentials: true,
   });
 
