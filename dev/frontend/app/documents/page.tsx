@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import { 
   Grid, 
   List, 
@@ -22,7 +24,7 @@ type ViewMode = 'grid' | 'list';
 type SortField = 'name' | 'date' | 'size' | 'category';
 type SortOrder = 'asc' | 'desc';
 
-export default function DocumentsPage() {
+function DocumentsContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
@@ -254,8 +256,8 @@ export default function DocumentsPage() {
   const uniqueModules = Array.from(new Set(documents.map((doc) => doc.module)));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Documents & Files</h1>
@@ -601,6 +603,16 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+export default function DocumentsPage() {
+  return (
+    <ProtectedRoute>
+      <DashboardLayout>
+        <DocumentsContent />
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }

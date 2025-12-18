@@ -4,6 +4,16 @@ const path = require('path');
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname, '../..'),
+  async rewrites() {
+    const backendBaseUrl = process.env.BACKEND_URL || 'https://mining-erp-backend.onrender.com';
+
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendBaseUrl}/api/:path*`,
+      },
+    ];
+  },
   webpack: (config, { isServer }) => {
     // react-pdf/pdfjs-dist has an optional dependency on `canvas` for Node.
     // In Next.js builds this can be attempted even for client bundles.

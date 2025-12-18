@@ -6,11 +6,13 @@ import { Document } from '@/types/document';
 import { useDocuments } from '@/hooks/useDocuments';
 import DocumentCard from '@/components/documents/DocumentCard';
 import DocumentDetailModal from '@/components/documents/DocumentDetailModal';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
 
 type ViewMode = 'grid' | 'list';
 
-export default function MyUploadsPage() {
+function MyUploadsContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -30,8 +32,8 @@ export default function MyUploadsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
@@ -45,33 +47,33 @@ export default function MyUploadsPage() {
           <p className="mt-2 text-gray-600">Documents you have uploaded</p>
         </div>
 
-        {/* Toolbar */}
-        <div className="bg-white rounded-lg shadow mb-6 p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              {documents.length} {documents.length === 1 ? 'document' : 'documents'}
-            </div>
+      {/* Toolbar */}
+      <div className="bg-white rounded-lg shadow mb-6 p-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {documents.length} {documents.length === 1 ? 'document' : 'documents'}
+          </div>
 
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded ${
-                  viewMode === 'grid' ? 'bg-white shadow' : 'hover:bg-gray-200'
-                }`}
-              >
-                <Grid className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded ${
-                  viewMode === 'list' ? 'bg-white shadow' : 'hover:bg-gray-200'
-                }`}
-              >
-                <List className="h-5 w-5" />
-              </button>
-            </div>
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded ${
+                viewMode === 'grid' ? 'bg-white shadow' : 'hover:bg-gray-200'
+              }`}
+            >
+              <Grid className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded ${
+                viewMode === 'list' ? 'bg-white shadow' : 'hover:bg-gray-200'
+              }`}
+            >
+              <List className="h-5 w-5" />
+            </button>
           </div>
         </div>
+      </div>
 
         {/* Documents grid/list */}
         {loading ? (
@@ -141,8 +143,6 @@ export default function MyUploadsPage() {
           </div>
         )}
       </div>
-
-      {/* Document detail modal */}
       {selectedDocument && (
         <DocumentDetailModal
           document={selectedDocument}
@@ -157,6 +157,16 @@ export default function MyUploadsPage() {
           }}
         />
       )}
-    </div>
+    </>
+  );
+}
+
+export default function MyUploadsPage() {
+  return (
+    <ProtectedRoute>
+      <DashboardLayout>
+        <MyUploadsContent />
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }
