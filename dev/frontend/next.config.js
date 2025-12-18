@@ -1,9 +1,6 @@
-const path = require('path');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  outputFileTracingRoot: path.join(__dirname, '../..'),
   async rewrites() {
     const backendBaseUrl = process.env.BACKEND_URL || 'https://mining-erp-backend.onrender.com';
 
