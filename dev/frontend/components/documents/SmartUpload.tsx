@@ -65,11 +65,13 @@ export default function SmartUpload({
       setUploadProgress(75);
 
       // Parse based on detected type
-      let parseData;
+      let parseData: InvoiceData | ReceiptData | undefined;
       if (detectedType === ExtractedDataType.INVOICE) {
-        parseData = await ocrApi.parseInvoice(docId);
+        const invoiceData = await ocrApi.parseInvoice(docId);
+        parseData = invoiceData;
       } else if (detectedType === ExtractedDataType.RECEIPT) {
-        parseData = await ocrApi.parseReceipt(docId);
+        const receiptData = await ocrApi.parseReceipt(docId);
+        parseData = receiptData;
       }
 
       if (parseData) {
@@ -78,9 +80,9 @@ export default function SmartUpload({
 
         // Notify parent components
         if (detectedType === ExtractedDataType.INVOICE && onInvoiceExtracted) {
-          onInvoiceExtracted(parseData);
+          onInvoiceExtracted(parseData as InvoiceData);
         } else if (detectedType === ExtractedDataType.RECEIPT && onReceiptExtracted) {
-          onReceiptExtracted(parseData);
+          onReceiptExtracted(parseData as ReceiptData);
         }
       }
 
