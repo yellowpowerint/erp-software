@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Download, Trash2, Edit, Save, Tag, Clock, Upload } from 'lucide-react';
+import { X, Download, Trash2, Edit, Save, Tag, Clock, Upload, FileText } from 'lucide-react';
 import { Document, UpdateDocumentDto, DocumentCategory } from '@/types/document';
 import { useDocuments } from '@/hooks/useDocuments';
 import { formatFileSize } from '@/lib/utils/file';
@@ -10,6 +10,8 @@ import DocumentViewer from './DocumentViewer';
 import VersionHistory from './VersionHistory';
 import SecurityPanel from './SecurityPanel';
 import AccessLog from './AccessLog';
+import OCRButton from './OCRButton';
+import ExtractedTextViewer from './ExtractedTextViewer';
 
 interface DocumentDetailModalProps {
   document: Document;
@@ -29,7 +31,7 @@ export default function DocumentDetailModal({
   const [tags, setTags] = useState<string[]>(document.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [category, setCategory] = useState(document.category);
-  const [activeTab, setActiveTab] = useState<'preview' | 'details' | 'versions' | 'security' | 'access-log'>('preview');
+  const [activeTab, setActiveTab] = useState<'preview' | 'details' | 'versions' | 'security' | 'access-log' | 'ocr'>('preview');
   const [versions, setVersions] = useState<any[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [uploadingVersion, setUploadingVersion] = useState(false);
@@ -37,6 +39,7 @@ export default function DocumentDetailModal({
   const [loadingSecurity, setLoadingSecurity] = useState(false);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [loadingAccessLogs, setLoadingAccessLogs] = useState(false);
+  const [ocrResult, setOCRResult] = useState<any>(null);
 
   const { 
     updateDocument, 
@@ -108,6 +111,12 @@ export default function DocumentDetailModal({
   useEffect(() => {
     if (activeTab === 'versions') {
       loadVersionHistory();
+    }
+    if (activeTab === 'security') {
+      loadSecurity();
+    }
+    if (activeTab === 'access-log') {
+      loadAccessLogs();
     }
   }, [activeTab]);
 
@@ -272,6 +281,39 @@ export default function DocumentDetailModal({
                   }`}
                 >
                   Version History
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('security')}
+                  className={`pb-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'security'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Security
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('access-log')}
+                  className={`pb-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'access-log'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Access Log
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('ocr')}
+                  className={`pb-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'ocr'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  OCR & Text
                 </button>
               </div>
             </div>

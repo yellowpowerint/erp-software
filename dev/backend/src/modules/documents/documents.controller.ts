@@ -25,7 +25,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { DocumentsService, CreateDocumentDto, UpdateDocumentDto } from './documents.service';
-import { DocumentCategory, UserRole } from '@prisma/client';
+import { DocumentCategory, UserRole, OCRProvider } from '@prisma/client';
 import { StorageProvider, StorageService } from './services/storage.service';
 import { PdfGeneratorService } from './services/pdf-generator.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -37,6 +37,9 @@ import archiver = require('archiver');
 import axios from 'axios';
 import { SignatureService } from './services/signature.service';
 import { SecurityService } from './services/security.service';
+import { OCRService } from './services/ocr.service';
+import { DataExtractionService } from './services/data-extraction.service';
+import { OCRQueueService } from './services/ocr-queue.service';
 
 @Controller('documents')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -49,8 +52,180 @@ export class DocumentsController {
     private readonly storageService: StorageService,
     private readonly signatureService: SignatureService,
     private readonly securityService: SecurityService,
+    private readonly ocrService: OCRService,
+    private readonly dataExtractionService: DataExtractionService,
+    private readonly ocrQueueService: OCRQueueService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @Post(':id/extract-text')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.ACCOUNTANT,
+    UserRole.PROCUREMENT_OFFICER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.IT_MANAGER,
+  )
+  async extractTextAlias(
+    @Param('id') documentId: string,
+    @Body() body: {
+      language?: string;
+      provider?: OCRProvider;
+      autoRotate?: boolean;
+      enhanceImage?: boolean;
+    },
+    @Request() req: any,
+  ) {
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const filePath = await this.storageService.getLocalPath(document.fileUrl);
+    if (!filePath) {
+      throw new BadRequestException('Document file not accessible');
+    }
+
+    const isTempFile = /[\\/]temp[\\/]/.test(filePath);
+    try {
+      const result = await this.ocrService.extractText(documentId, filePath, req.user.userId, {
+        language: body.language,
+        provider: body.provider,
+        autoRotate: body.autoRotate,
+        enhanceImage: body.enhanceImage,
+      }, isTempFile);
+
+      return { success: true, data: result };
+    } finally {
+      if (isTempFile) {
+        await this.storageService.cleanupTempFile(filePath);
+      }
+    }
+  }
+
+  @Get(':id/extracted-text')
+  async getExtractedTextAlias(@Param('id') documentId: string) {
+    const text = await this.ocrService.getExtractedText(documentId);
+    if (!text) {
+      throw new NotFoundException('No extracted text found for this document');
+    }
+    return { success: true, data: { text } };
+  }
+
+  @Post(':id/parse-invoice')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.ACCOUNTANT,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  async parseInvoiceAlias(@Param('id') documentId: string, @Request() req: any) {
+    const extractedText = await this.getOrExtractText(documentId, req.user.userId);
+    if (!extractedText) {
+      throw new BadRequestException('Failed to extract text from document');
+    }
+
+    const ocrJobs = await this.ocrService.getDocumentOCRJobs(documentId);
+    if (ocrJobs.length === 0) {
+      throw new BadRequestException('No OCR job found for document');
+    }
+
+    const latestJob = ocrJobs[0];
+    const invoiceData = await this.dataExtractionService.parseInvoice(latestJob.id, documentId, extractedText);
+
+    return { success: true, data: invoiceData };
+  }
+
+  @Post(':id/parse-receipt')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.ACCOUNTANT,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  async parseReceiptAlias(@Param('id') documentId: string, @Request() req: any) {
+    const extractedText = await this.getOrExtractText(documentId, req.user.userId);
+    if (!extractedText) {
+      throw new BadRequestException('Failed to extract text from document');
+    }
+
+    const ocrJobs = await this.ocrService.getDocumentOCRJobs(documentId);
+    if (ocrJobs.length === 0) {
+      throw new BadRequestException('No OCR job found for document');
+    }
+
+    const latestJob = ocrJobs[0];
+    const receiptData = await this.dataExtractionService.parseReceipt(latestJob.id, documentId, extractedText);
+
+    return { success: true, data: receiptData };
+  }
+
+  @Post('batch-ocr')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.ACCOUNTANT,
+    UserRole.IT_MANAGER,
+  )
+  async batchOCRAlias(
+    @Body() body: { documentIds: string[]; language?: string; provider?: OCRProvider },
+    @Request() req: any,
+  ) {
+    if (!body.documentIds || body.documentIds.length === 0) {
+      throw new BadRequestException('No document IDs provided');
+    }
+
+    const jobs = await this.ocrService.batchExtractText(body.documentIds, req.user.userId, {
+      language: body.language,
+      provider: body.provider,
+    });
+
+    for (const job of jobs) {
+      await this.ocrQueueService.enqueueJob(job.jobId, job.documentId, req.user.userId, {
+        language: body.language,
+        provider: body.provider,
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        jobsCreated: jobs.length,
+        jobs,
+      },
+    };
+  }
+
+  private async getOrExtractText(documentId: string, userId: string): Promise<string | null> {
+    let text = await this.ocrService.getExtractedText(documentId);
+    if (!text) {
+      const document = await this.prisma.document.findUnique({
+        where: { id: documentId },
+      });
+
+      if (!document) {
+        throw new NotFoundException('Document not found');
+      }
+
+      const filePath = await this.storageService.getLocalPath(document.fileUrl);
+      if (!filePath) {
+        throw new BadRequestException('Document file not accessible');
+      }
+
+      const result = await this.ocrService.extractText(documentId, filePath, userId);
+      text = result.text;
+    }
+
+    return text;
+  }
 
   private parseTags(raw: unknown): string[] | undefined {
     if (raw === undefined || raw === null || raw === '') {
@@ -1048,6 +1223,43 @@ export class DocumentsController {
     @Request() req,
   ) {
     return this.securityService.checkDocumentAccess(id, req.user.userId);
+  }
+
+  @Patch(':id/extracted-text')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.ACCOUNTANT,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  async updateExtractedText(
+    @Param('id') id: string,
+    @Body() body: { extractedText: string },
+    @Request() req,
+  ) {
+    const metadata = await this.prisma.documentMetadata.findUnique({
+      where: { documentId: id },
+    });
+
+    if (metadata) {
+      await this.prisma.documentMetadata.update({
+        where: { documentId: id },
+        data: { extractedText: body.extractedText },
+      });
+    } else {
+      await this.prisma.documentMetadata.create({
+        data: {
+          documentId: id,
+          extractedText: body.extractedText,
+        },
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Extracted text updated successfully',
+    };
   }
 
   @Get(':id/access-log')

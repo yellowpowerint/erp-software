@@ -101,6 +101,9 @@ model User {
   revokedSignatures     DocumentSignature[] @relation("SignatureRevoker")
   documentAccessLogs    DocumentAccessLog[] @relation("DocumentAccessor")
   createdSecurity       DocumentSecurity[]  @relation("SecurityCreator")
+  ocrJobs               OCRJob[]          @relation("OCRJobCreator")
+  validatedData         ExtractedDocumentData[] @relation("DataValidator")
+  ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
 
   @@map("users")
 }
@@ -1780,4 +1783,175 @@ model DocumentSecurity {
   updatedAt         DateTime  @updatedAt
   
   @@map("document_security")
+}
+
+// Phase 16.1: OCR & Text Extraction
+enum OCRProvider {
+  TESSERACT_JS
+  GOOGLE_VISION
+  AWS_TEXTRACT
+}
+
+enum OCRStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ExtractedDataType {
+  INVOICE
+  RECEIPT
+  CONTRACT
+  GENERAL_TEXT
+  STRUCTURED_DATA
+}
+
+model OCRJob {
+  id              String          @id @default(uuid())
+  documentId      String
+  provider        OCRProvider     @default(TESSERACT_JS)
+  status          OCRStatus       @default(PENDING)
+  priority        Int             @default(5) // 1-10, higher = more urgent
+  
+  // Processing details
+  startedAt       DateTime?
+  completedAt     DateTime?
+  processingTime  Int?            // milliseconds
+  
+  // Results
+  extractedText   String?         @db.Text
+  confidence      Float?          // 0-100
+  pageCount       Int?
+  errorMessage    String?
+  
+  // Configuration
+  language        String          @default("eng")
+  autoRotate      Boolean         @default(true)
+  enhanceImage    Boolean         @default(true)
+  
+  // Metadata
+  createdById     String
+  createdBy       User            @relation("OCRJobCreator", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  extractedData   ExtractedDocumentData[]
+  
+  @@index([documentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ocr_jobs")
+}
+
+model ExtractedDocumentData {
+  id              String            @id @default(uuid())
+  ocrJobId        String
+  ocrJob          OCRJob            @relation(fields: [ocrJobId], references: [id], onDelete: Cascade)
+  documentId      String
+  dataType        ExtractedDataType
+  
+  // Extracted fields (JSON for flexibility)
+  extractedFields Json              // Structured data extracted from document
+  confidence      Float?            // Overall confidence score
+  
+  // Invoice-specific fields
+  invoiceNumber   String?
+  invoiceDate     DateTime?
+  dueDate         DateTime?
+  supplierName    String?
+  supplierAddress String?
+  totalAmount     Float?
+  taxAmount       Float?
+  currency        String?
+  
+  // Receipt-specific fields
+  vendorName      String?
+  receiptNumber   String?
+  receiptDate     DateTime?
+  receiptAmount   Float?
+  paymentMethod   String?
+  
+  // Contract-specific fields
+  contractNumber  String?
+  contractDate    DateTime?
+  partyNames      String[]
+  contractValue   Float?
+  startDate       DateTime?
+  endDate         DateTime?
+  
+  // General extracted entities
+  entities        Json?             // Named entities (people, organizations, dates, amounts)
+  keyPhrases      String[]
+  
+  // Validation
+  isValidated     Boolean           @default(false)
+  validatedById   String?
+  validatedBy     User?             @relation("DataValidator", fields: [validatedById], references: [id])
+  validatedAt     DateTime?
+  
+  // Corrections
+  correctedFields Json?             // User corrections to extracted data
+  correctionNotes String?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@index([ocrJobId])
+  @@index([documentId])
+  @@index([dataType])
+  @@map("extracted_document_data")
+}
+
+model OCRConfiguration {
+  id                String      @id @default(uuid())
+  
+  // Global settings
+  defaultProvider   OCRProvider @default(TESSERACT_JS)
+  autoOCREnabled    Boolean     @default(false)
+  autoOCRCategories DocumentCategory[]
+  
+  // Processing settings
+  maxConcurrentJobs Int         @default(3)
+  defaultLanguage   String      @default("eng")
+  confidenceThreshold Float     @default(70.0)
+  
+  // Provider-specific settings
+  tesseractConfig   Json?       // Tesseract.js configuration
+  googleVisionConfig Json?      // Google Cloud Vision API config
+  awsTextractConfig Json?       // AWS Textract config
+  
+  // Auto-processing rules
+  autoCreateInvoice Boolean     @default(false)
+  autoCreateExpense Boolean     @default(false)
+  autoCreateContract Boolean    @default(false)
+  
+  // Notifications
+  notifyOnCompletion Boolean    @default(true)
+  notifyOnFailure   Boolean     @default(true)
+  
+  // Retention
+  retainRawText     Boolean     @default(true)
+  retainExtractedData Boolean   @default(true)
+  
+  updatedById       String
+  updatedBy         User        @relation("OCRConfigUpdater", fields: [updatedById], references: [id])
+  updatedAt         DateTime    @updatedAt
+  
+  @@map("ocr_configuration")
+}
+
+model OCRProcessingLog {
+  id              String      @id @default(uuid())
+  ocrJobId        String
+  level           String      // INFO, WARNING, ERROR
+  message         String      @db.Text
+  metadata        Json?
+  timestamp       DateTime    @default(now())
+  
+  @@index([ocrJobId])
+  @@index([timestamp])
+  @@map("ocr_processing_logs")
 }

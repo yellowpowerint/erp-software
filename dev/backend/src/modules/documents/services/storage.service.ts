@@ -221,6 +221,108 @@ export class StorageService {
     return path.join(this.localStoragePath, key);
   }
 
+  /**
+   * Resolve a file path for OCR processing
+   * Handles both local files and remote S3 files by downloading to temp
+   */
+  async getLocalPath(fileUrl: string): Promise<string | null> {
+    try {
+      // Check if it's a local file URL
+      if (fileUrl.includes('/api/documents/files/')) {
+        // Extract the key from the URL
+        const urlParts = fileUrl.split('/api/documents/files/');
+        if (urlParts.length > 1) {
+          const key = urlParts[1];
+          const localPath = this.getLocalFilePath(key);
+          
+          // Verify file exists
+          if (fs.existsSync(localPath)) {
+            return localPath;
+          }
+        }
+      }
+
+      // Check if it's an S3 URL
+      if (fileUrl.includes('s3.amazonaws.com') || fileUrl.includes('amazonaws.com')) {
+        return await this.downloadS3FileToTemp(fileUrl);
+      }
+
+      // If it's a direct path, verify it exists
+      if (fs.existsSync(fileUrl)) {
+        return fileUrl;
+      }
+
+      this.logger.warn(`Could not resolve file path for URL: ${fileUrl}`);
+      return null;
+    } catch (error) {
+      this.logger.error('Error resolving local path for OCR', error);
+      return null;
+    }
+  }
+
+  /**
+   * Download S3 file to temporary location for processing
+   */
+  private async downloadS3FileToTemp(s3Url: string): Promise<string> {
+    if (!this.s3Client) {
+      throw new Error('S3 client not initialized');
+    }
+
+    const bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    if (!bucket) {
+      throw new Error('AWS_S3_BUCKET not configured');
+    }
+
+    // Extract key from S3 URL
+    const urlParts = s3Url.split(`${bucket}.s3.amazonaws.com/`);
+    if (urlParts.length < 2) {
+      throw new Error('Invalid S3 URL format');
+    }
+    const key = urlParts[1];
+
+    // Create temp directory if it doesn't exist
+    const tempDir = path.join(this.localStoragePath, 'temp');
+    await mkdir(tempDir, { recursive: true });
+
+    // Generate temp file path
+    const tempFileName = `temp-${Date.now()}-${path.basename(key)}`;
+    const tempFilePath = path.join(tempDir, tempFileName);
+
+    // Download from S3
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    });
+
+    const response = await this.s3Client.send(command);
+    const stream = response.Body as any;
+    
+    // Write to temp file
+    await new Promise((resolve, reject) => {
+      const writeStream = fs.createWriteStream(tempFilePath);
+      stream.pipe(writeStream);
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
+    this.logger.log(`Downloaded S3 file to temp: ${tempFilePath}`);
+    return tempFilePath;
+  }
+
+  /**
+   * Clean up temporary files created for OCR processing
+   */
+  async cleanupTempFile(filePath: string): Promise<void> {
+    try {
+      if (/[\\/]temp[\\/]/.test(filePath) && fs.existsSync(filePath)) {
+        await unlink(filePath);
+        this.logger.log(`Cleaned up temp file: ${filePath}`);
+      }
+    } catch (error) {
+      this.logger.error('Error cleaning up temp file', error);
+    }
+  }
+
   private sanitizeFilename(filename: string): string {
     return filename
       .replace(/[^a-zA-Z0-9.-]/g, '_')

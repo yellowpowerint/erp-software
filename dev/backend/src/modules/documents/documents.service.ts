@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nest
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './services/storage.service';
 import { FileUploadService } from './services/file-upload.service';
-import { DocumentCategory, UserRole } from '@prisma/client';
+import { DocumentCategory, UserRole, OCRStatus } from '@prisma/client';
 
 export interface CreateDocumentDto {
   category: DocumentCategory;
@@ -32,12 +32,17 @@ export interface DocumentSearchFilters {
 @Injectable()
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name);
+  private ocrQueueService: any = null;
 
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
     private fileUploadService: FileUploadService,
   ) {}
+
+  setOCRQueueService(ocrQueueService: any) {
+    this.ocrQueueService = ocrQueueService;
+  }
 
   async uploadDocument(
     file: Express.Multer.File,
@@ -84,7 +89,52 @@ export class DocumentsService {
 
     this.logger.log(`Document uploaded: ${document.id} by user ${userId}`);
 
+    await this.triggerAutoOCR(document.id, document.category, userId);
+
     return document;
+  }
+
+  private async triggerAutoOCR(documentId: string, category: DocumentCategory, userId: string): Promise<void> {
+    try {
+      if (!this.ocrQueueService) {
+        return;
+      }
+
+      const config = await this.prisma.oCRConfiguration.findFirst({
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      if (!config || !config.autoOCREnabled) {
+        return;
+      }
+
+      const autoCategories = (config.autoOCRCategories as any as string[]) || [];
+      if (autoCategories.length > 0 && !autoCategories.includes(category)) {
+        return;
+      }
+
+      const ocrJob = await this.prisma.oCRJob.create({
+        data: {
+          documentId,
+          provider: config.defaultProvider,
+          status: OCRStatus.PENDING,
+          language: config.defaultLanguage || 'eng',
+          autoRotate: true,
+          enhanceImage: true,
+          priority: 5,
+          createdById: userId,
+        },
+      });
+
+      await this.ocrQueueService.enqueueJob(ocrJob.id, documentId, userId, {
+        language: config.defaultLanguage || 'eng',
+        provider: config.defaultProvider,
+      });
+
+      this.logger.log(`Auto-OCR enqueued for document ${documentId}`);
+    } catch (error) {
+      this.logger.error(`Failed to trigger auto-OCR for document ${documentId}:`, error);
+    }
   }
 
   async uploadMultipleDocuments(
