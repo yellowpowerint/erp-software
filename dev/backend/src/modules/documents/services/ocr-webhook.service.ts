@@ -121,11 +121,19 @@ export class OCRWebhookService {
       orderBy: { updatedAt: 'desc' },
     });
 
+    const envUrlsRaw = process.env.OCR_WEBHOOK_URLS || '';
+    const envUrls = envUrlsRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const envSecret = process.env.OCR_WEBHOOK_SECRET;
+
     return {
       notifyOnCompletion: config?.notifyOnCompletion ?? true,
       notifyOnFailure: config?.notifyOnFailure ?? true,
-      webhookUrls: (config?.webhookUrls as string[]) || [],
-      webhookSecret: config?.webhookSecret as string | undefined,
+      webhookUrls: envUrls,
+      webhookSecret: envSecret,
     };
   }
 }

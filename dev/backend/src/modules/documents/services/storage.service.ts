@@ -298,10 +298,10 @@ export class StorageService {
     const stream = response.Body as any;
     
     // Write to temp file
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const writeStream = fs.createWriteStream(tempFilePath);
       stream.pipe(writeStream);
-      writeStream.on('finish', resolve);
+      writeStream.on('finish', () => resolve());
       writeStream.on('error', reject);
     });
 

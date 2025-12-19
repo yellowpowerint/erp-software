@@ -170,16 +170,16 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
             in: [OCRStatus.PENDING, OCRStatus.PROCESSING],
           },
         },
-        include: {
-          document: true,
-        },
         take: 50,
       });
 
       for (const job of pendingJobs) {
-        if (!job.document) continue;
+        const document = await this.prisma.document.findUnique({
+          where: { id: job.documentId },
+        });
+        if (!document) continue;
 
-        const filePath = await this.storageService.getLocalPath(job.document.fileUrl);
+        const filePath = await this.storageService.getLocalPath(document.fileUrl);
         if (filePath) {
           this.queue.push({
             id: job.id,

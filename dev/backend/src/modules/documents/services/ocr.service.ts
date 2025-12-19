@@ -31,6 +31,7 @@ export class OCRService {
   private tesseractWorker: Worker | null = null;
   private isInitialized = false;
   private webhookService: any = null;
+  private tesseractLanguage = 'eng';
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -50,6 +51,7 @@ export class OCRService {
       this.logger.log('Initializing Tesseract.js worker...');
       this.tesseractWorker = await createWorker('eng');
       this.isInitialized = true;
+      this.tesseractLanguage = 'eng';
       this.logger.log('Tesseract.js worker initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize Tesseract worker', error);
@@ -315,9 +317,9 @@ export class OCRService {
 
     try {
       // Set language if different from default
-      if (options.language && options.language !== 'eng') {
-        await this.tesseractWorker.loadLanguage(options.language);
-        await this.tesseractWorker.initialize(options.language);
+      if (options.language && options.language !== this.tesseractLanguage) {
+        await this.tesseractWorker.reinitialize(options.language);
+        this.tesseractLanguage = options.language;
       }
 
       // Perform OCR
