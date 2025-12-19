@@ -310,6 +310,13 @@ export const menuItems: MenuItem[] = [
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.DEPARTMENT_HEAD, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.IT_MANAGER, UserRole.HR_MANAGER, UserRole.SAFETY_OFFICER, UserRole.WAREHOUSE_MANAGER, UserRole.EMPLOYEE],
       },
       {
+        id: 'documents-tools',
+        label: 'PDF Tools',
+        icon: FileText,
+        path: '/documents/tools',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.DEPARTMENT_HEAD, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.IT_MANAGER, UserRole.HR_MANAGER, UserRole.SAFETY_OFFICER, UserRole.WAREHOUSE_MANAGER, UserRole.EMPLOYEE],
+      },
+      {
         id: 'documents-my',
         label: 'My Uploads',
         icon: Upload,

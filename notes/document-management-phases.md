@@ -1021,13 +1021,27 @@ Highest Priority → Lowest Priority
 - ✅ **PDF Manipulation API**:
   ```typescript
   POST   /api/documents/merge          // Merge multiple PDFs
+  POST   /api/documents/batch-merge    // Batch merge multiple sets of PDFs (zip output)
   POST   /api/documents/:id/split      // Split PDF into pages
   POST   /api/documents/:id/extract-pages  // Extract specific pages
   POST   /api/documents/:id/reorder    // Reorder pages
   POST   /api/documents/:id/rotate     // Rotate pages
   POST   /api/documents/:id/add-page-numbers
+  POST   /api/documents/:id/add-headers-footers
   POST   /api/documents/:id/compress   // Reduce file size
   POST   /api/documents/:id/combine-with // Combine with another PDF
+
+  // Editing & redaction
+  POST   /api/documents/:id/watermark
+  POST   /api/documents/:id/stamp
+  POST   /api/documents/:id/redact
+  POST   /api/documents/:id/annotate-text
+  POST   /api/documents/:id/highlight
+
+  // Bulk operations (zip output)
+  POST   /api/documents/batch-compress
+  POST   /api/documents/batch-watermark
+  POST   /api/documents/batch-add-page-numbers
   ```
 - ✅ **PDF Editing Service**:
   - Add text annotations

@@ -11,16 +11,19 @@ import { DataExtractionService } from './services/data-extraction.service';
 import { OCRQueueService } from './services/ocr-queue.service';
 import { OCRWebhookService } from './services/ocr-webhook.service';
 import { OCRController } from './controllers/ocr.controller';
+import { PdfManipulatorController } from './controllers/pdf-manipulator.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
+import { PdfManipulatorService } from './services/pdf-manipulator.service';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [DocumentsController, OCRController],
+  controllers: [DocumentsController, OCRController, PdfManipulatorController],
   providers: [
     DocumentsService,
     StorageService,
     FileUploadService,
     PdfGeneratorService,
+    PdfManipulatorService,
     SignatureService,
     SecurityService,
     OCRService,
@@ -32,6 +35,7 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
     DocumentsService, 
     StorageService, 
     PdfGeneratorService,
+    PdfManipulatorService,
     SignatureService,
     SecurityService,
     OCRService,
