@@ -1,3 +1,10 @@
+-- CreateEnum: UserRole (if not exists from initial_setup migration)
+DO $$ BEGIN
+  CREATE TYPE "UserRole" AS ENUM ('SUPER_ADMIN', 'CEO', 'CFO', 'DEPARTMENT_HEAD', 'ACCOUNTANT', 'PROCUREMENT_OFFICER', 'OPERATIONS_MANAGER', 'IT_MANAGER', 'HR_MANAGER', 'SAFETY_OFFICER', 'WAREHOUSE_MANAGER', 'EMPLOYEE');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
 DO $$ BEGIN
   CREATE TYPE "DocumentCategory" AS ENUM (
     'INVOICE',
