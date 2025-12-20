@@ -1,11 +1,19 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('SUPER_ADMIN', 'CEO', 'CFO', 'DEPARTMENT_HEAD', 'ACCOUNTANT', 'PROCUREMENT_OFFICER', 'OPERATIONS_MANAGER', 'IT_MANAGER', 'HR_MANAGER', 'SAFETY_OFFICER', 'WAREHOUSE_MANAGER', 'EMPLOYEE');
+DO $$ BEGIN
+    CREATE TYPE "UserRole" AS ENUM ('SUPER_ADMIN', 'CEO', 'CFO', 'DEPARTMENT_HEAD', 'ACCOUNTANT', 'PROCUREMENT_OFFICER', 'OPERATIONS_MANAGER', 'IT_MANAGER', 'HR_MANAGER', 'SAFETY_OFFICER', 'WAREHOUSE_MANAGER', 'EMPLOYEE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED');
+DO $$ BEGIN
+    CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
@@ -24,7 +32,7 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
-CREATE TABLE "permissions" (
+CREATE TABLE IF NOT EXISTS "permissions" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -37,7 +45,7 @@ CREATE TABLE "permissions" (
 );
 
 -- CreateTable
-CREATE TABLE "role_permissions" (
+CREATE TABLE IF NOT EXISTS "role_permissions" (
     "id" TEXT NOT NULL,
     "role" "UserRole" NOT NULL,
     "permissionId" TEXT NOT NULL,
@@ -47,7 +55,7 @@ CREATE TABLE "role_permissions" (
 );
 
 -- CreateTable
-CREATE TABLE "audit_logs" (
+CREATE TABLE IF NOT EXISTS "audit_logs" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "action" TEXT NOT NULL,
@@ -61,16 +69,16 @@ CREATE TABLE "audit_logs" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "permissions_name_key" ON "permissions"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "permissions_name_key" ON "permissions"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "role_permissions_role_permissionId_key" ON "role_permissions"("role", "permissionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "role_permissions_role_permissionId_key" ON "role_permissions"("role", "permissionId");
 
 -- CreateIndex
-CREATE INDEX "audit_logs_userId_idx" ON "audit_logs"("userId");
+CREATE INDEX IF NOT EXISTS "audit_logs_userId_idx" ON "audit_logs"("userId");
 
 -- CreateIndex
-CREATE INDEX "audit_logs_createdAt_idx" ON "audit_logs"("createdAt");
+CREATE INDEX IF NOT EXISTS "audit_logs_createdAt_idx" ON "audit_logs"("createdAt");
