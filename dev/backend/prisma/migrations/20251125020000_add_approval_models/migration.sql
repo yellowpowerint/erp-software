@@ -1,11 +1,19 @@
 -- CreateEnum
-CREATE TYPE "ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+DO $$ BEGIN
+    CREATE TYPE "ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "ApprovalType" AS ENUM ('INVOICE', 'PURCHASE_REQUEST', 'EXPENSE_CLAIM', 'LEAVE_REQUEST', 'PAYMENT');
+DO $$ BEGIN
+    CREATE TYPE "ApprovalType" AS ENUM ('INVOICE', 'PURCHASE_REQUEST', 'EXPENSE_CLAIM', 'LEAVE_REQUEST', 'PAYMENT');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
-CREATE TABLE "invoices" (
+CREATE TABLE IF NOT EXISTS "invoices" (
     "id" TEXT NOT NULL,
     "invoiceNumber" TEXT NOT NULL,
     "supplierName" TEXT NOT NULL,
@@ -25,7 +33,7 @@ CREATE TABLE "invoices" (
 );
 
 -- CreateTable
-CREATE TABLE "purchase_requests" (
+CREATE TABLE IF NOT EXISTS "purchase_requests" (
     "id" TEXT NOT NULL,
     "requestNumber" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -48,7 +56,7 @@ CREATE TABLE "purchase_requests" (
 );
 
 -- CreateTable
-CREATE TABLE "approval_history" (
+CREATE TABLE IF NOT EXISTS "approval_history" (
     "id" TEXT NOT NULL,
     "type" "ApprovalType" NOT NULL,
     "referenceId" TEXT NOT NULL,
@@ -64,49 +72,79 @@ CREATE TABLE "approval_history" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "invoices_invoiceNumber_key" ON "invoices"("invoiceNumber");
+CREATE UNIQUE INDEX IF NOT EXISTS "invoices_invoiceNumber_key" ON "invoices"("invoiceNumber");
 
 -- CreateIndex
-CREATE INDEX "invoices_status_idx" ON "invoices"("status");
+CREATE INDEX IF NOT EXISTS "invoices_status_idx" ON "invoices"("status");
 
 -- CreateIndex
-CREATE INDEX "invoices_createdById_idx" ON "invoices"("createdById");
+CREATE INDEX IF NOT EXISTS "invoices_createdById_idx" ON "invoices"("createdById");
 
 -- CreateIndex
-CREATE INDEX "invoices_createdAt_idx" ON "invoices"("createdAt");
+CREATE INDEX IF NOT EXISTS "invoices_createdAt_idx" ON "invoices"("createdAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "purchase_requests_requestNumber_key" ON "purchase_requests"("requestNumber");
+CREATE UNIQUE INDEX IF NOT EXISTS "purchase_requests_requestNumber_key" ON "purchase_requests"("requestNumber");
 
 -- CreateIndex
-CREATE INDEX "purchase_requests_status_idx" ON "purchase_requests"("status");
+CREATE INDEX IF NOT EXISTS "purchase_requests_status_idx" ON "purchase_requests"("status");
 
 -- CreateIndex
-CREATE INDEX "purchase_requests_createdById_idx" ON "purchase_requests"("createdById");
+CREATE INDEX IF NOT EXISTS "purchase_requests_createdById_idx" ON "purchase_requests"("createdById");
 
 -- CreateIndex
-CREATE INDEX "purchase_requests_createdAt_idx" ON "purchase_requests"("createdAt");
+CREATE INDEX IF NOT EXISTS "purchase_requests_createdAt_idx" ON "purchase_requests"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "approval_history_referenceId_idx" ON "approval_history"("referenceId");
+CREATE INDEX IF NOT EXISTS "approval_history_referenceId_idx" ON "approval_history"("referenceId");
 
 -- CreateIndex
-CREATE INDEX "approval_history_approverId_idx" ON "approval_history"("approverId");
+CREATE INDEX IF NOT EXISTS "approval_history_approverId_idx" ON "approval_history"("approverId");
 
 -- CreateIndex
-CREATE INDEX "approval_history_createdAt_idx" ON "approval_history"("createdAt");
+CREATE INDEX IF NOT EXISTS "approval_history_createdAt_idx" ON "approval_history"("createdAt");
 
 -- AddForeignKey
-ALTER TABLE "invoices" ADD CONSTRAINT "invoices_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'invoices_createdById_fkey') THEN
+        ALTER TABLE "invoices" ADD CONSTRAINT "invoices_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "purchase_requests" ADD CONSTRAINT "purchase_requests_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'purchase_requests_createdById_fkey') THEN
+        ALTER TABLE "purchase_requests" ADD CONSTRAINT "purchase_requests_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "approval_history" ADD CONSTRAINT "approval_history_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'approval_history_approverId_fkey') THEN
+        ALTER TABLE "approval_history" ADD CONSTRAINT "approval_history_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "approval_history" ADD CONSTRAINT "approval_history_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'invoices')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'approval_history_invoiceId_fkey') THEN
+        ALTER TABLE "approval_history" ADD CONSTRAINT "approval_history_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "approval_history" ADD CONSTRAINT "approval_history_purchaseRequestId_fkey" FOREIGN KEY ("purchaseRequestId") REFERENCES "purchase_requests"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'purchase_requests')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'approval_history_purchaseRequestId_fkey') THEN
+        ALTER TABLE "approval_history" ADD CONSTRAINT "approval_history_purchaseRequestId_fkey" FOREIGN KEY ("purchaseRequestId") REFERENCES "purchase_requests"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
