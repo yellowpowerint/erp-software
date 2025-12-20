@@ -1,17 +1,39 @@
 -- CreateEnum
-CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED');
+DO $$ BEGIN
+    CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('BANK_TRANSFER', 'CHEQUE', 'CASH', 'MOBILE_MONEY', 'CREDIT_CARD', 'WIRE_TRANSFER');
+DO $$ BEGIN
+    CREATE TYPE "PaymentMethod" AS ENUM ('BANK_TRANSFER', 'CHEQUE', 'CASH', 'MOBILE_MONEY', 'CREDIT_CARD', 'WIRE_TRANSFER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "ExpenseCategory" AS ENUM ('OPERATIONS', 'MAINTENANCE', 'SALARIES', 'SUPPLIES', 'UTILITIES', 'FUEL', 'EQUIPMENT', 'TRAVEL', 'PROFESSIONAL_SERVICES', 'TRAINING', 'INSURANCE', 'OTHER');
+DO $$ BEGIN
+    CREATE TYPE "ExpenseCategory" AS ENUM ('OPERATIONS', 'MAINTENANCE', 'SALARIES', 'SUPPLIES', 'UTILITIES', 'FUEL', 'EQUIPMENT', 'TRAVEL', 'PROFESSIONAL_SERVICES', 'TRAINING', 'INSURANCE', 'OTHER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "BudgetPeriod" AS ENUM ('MONTHLY', 'QUARTERLY', 'YEARLY');
+DO $$ BEGIN
+    CREATE TYPE "BudgetPeriod" AS ENUM ('MONTHLY', 'QUARTERLY', 'YEARLY');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
-CREATE TABLE "finance_payments" (
+CREATE TABLE IF NOT EXISTS "finance_payments" (
     "id" TEXT NOT NULL,
     "paymentNumber" TEXT NOT NULL,
     "supplierId" TEXT,
@@ -34,7 +56,7 @@ CREATE TABLE "finance_payments" (
 );
 
 -- CreateTable
-CREATE TABLE "expenses" (
+CREATE TABLE IF NOT EXISTS "expenses" (
     "id" TEXT NOT NULL,
     "expenseNumber" TEXT NOT NULL,
     "category" "ExpenseCategory" NOT NULL,
@@ -56,7 +78,7 @@ CREATE TABLE "expenses" (
 );
 
 -- CreateTable
-CREATE TABLE "budgets" (
+CREATE TABLE IF NOT EXISTS "budgets" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -76,7 +98,7 @@ CREATE TABLE "budgets" (
 );
 
 -- CreateTable
-CREATE TABLE "suppliers" (
+CREATE TABLE IF NOT EXISTS "suppliers" (
     "id" TEXT NOT NULL,
     "supplierCode" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -100,82 +122,130 @@ CREATE TABLE "suppliers" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "finance_payments_paymentNumber_key" ON "finance_payments"("paymentNumber");
+CREATE UNIQUE INDEX IF NOT EXISTS "finance_payments_paymentNumber_key" ON "finance_payments"("paymentNumber");
 
 -- CreateIndex
-CREATE INDEX "finance_payments_paymentNumber_idx" ON "finance_payments"("paymentNumber");
+CREATE INDEX IF NOT EXISTS "finance_payments_paymentNumber_idx" ON "finance_payments"("paymentNumber");
 
 -- CreateIndex
-CREATE INDEX "finance_payments_supplierId_idx" ON "finance_payments"("supplierId");
+CREATE INDEX IF NOT EXISTS "finance_payments_supplierId_idx" ON "finance_payments"("supplierId");
 
 -- CreateIndex
-CREATE INDEX "finance_payments_projectId_idx" ON "finance_payments"("projectId");
+CREATE INDEX IF NOT EXISTS "finance_payments_projectId_idx" ON "finance_payments"("projectId");
 
 -- CreateIndex
-CREATE INDEX "finance_payments_status_idx" ON "finance_payments"("status");
+CREATE INDEX IF NOT EXISTS "finance_payments_status_idx" ON "finance_payments"("status");
 
 -- CreateIndex
-CREATE INDEX "finance_payments_paymentDate_idx" ON "finance_payments"("paymentDate");
+CREATE INDEX IF NOT EXISTS "finance_payments_paymentDate_idx" ON "finance_payments"("paymentDate");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "expenses_expenseNumber_key" ON "expenses"("expenseNumber");
+CREATE UNIQUE INDEX IF NOT EXISTS "expenses_expenseNumber_key" ON "expenses"("expenseNumber");
 
 -- CreateIndex
-CREATE INDEX "expenses_expenseNumber_idx" ON "expenses"("expenseNumber");
+CREATE INDEX IF NOT EXISTS "expenses_expenseNumber_idx" ON "expenses"("expenseNumber");
 
 -- CreateIndex
-CREATE INDEX "expenses_category_idx" ON "expenses"("category");
+CREATE INDEX IF NOT EXISTS "expenses_category_idx" ON "expenses"("category");
 
 -- CreateIndex
-CREATE INDEX "expenses_projectId_idx" ON "expenses"("projectId");
+CREATE INDEX IF NOT EXISTS "expenses_projectId_idx" ON "expenses"("projectId");
 
 -- CreateIndex
-CREATE INDEX "expenses_status_idx" ON "expenses"("status");
+CREATE INDEX IF NOT EXISTS "expenses_status_idx" ON "expenses"("status");
 
 -- CreateIndex
-CREATE INDEX "expenses_expenseDate_idx" ON "expenses"("expenseDate");
+CREATE INDEX IF NOT EXISTS "expenses_expenseDate_idx" ON "expenses"("expenseDate");
 
 -- CreateIndex
-CREATE INDEX "budgets_category_idx" ON "budgets"("category");
+CREATE INDEX IF NOT EXISTS "budgets_category_idx" ON "budgets"("category");
 
 -- CreateIndex
-CREATE INDEX "budgets_projectId_idx" ON "budgets"("projectId");
+CREATE INDEX IF NOT EXISTS "budgets_projectId_idx" ON "budgets"("projectId");
 
 -- CreateIndex
-CREATE INDEX "budgets_period_idx" ON "budgets"("period");
+CREATE INDEX IF NOT EXISTS "budgets_period_idx" ON "budgets"("period");
 
 -- CreateIndex
-CREATE INDEX "budgets_startDate_idx" ON "budgets"("startDate");
+CREATE INDEX IF NOT EXISTS "budgets_startDate_idx" ON "budgets"("startDate");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "suppliers_supplierCode_key" ON "suppliers"("supplierCode");
+CREATE UNIQUE INDEX IF NOT EXISTS "suppliers_supplierCode_key" ON "suppliers"("supplierCode");
 
 -- CreateIndex
-CREATE INDEX "suppliers_supplierCode_idx" ON "suppliers"("supplierCode");
+CREATE INDEX IF NOT EXISTS "suppliers_supplierCode_idx" ON "suppliers"("supplierCode");
 
 -- CreateIndex
-CREATE INDEX "suppliers_isActive_idx" ON "suppliers"("isActive");
+CREATE INDEX IF NOT EXISTS "suppliers_isActive_idx" ON "suppliers"("isActive");
 
 -- AddForeignKey
-ALTER TABLE "finance_payments" ADD CONSTRAINT "finance_payments_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'suppliers')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'finance_payments_supplierId_fkey') THEN
+        ALTER TABLE "finance_payments" ADD CONSTRAINT "finance_payments_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "finance_payments" ADD CONSTRAINT "finance_payments_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'finance_payments_projectId_fkey') THEN
+        ALTER TABLE "finance_payments" ADD CONSTRAINT "finance_payments_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "finance_payments" ADD CONSTRAINT "finance_payments_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'finance_payments_approvedById_fkey') THEN
+        ALTER TABLE "finance_payments" ADD CONSTRAINT "finance_payments_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "expenses" ADD CONSTRAINT "expenses_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_projectId_fkey') THEN
+        ALTER TABLE "expenses" ADD CONSTRAINT "expenses_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "expenses" ADD CONSTRAINT "expenses_submittedById_fkey" FOREIGN KEY ("submittedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_submittedById_fkey') THEN
+        ALTER TABLE "expenses" ADD CONSTRAINT "expenses_submittedById_fkey" FOREIGN KEY ("submittedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "expenses" ADD CONSTRAINT "expenses_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_approvedById_fkey') THEN
+        ALTER TABLE "expenses" ADD CONSTRAINT "expenses_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "budgets" ADD CONSTRAINT "budgets_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'budgets_projectId_fkey') THEN
+        ALTER TABLE "budgets" ADD CONSTRAINT "budgets_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "budgets" ADD CONSTRAINT "budgets_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'budgets_createdById_fkey') THEN
+        ALTER TABLE "budgets" ADD CONSTRAINT "budgets_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
