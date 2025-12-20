@@ -5,6 +5,7 @@ import {
   HardHat,
   DollarSign,
   Brain,
+  Search,
   Users,
   Shield,
   BarChart3,
@@ -307,6 +308,13 @@ export const menuItems: MenuItem[] = [
         label: 'All Documents',
         icon: FileText,
         path: '/documents',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.DEPARTMENT_HEAD, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.IT_MANAGER, UserRole.HR_MANAGER, UserRole.SAFETY_OFFICER, UserRole.WAREHOUSE_MANAGER, UserRole.EMPLOYEE],
+      },
+      {
+        id: 'documents-smart-search',
+        label: 'Smart Search',
+        icon: Search,
+        path: '/documents/smart-search',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.DEPARTMENT_HEAD, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.IT_MANAGER, UserRole.HR_MANAGER, UserRole.SAFETY_OFFICER, UserRole.WAREHOUSE_MANAGER, UserRole.EMPLOYEE],
       },
       {

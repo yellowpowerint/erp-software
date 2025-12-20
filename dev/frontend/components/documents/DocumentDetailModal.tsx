@@ -15,6 +15,9 @@ import ExtractedTextViewer from './ExtractedTextViewer';
 import CommentsPanel from './CommentsPanel';
 import ShareModal from './ShareModal';
 import CollaborativeViewer from './CollaborativeViewer';
+import DocumentAiInsightsPanel from './DocumentAiInsightsPanel';
+import DocumentDuplicateAlert from './DocumentDuplicateAlert';
+import DocumentQaPanel from './DocumentQaPanel';
 
 interface DocumentDetailModalProps {
   document: Document;
@@ -38,7 +41,7 @@ export default function DocumentDetailModal({
   const [category, setCategory] = useState(document.category);
   const [showShare, setShowShare] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'preview' | 'details' | 'versions' | 'security' | 'access-log' | 'ocr' | 'comments' | 'annotations'
+    'preview' | 'details' | 'ai' | 'versions' | 'security' | 'access-log' | 'ocr' | 'comments' | 'annotations'
   >('preview');
   const [versions, setVersions] = useState<any[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
@@ -261,11 +264,14 @@ export default function DocumentDetailModal({
                   </div>
                 </div>
 
+                <DocumentDuplicateAlert documentId={document.id} />
+
                 <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-b border-gray-200">
                   {(
                     [
                       ['preview', 'Preview'],
                       ['details', 'Details'],
+                      ['ai', 'AI'],
                       ['versions', 'Version History'],
                       ['security', 'Security'],
                       ['access-log', 'Access Log'],
@@ -481,6 +487,14 @@ export default function DocumentDetailModal({
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'ai' && (
+                  <div>
+                    <DocumentAiInsightsPanel documentId={document.id} />
+                    <div className="border-t border-gray-200" />
+                    <DocumentQaPanel documentId={document.id} />
                   </div>
                 )}
 

@@ -1635,6 +1635,7 @@ model Document {
   fileSize    Int
   mimeType    String
   fileUrl     String
+  fileHash    String?
   category    DocumentCategory
   module      String
   referenceId String?
@@ -1657,11 +1658,39 @@ model Document {
   annotations DocumentAnnotation[]
   shares      DocumentShare[]
   presence    DocumentPresence[]
+  aiInsight   DocumentAiInsight?
   
   @@index([module, referenceId])
   @@index([category])
   @@index([uploadedById])
+  @@index([fileHash])
   @@map("documents")
+}
+
+// Phase 16.4: AI-Powered Document Intelligence
+model DocumentAiInsight {
+  id               String            @id @default(uuid())
+  documentId        String            @unique
+  document          Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  provider          String?
+  model             String?
+
+  summary           String?           @db.Text
+  entities          Json?
+  suggestedCategory DocumentCategory?
+  suggestedTags     String[]          @default([])
+  anomalies         Json?
+  linkedRecords     Json?
+
+  // Optional embeddings used for semantic search and similarity
+  embedding         Float[]           @default([])
+
+  analyzedAt        DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([analyzedAt])
+  @@map("document_ai_insights")
 }
 
 model DocumentVersion {
@@ -1689,7 +1718,7 @@ model DocumentMetadata {
   author      String?
   title       String?
   subject     String?
-  keywords    String[]
+  keywords    String[]  @default([])
   createdDate DateTime?
   modifiedDate DateTime?
   extractedText String?  @db.Text

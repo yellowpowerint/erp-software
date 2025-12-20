@@ -3,6 +3,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './services/storage.service';
 import { FileUploadService } from './services/file-upload.service';
 import { DocumentCategory, UserRole, OCRStatus } from '@prisma/client';
+import { createHash } from 'crypto';
+import * as fs from 'fs/promises';
 
 export interface CreateDocumentDto {
   category: DocumentCategory;
@@ -40,6 +42,10 @@ export class DocumentsService {
     private fileUploadService: FileUploadService,
   ) {}
 
+  private computeFileHash(buffer: Buffer): string {
+    return createHash('sha256').update(buffer).digest('hex');
+  }
+
   setOCRQueueService(ocrQueueService: any) {
     this.ocrQueueService = ocrQueueService;
   }
@@ -51,6 +57,8 @@ export class DocumentsService {
   ) {
     this.fileUploadService.validateFile(file);
 
+    const fileHash = this.computeFileHash(file.buffer);
+
     const uploadResult = await this.storageService.uploadFile(file, createDto.module);
 
     const document = await this.prisma.document.create({
@@ -60,6 +68,7 @@ export class DocumentsService {
         fileSize: file.size,
         mimeType: file.mimetype,
         fileUrl: uploadResult.url,
+        fileHash,
         category: createDto.category,
         module: createDto.module,
         referenceId: createDto.referenceId,
@@ -713,6 +722,8 @@ export class DocumentsService {
 
     this.fileUploadService.validateFile(file);
 
+    const fileHash = this.computeFileHash(file.buffer);
+
     // Upload new file
     const uploadResult = await this.storageService.uploadFile(file, document.module);
 
@@ -738,6 +749,7 @@ export class DocumentsService {
         fileSize: file.size,
         mimeType: file.mimetype,
         fileUrl: uploadResult.url,
+        fileHash,
         version: document.version + 1,
         updatedAt: new Date(),
       },
@@ -801,6 +813,17 @@ export class DocumentsService {
       throw new NotFoundException(`Version ${versionNumber} not found for document ${documentId}`);
     }
 
+    let restoredFileHash: string | null = null;
+    try {
+      const localPath = await this.storageService.getLocalPath(versionToRestore.fileUrl);
+      if (localPath) {
+        const buffer = await fs.readFile(localPath);
+        restoredFileHash = this.computeFileHash(buffer);
+      }
+    } catch {
+      restoredFileHash = null;
+    }
+
     // Create version record for current state before restoring
     await this.prisma.documentVersion.create({
       data: {
@@ -821,6 +844,7 @@ export class DocumentsService {
         fileName: versionToRestore.fileName,
         fileUrl: versionToRestore.fileUrl,
         fileSize: versionToRestore.fileSize,
+        fileHash: restoredFileHash,
         version: document.version + 1,
         updatedAt: new Date(),
       },

@@ -1304,18 +1304,18 @@ Highest Priority → Lowest Priority
   - Suggest related documents
 
 ### Frontend Deliverables:
-- ✅ **AI Document Insights Panel** (`components/documents/AIInsights.tsx`):
+- ✅ **AI Document Insights Panel** (`dev/frontend/components/documents/DocumentAiInsightsPanel.tsx`):
   - Document summary
   - Key entities extracted
   - Suggested category/tags
   - Related documents
   - Anomaly warnings
-- ✅ **Smart Search Component** (`components/documents/SmartSearch.tsx`):
+- ✅ **Smart Search Page** (`dev/frontend/app/documents/smart-search/page.tsx`):
   - Natural language search
   - "Find all invoices from Supplier X above ₵5000"
   - Search by content, not just filename
-  - Filter results by AI confidence
-- ✅ **Document Q&A Interface** (`components/documents/DocumentQA.tsx`):
+  - Ranked results with relevance score
+- ✅ **Document Q&A Interface** (`dev/frontend/components/documents/DocumentQaPanel.tsx`):
   - Ask questions about document
   - "What is the total amount?"
   - "Who is the supplier?"
@@ -1325,7 +1325,7 @@ Highest Priority → Lowest Priority
   - Show suggestion when uploading
   - "This looks like an invoice. Should I categorize it as INVOICE?"
   - Accept/reject suggestion
-- ✅ **Duplicate Detection Alert** (`components/documents/DuplicateAlert.tsx`):
+- ✅ **Duplicate Detection Alert** (`dev/frontend/components/documents/DocumentDuplicateAlert.tsx`):
   - Show warning when uploading duplicate
   - Display similar documents
   - Option to proceed or cancel
@@ -1362,6 +1362,14 @@ Highest Priority → Lowest Priority
 - Verify entity extraction (dates, amounts, names)
 - Test anomaly detection (unusual amounts)
 - Verify smart document linking
+
+### Manual Verification Checklist (Production Readiness):
+- Confirm `/documents` opens a document and `AI` tab loads without crashing
+- Confirm `/documents/smart-search` returns ranked results for a known query
+- Confirm `/api/ai/documents/:id/analyze` works when AI keys are missing (heuristic fallback)
+- Confirm `/api/ai/documents/:id/qa` returns an answer and `sources` array
+- Confirm duplicate detection banner appears when `fileHash` matches another document
+- Confirm permission enforcement (user without access cannot analyze/search/view results)
 
 ---
 
@@ -1426,7 +1434,7 @@ Highest Priority → Lowest Priority
 **Phase 16:**
 - `/documents/tools` - Advanced PDF tools
 - `/documents/shared` - Shared documents
-- `/documents/search` - Smart search
+- `/documents/smart-search` - Smart search
 - `/settings/ocr` - OCR configuration
 
 **Total: 10 new pages**

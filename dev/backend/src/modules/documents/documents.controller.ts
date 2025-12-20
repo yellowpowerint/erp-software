@@ -35,6 +35,7 @@ import * as path from 'path';
 import * as mime from 'mime-types';
 import archiver = require('archiver');
 import axios from 'axios';
+import { createHash } from 'crypto';
 import { SignatureService } from './services/signature.service';
 import { SecurityService } from './services/security.service';
 import { OCRService } from './services/ocr.service';
@@ -1011,6 +1012,8 @@ export class DocumentsController {
       size: pdfBuffer.length,
     } as Express.Multer.File;
 
+    const fileHash = createHash('sha256').update(pdfBuffer).digest('hex');
+
     const uploadResult = await this.storageService.uploadFile(file, body.module);
 
     const document = await this.prisma.document.create({
@@ -1020,12 +1023,18 @@ export class DocumentsController {
         fileSize: file.size,
         mimeType: file.mimetype,
         fileUrl: uploadResult.url,
+        fileHash,
         category: body.category,
         module: body.module,
         referenceId: body.referenceId || body.entityId,
         description: body.description || `Generated ${body.documentType} PDF`,
         tags: body.tags || [body.documentType, 'generated', 'pdf'],
         uploadedById: req.user.userId,
+        metadata: {
+          create: {
+            keywords: [],
+          },
+        },
       },
       include: {
         uploadedBy: {
@@ -1036,6 +1045,7 @@ export class DocumentsController {
             email: true,
           },
         },
+        metadata: true,
       },
     });
 
