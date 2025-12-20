@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "npx prisma migrate resolve --rolled-back 20241125_add_finance_module || true && npx prisma migrate resolve --rolled-back 20241125_add_production_operations || true && npx prisma migrate resolve --rolled-back 20241125_add_asset_management || true && npx prisma migrate resolve --rolled-back 20241125_add_inventory_system || true && npx prisma migrate resolve --rolled-back 20241125_add_projects_system || true && npx prisma migrate resolve --rolled-back 20241217_add_documents_module_core || true && npx prisma migrate deploy && node dist/main",
+    "start:prod": "npx prisma migrate resolve --rolled-back 20241125_add_finance_module || true && npx prisma migrate resolve --rolled-back 20241125_add_production_operations || true && npx prisma migrate resolve --rolled-back 20241125_add_asset_management || true && npx prisma migrate resolve --rolled-back 20241125_add_inventory_system || true && npx prisma migrate resolve --rolled-back 20241125_add_projects_system || true && npx prisma migrate resolve --rolled-back 20241217_add_documents_module_core || true && npx prisma migrate resolve --rolled-back 20241218_add_phase_15_4_signatures_security || true && npx prisma migrate deploy && node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",

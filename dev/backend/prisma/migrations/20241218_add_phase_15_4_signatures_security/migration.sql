@@ -1,12 +1,27 @@
 -- CreateEnum
-CREATE TYPE "DocumentAction" AS ENUM ('VIEWED', 'DOWNLOADED', 'EDITED', 'DELETED', 'SHARED', 'SIGNED', 'PERMISSION_CHANGED', 'SECURITY_UPDATED');
+DO $$ BEGIN
+    CREATE TYPE "DocumentAction" AS ENUM ('VIEWED', 'DOWNLOADED', 'EDITED', 'DELETED', 'SHARED', 'SIGNED', 'PERMISSION_CHANGED', 'SECURITY_UPDATED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AlterTable
-ALTER TABLE "documents" ADD COLUMN "signatures" TEXT[];
-ALTER TABLE "documents" ADD COLUMN "security" JSONB;
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents')
+      AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'documents' AND column_name = 'signatures') THEN
+        ALTER TABLE "documents" ADD COLUMN "signatures" TEXT[];
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents')
+      AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'documents' AND column_name = 'security') THEN
+        ALTER TABLE "documents" ADD COLUMN "security" JSONB;
+    END IF;
+END $$;
 
 -- CreateTable
-CREATE TABLE "document_signatures" (
+CREATE TABLE IF NOT EXISTS "document_signatures" (
     "id" TEXT NOT NULL,
     "documentId" TEXT NOT NULL,
     "signerId" TEXT NOT NULL,
@@ -26,7 +41,7 @@ CREATE TABLE "document_signatures" (
 );
 
 -- CreateTable
-CREATE TABLE "document_access_logs" (
+CREATE TABLE IF NOT EXISTS "document_access_logs" (
     "id" TEXT NOT NULL,
     "documentId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -40,7 +55,7 @@ CREATE TABLE "document_access_logs" (
 );
 
 -- CreateTable
-CREATE TABLE "document_security" (
+CREATE TABLE IF NOT EXISTS "document_security" (
     "id" TEXT NOT NULL,
     "documentId" TEXT NOT NULL,
     "isPasswordProtected" BOOLEAN NOT NULL DEFAULT false,
@@ -63,40 +78,76 @@ CREATE TABLE "document_security" (
 );
 
 -- CreateIndex
-CREATE INDEX "document_signatures_documentId_idx" ON "document_signatures"("documentId");
+CREATE INDEX IF NOT EXISTS "document_signatures_documentId_idx" ON "document_signatures"("documentId");
 
 -- CreateIndex
-CREATE INDEX "document_signatures_signerId_idx" ON "document_signatures"("signerId");
+CREATE INDEX IF NOT EXISTS "document_signatures_signerId_idx" ON "document_signatures"("signerId");
 
 -- CreateIndex
-CREATE INDEX "document_signatures_signedAt_idx" ON "document_signatures"("signedAt");
+CREATE INDEX IF NOT EXISTS "document_signatures_signedAt_idx" ON "document_signatures"("signedAt");
 
 -- CreateIndex
-CREATE INDEX "document_access_logs_documentId_idx" ON "document_access_logs"("documentId");
+CREATE INDEX IF NOT EXISTS "document_access_logs_documentId_idx" ON "document_access_logs"("documentId");
 
 -- CreateIndex
-CREATE INDEX "document_access_logs_userId_idx" ON "document_access_logs"("userId");
+CREATE INDEX IF NOT EXISTS "document_access_logs_userId_idx" ON "document_access_logs"("userId");
 
 -- CreateIndex
-CREATE INDEX "document_access_logs_accessedAt_idx" ON "document_access_logs"("accessedAt");
+CREATE INDEX IF NOT EXISTS "document_access_logs_accessedAt_idx" ON "document_access_logs"("accessedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "document_security_documentId_key" ON "document_security"("documentId");
+CREATE UNIQUE INDEX IF NOT EXISTS "document_security_documentId_key" ON "document_security"("documentId");
 
 -- AddForeignKey
-ALTER TABLE "document_signatures" ADD CONSTRAINT "document_signatures_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_signatures_documentId_fkey') THEN
+        ALTER TABLE "document_signatures" ADD CONSTRAINT "document_signatures_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "document_signatures" ADD CONSTRAINT "document_signatures_signerId_fkey" FOREIGN KEY ("signerId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_signatures_signerId_fkey') THEN
+        ALTER TABLE "document_signatures" ADD CONSTRAINT "document_signatures_signerId_fkey" FOREIGN KEY ("signerId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "document_signatures" ADD CONSTRAINT "document_signatures_revokedById_fkey" FOREIGN KEY ("revokedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_signatures_revokedById_fkey') THEN
+        ALTER TABLE "document_signatures" ADD CONSTRAINT "document_signatures_revokedById_fkey" FOREIGN KEY ("revokedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "document_access_logs" ADD CONSTRAINT "document_access_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_access_logs_userId_fkey') THEN
+        ALTER TABLE "document_access_logs" ADD CONSTRAINT "document_access_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "document_security" ADD CONSTRAINT "document_security_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_security_documentId_fkey') THEN
+        ALTER TABLE "document_security" ADD CONSTRAINT "document_security_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "document_security" ADD CONSTRAINT "document_security_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_security_createdById_fkey') THEN
+        ALTER TABLE "document_security" ADD CONSTRAINT "document_security_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
