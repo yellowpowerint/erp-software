@@ -7,6 +7,12 @@ import {
   DocumentSearchFilters,
   DocumentStatistics,
   UploadProgress,
+  DocumentComment,
+  DocumentAnnotation,
+  AnnotationType,
+  DocumentShare,
+  DocumentViewerPresence,
+  BasicUser,
 } from '@/types/document';
 
 export const useDocuments = () => {
@@ -377,6 +383,210 @@ export const useDocuments = () => {
       return response.data;
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to fetch version history');
+      throw error;
+    }
+  }
+
+  // ===== Phase 16.3: Comments =====
+  async function listComments(documentId: string): Promise<DocumentComment[]> {
+    try {
+      const response = await api.get<DocumentComment[]>(`/documents/${documentId}/comments`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to fetch comments');
+      throw error;
+    }
+  }
+
+  async function addComment(
+    documentId: string,
+    data: { content: string; pageNumber?: number; positionX?: number; positionY?: number },
+  ): Promise<DocumentComment> {
+    try {
+      const response = await api.post<DocumentComment>(`/documents/${documentId}/comments`, data);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to add comment');
+      throw error;
+    }
+  }
+
+  async function replyToComment(
+    commentId: string,
+    data: { content: string; pageNumber?: number; positionX?: number; positionY?: number },
+  ): Promise<DocumentComment> {
+    try {
+      const response = await api.post<DocumentComment>(`/documents/comments/${commentId}/reply`, data);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to reply to comment');
+      throw error;
+    }
+  }
+
+  async function updateComment(commentId: string, data: { content: string }): Promise<DocumentComment> {
+    try {
+      const response = await api.put<DocumentComment>(`/documents/comments/${commentId}`, data);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to update comment');
+      throw error;
+    }
+  }
+
+  async function deleteComment(commentId: string): Promise<{ success: boolean }> {
+    try {
+      const response = await api.delete<{ success: boolean }>(`/documents/comments/${commentId}`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to delete comment');
+      throw error;
+    }
+  }
+
+  async function resolveComment(commentId: string, resolved: boolean = true): Promise<DocumentComment> {
+    try {
+      const response = await api.post<DocumentComment>(`/documents/comments/${commentId}/resolve`, {
+        resolved,
+      });
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to resolve comment');
+      throw error;
+    }
+  }
+
+  // ===== Phase 16.3: Annotations =====
+  async function listAnnotations(documentId: string): Promise<DocumentAnnotation[]> {
+    try {
+      const response = await api.get<DocumentAnnotation[]>(`/documents/${documentId}/annotations`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to fetch annotations');
+      throw error;
+    }
+  }
+
+  async function addAnnotation(
+    documentId: string,
+    data: { type: AnnotationType; pageNumber: number; coordinates: any; content?: string; color?: string },
+  ): Promise<DocumentAnnotation> {
+    try {
+      const response = await api.post<DocumentAnnotation>(`/documents/${documentId}/annotations`, data);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to add annotation');
+      throw error;
+    }
+  }
+
+  async function updateAnnotation(
+    annotationId: string,
+    data: { coordinates?: any; content?: string; color?: string },
+  ): Promise<DocumentAnnotation> {
+    try {
+      const response = await api.put<DocumentAnnotation>(`/documents/annotations/${annotationId}`, data);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to update annotation');
+      throw error;
+    }
+  }
+
+  async function deleteAnnotation(annotationId: string): Promise<{ success: boolean }> {
+    try {
+      const response = await api.delete<{ success: boolean }>(`/documents/annotations/${annotationId}`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to delete annotation');
+      throw error;
+    }
+  }
+
+  // ===== Phase 16.3: Sharing =====
+  async function shareDocument(
+    documentId: string,
+    data: {
+      sharedWithId?: string;
+      expiresAt?: string;
+      canEdit?: boolean;
+      canDownload?: boolean;
+      generatePublicLink?: boolean;
+    },
+  ): Promise<DocumentShare> {
+    try {
+      const response = await api.post<DocumentShare>(`/documents/${documentId}/share`, data);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to share document');
+      throw error;
+    }
+  }
+
+  async function getSharedWithMe(): Promise<DocumentShare[]> {
+    try {
+      const response = await api.get<DocumentShare[]>(`/documents/shared/with-me`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to fetch shared documents');
+      throw error;
+    }
+  }
+
+  async function getSharedByMe(): Promise<DocumentShare[]> {
+    try {
+      const response = await api.get<DocumentShare[]>(`/documents/shared/by-me`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to fetch shared documents');
+      throw error;
+    }
+  }
+
+  async function revokeShare(shareId: string): Promise<{ success: boolean }> {
+    try {
+      const response = await api.delete<{ success: boolean }>(`/documents/shares/${shareId}`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to revoke share');
+      throw error;
+    }
+  }
+
+  // ===== Phase 16.3: Presence =====
+  async function presenceHeartbeat(documentId: string): Promise<any> {
+    try {
+      const response = await api.post(`/documents/${documentId}/presence/heartbeat`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to update presence');
+      throw error;
+    }
+  }
+
+  async function listPresenceViewers(documentId: string): Promise<DocumentViewerPresence[]> {
+    try {
+      const response = await api.get<DocumentViewerPresence[]>(`/documents/${documentId}/presence/viewers`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to load viewers');
+      throw error;
+    }
+  }
+
+  // ===== Users lookup (Share picker) =====
+  async function getUsers(filters?: { role?: string; status?: string; search?: string }): Promise<BasicUser[]> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.role) params.append('role', filters.role);
+      if (filters?.status) params.append('status', filters.status);
+      if (filters?.search) params.append('search', filters.search);
+
+      const qs = params.toString();
+      const response = await api.get<BasicUser[]>(`/settings/users${qs ? `?${qs}` : ''}`);
+      return response.data;
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to fetch users');
       throw error;
     }
   }
@@ -846,5 +1056,24 @@ export const useDocuments = () => {
     logDocumentAccess,
     getDocumentAccessLogs,
     getMyAccessLogs,
+
+    // Phase 16.3
+    listComments,
+    addComment,
+    replyToComment,
+    updateComment,
+    deleteComment,
+    resolveComment,
+    listAnnotations,
+    addAnnotation,
+    updateAnnotation,
+    deleteAnnotation,
+    shareDocument,
+    getSharedWithMe,
+    getSharedByMe,
+    revokeShare,
+    presenceHeartbeat,
+    listPresenceViewers,
+    getUsers,
   };
 };

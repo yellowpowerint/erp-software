@@ -126,3 +126,79 @@ export interface UploadProgress {
   status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
 }
+
+export interface BasicUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role?: string;
+}
+
+export interface DocumentComment {
+  id: string;
+  documentId: string;
+  authorId: string;
+  author: BasicUser;
+  content: string;
+  pageNumber?: number | null;
+  positionX?: number | null;
+  positionY?: number | null;
+  isResolved: boolean;
+  resolvedById?: string | null;
+  resolvedBy?: BasicUser | null;
+  resolvedAt?: string | null;
+  parentId?: string | null;
+  replies?: DocumentComment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AnnotationType =
+  | 'HIGHLIGHT'
+  | 'UNDERLINE'
+  | 'STRIKETHROUGH'
+  | 'NOTE'
+  | 'ARROW'
+  | 'RECTANGLE'
+  | 'TEXT';
+
+export interface DocumentAnnotation {
+  id: string;
+  documentId: string;
+  authorId: string;
+  author: BasicUser;
+  type: AnnotationType;
+  pageNumber: number;
+  coordinates: any;
+  content?: string | null;
+  color: string;
+  createdAt: string;
+}
+
+export interface DocumentShare {
+  id: string;
+  documentId: string;
+  document: Document;
+  sharedById: string;
+  sharedBy: BasicUser;
+  sharedWithId?: string | null;
+  sharedWith?: BasicUser | null;
+  shareLink?: string | null;
+  publicUrl?: string | null;
+  expiresAt?: string | null;
+  accessCount: number;
+  canEdit: boolean;
+  canDownload: boolean;
+  createdAt: string;
+  documentName?: string;
+}
+
+export interface DocumentViewerPresence {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role?: string;
+  lastSeen: string;
+}

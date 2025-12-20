@@ -19,6 +19,7 @@ import { useDocuments } from '@/hooks/useDocuments';
 import DocumentCard from '@/components/documents/DocumentCard';
 import DocumentDetailModal from '@/components/documents/DocumentDetailModal';
 import DocumentUpload from '@/components/documents/DocumentUpload';
+import ShareModal from '@/components/documents/ShareModal';
 
 type ViewMode = 'grid' | 'list';
 type SortField = 'name' | 'date' | 'size' | 'category';
@@ -29,6 +30,7 @@ function DocumentsContent() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [sharingDocument, setSharingDocument] = useState<Document | null>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const [showUpload, setShowUpload] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -543,11 +545,7 @@ function DocumentsContent() {
                   }
                 }}
                 onEdit={setSelectedDocument}
-                onShare={(doc) => {
-                  const shareUrl = `${window.location.origin}/documents?id=${doc.id}`;
-                  navigator.clipboard.writeText(shareUrl);
-                  alert('Document link copied to clipboard!');
-                }}
+                onShare={(doc) => setSharingDocument(doc)}
                 selected={selectedDocuments.has(doc.id)}
                 onSelect={handleSelectDocument}
                 showCheckbox={true}
@@ -569,6 +567,17 @@ function DocumentsContent() {
           onDelete={() => {
             setDocuments(documents.filter((doc) => doc.id !== selectedDocument.id));
             setSelectedDocument(null);
+          }}
+        />
+      )}
+
+      {sharingDocument && (
+        <ShareModal
+          documentId={sharingDocument.id}
+          documentName={sharingDocument.originalName}
+          onClose={() => setSharingDocument(null)}
+          onShared={() => {
+            // keep simple: modal already copies public link when created
           }}
         />
       )}
