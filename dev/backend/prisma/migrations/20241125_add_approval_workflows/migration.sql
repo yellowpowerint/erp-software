@@ -1,3 +1,16 @@
+-- CreateEnum (if not exists)
+DO $$ BEGIN
+    CREATE TYPE "ApprovalType" AS ENUM ('INVOICE', 'PURCHASE_REQUEST', 'EXPENSE_CLAIM', 'LEAVE_REQUEST', 'PAYMENT', 'IT_REQUEST', 'PAYMENT_REQUEST');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 -- CreateTable: Approval Workflows System
 CREATE TABLE "approval_workflows" (
     "id" TEXT NOT NULL,
