@@ -43,10 +43,12 @@ CREATE TABLE IF NOT EXISTS "documents" (
     CONSTRAINT "documents_pkey" PRIMARY KEY ("id")
 );
 
-DO $$ BEGIN
-  ALTER TABLE "documents" ADD CONSTRAINT "documents_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-EXCEPTION
-  WHEN duplicate_object THEN null;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'documents_uploadedById_fkey') THEN
+      ALTER TABLE "documents" ADD CONSTRAINT "documents_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS "documents_module_referenceId_idx" ON "documents"("module", "referenceId");
@@ -67,16 +69,20 @@ CREATE TABLE IF NOT EXISTS "document_versions" (
     CONSTRAINT "document_versions_pkey" PRIMARY KEY ("id")
 );
 
-DO $$ BEGIN
-  ALTER TABLE "document_versions" ADD CONSTRAINT "document_versions_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION
-  WHEN duplicate_object THEN null;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_versions_documentId_fkey') THEN
+      ALTER TABLE "document_versions" ADD CONSTRAINT "document_versions_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
 END $$;
 
-DO $$ BEGIN
-  ALTER TABLE "document_versions" ADD CONSTRAINT "document_versions_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-EXCEPTION
-  WHEN duplicate_object THEN null;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_versions_uploadedById_fkey') THEN
+      ALTER TABLE "document_versions" ADD CONSTRAINT "document_versions_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
 END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "document_versions_documentId_versionNumber_key" ON "document_versions"("documentId", "versionNumber");
@@ -96,10 +102,12 @@ CREATE TABLE IF NOT EXISTS "document_metadata" (
     CONSTRAINT "document_metadata_pkey" PRIMARY KEY ("id")
 );
 
-DO $$ BEGIN
-  ALTER TABLE "document_metadata" ADD CONSTRAINT "document_metadata_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION
-  WHEN duplicate_object THEN null;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_metadata_documentId_fkey') THEN
+      ALTER TABLE "document_metadata" ADD CONSTRAINT "document_metadata_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
 END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "document_metadata_documentId_key" ON "document_metadata"("documentId");
@@ -116,10 +124,12 @@ CREATE TABLE IF NOT EXISTS "document_permissions" (
     CONSTRAINT "document_permissions_pkey" PRIMARY KEY ("id")
 );
 
-DO $$ BEGIN
-  ALTER TABLE "document_permissions" ADD CONSTRAINT "document_permissions_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-EXCEPTION
-  WHEN duplicate_object THEN null;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'document_permissions_documentId_fkey') THEN
+      ALTER TABLE "document_permissions" ADD CONSTRAINT "document_permissions_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
 END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "document_permissions_documentId_role_key" ON "document_permissions"("documentId", "role");
