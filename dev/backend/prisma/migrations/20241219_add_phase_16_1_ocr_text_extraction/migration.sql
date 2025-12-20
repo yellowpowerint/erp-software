@@ -1,14 +1,51 @@
--- CreateEnum
-CREATE TYPE "OCRProvider" AS ENUM ('TESSERACT_JS', 'GOOGLE_VISION', 'AWS_TEXTRACT');
+-- CreateEnum: DocumentCategory (if not exists from documents_module_core migration)
+DO $$ BEGIN
+    CREATE TYPE "DocumentCategory" AS ENUM (
+        'INVOICE',
+        'RECEIPT',
+        'PURCHASE_ORDER',
+        'QUOTATION',
+        'CONTRACT',
+        'SAFETY_REPORT',
+        'INCIDENT_REPORT',
+        'COMPLIANCE_DOC',
+        'PROJECT_REPORT',
+        'HR_DOCUMENT',
+        'PAYROLL',
+        'TAX_FORM',
+        'AUDIT_DOCUMENT',
+        'TRAINING_MATERIAL',
+        'CERTIFICATE',
+        'EQUIPMENT_MANUAL',
+        'OTHER'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "OCRStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED');
+DO $$ BEGIN
+    CREATE TYPE "OCRProvider" AS ENUM ('TESSERACT_JS', 'GOOGLE_VISION', 'AWS_TEXTRACT');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "ExtractedDataType" AS ENUM ('INVOICE', 'RECEIPT', 'CONTRACT', 'GENERAL_TEXT', 'STRUCTURED_DATA');
+DO $$ BEGIN
+    CREATE TYPE "OCRStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- CreateEnum
+DO $$ BEGIN
+    CREATE TYPE "ExtractedDataType" AS ENUM ('INVOICE', 'RECEIPT', 'CONTRACT', 'GENERAL_TEXT', 'STRUCTURED_DATA');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
-CREATE TABLE "ocr_jobs" (
+CREATE TABLE IF NOT EXISTS "ocr_jobs" (
     "id" TEXT NOT NULL,
     "documentId" TEXT NOT NULL,
     "provider" "OCRProvider" NOT NULL DEFAULT 'TESSERACT_JS',
@@ -32,7 +69,7 @@ CREATE TABLE "ocr_jobs" (
 );
 
 -- CreateTable
-CREATE TABLE "extracted_document_data" (
+CREATE TABLE IF NOT EXISTS "extracted_document_data" (
     "id" TEXT NOT NULL,
     "ocrJobId" TEXT NOT NULL,
     "documentId" TEXT NOT NULL,
@@ -72,7 +109,7 @@ CREATE TABLE "extracted_document_data" (
 );
 
 -- CreateTable
-CREATE TABLE "ocr_configuration" (
+CREATE TABLE IF NOT EXISTS "ocr_configuration" (
     "id" TEXT NOT NULL,
     "defaultProvider" "OCRProvider" NOT NULL DEFAULT 'TESSERACT_JS',
     "autoOCREnabled" BOOLEAN NOT NULL DEFAULT false,
@@ -97,7 +134,7 @@ CREATE TABLE "ocr_configuration" (
 );
 
 -- CreateTable
-CREATE TABLE "ocr_processing_logs" (
+CREATE TABLE IF NOT EXISTS "ocr_processing_logs" (
     "id" TEXT NOT NULL,
     "ocrJobId" TEXT NOT NULL,
     "level" TEXT NOT NULL,
@@ -109,37 +146,61 @@ CREATE TABLE "ocr_processing_logs" (
 );
 
 -- CreateIndex
-CREATE INDEX "ocr_jobs_documentId_idx" ON "ocr_jobs"("documentId");
+CREATE INDEX IF NOT EXISTS "ocr_jobs_documentId_idx" ON "ocr_jobs"("documentId");
 
 -- CreateIndex
-CREATE INDEX "ocr_jobs_status_idx" ON "ocr_jobs"("status");
+CREATE INDEX IF NOT EXISTS "ocr_jobs_status_idx" ON "ocr_jobs"("status");
 
 -- CreateIndex
-CREATE INDEX "ocr_jobs_createdAt_idx" ON "ocr_jobs"("createdAt");
+CREATE INDEX IF NOT EXISTS "ocr_jobs_createdAt_idx" ON "ocr_jobs"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "extracted_document_data_ocrJobId_idx" ON "extracted_document_data"("ocrJobId");
+CREATE INDEX IF NOT EXISTS "extracted_document_data_ocrJobId_idx" ON "extracted_document_data"("ocrJobId");
 
 -- CreateIndex
-CREATE INDEX "extracted_document_data_documentId_idx" ON "extracted_document_data"("documentId");
+CREATE INDEX IF NOT EXISTS "extracted_document_data_documentId_idx" ON "extracted_document_data"("documentId");
 
 -- CreateIndex
-CREATE INDEX "extracted_document_data_dataType_idx" ON "extracted_document_data"("dataType");
+CREATE INDEX IF NOT EXISTS "extracted_document_data_dataType_idx" ON "extracted_document_data"("dataType");
 
 -- CreateIndex
-CREATE INDEX "ocr_processing_logs_ocrJobId_idx" ON "ocr_processing_logs"("ocrJobId");
+CREATE INDEX IF NOT EXISTS "ocr_processing_logs_ocrJobId_idx" ON "ocr_processing_logs"("ocrJobId");
 
 -- CreateIndex
-CREATE INDEX "ocr_processing_logs_timestamp_idx" ON "ocr_processing_logs"("timestamp");
+CREATE INDEX IF NOT EXISTS "ocr_processing_logs_timestamp_idx" ON "ocr_processing_logs"("timestamp");
 
 -- AddForeignKey
-ALTER TABLE "ocr_jobs" ADD CONSTRAINT "ocr_jobs_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ocr_jobs_createdById_fkey') THEN
+        ALTER TABLE "ocr_jobs" ADD CONSTRAINT "ocr_jobs_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "extracted_document_data" ADD CONSTRAINT "extracted_document_data_ocrJobId_fkey" FOREIGN KEY ("ocrJobId") REFERENCES "ocr_jobs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ocr_jobs')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'extracted_document_data_ocrJobId_fkey') THEN
+        ALTER TABLE "extracted_document_data" ADD CONSTRAINT "extracted_document_data_ocrJobId_fkey" FOREIGN KEY ("ocrJobId") REFERENCES "ocr_jobs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "extracted_document_data" ADD CONSTRAINT "extracted_document_data_validatedById_fkey" FOREIGN KEY ("validatedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'extracted_document_data_validatedById_fkey') THEN
+        ALTER TABLE "extracted_document_data" ADD CONSTRAINT "extracted_document_data_validatedById_fkey" FOREIGN KEY ("validatedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "ocr_configuration" ADD CONSTRAINT "ocr_configuration_updatedById_fkey" FOREIGN KEY ("updatedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ocr_configuration_updatedById_fkey') THEN
+        ALTER TABLE "ocr_configuration" ADD CONSTRAINT "ocr_configuration_updatedById_fkey" FOREIGN KEY ("updatedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
