@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "npx prisma migrate resolve --rolled-back 20241218_add_phase_15_4_signatures_security || true && npx prisma migrate resolve --rolled-back 20251125030000_add_notifications_it_payment_requests || true && prisma migrate deploy && node dist/main",
+    "start:prod": "npx prisma migrate resolve --rolled-back 20241125_add_approval_workflows || true && npx prisma migrate deploy && node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
