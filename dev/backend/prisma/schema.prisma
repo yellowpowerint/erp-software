@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -104,6 +105,13 @@ model User {
   ocrJobs               OCRJob[]          @relation("OCRJobCreator")
   validatedData         ExtractedDocumentData[] @relation("DataValidator")
   ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
+
+  documentComments      DocumentComment[]  @relation("CommentAuthor")
+  resolvedDocumentComments DocumentComment[] @relation("CommentResolver")
+  documentAnnotations   DocumentAnnotation[] @relation("AnnotationAuthor")
+  documentSharesCreated DocumentShare[]    @relation("ShareAuthor")
+  documentSharesReceived DocumentShare[]   @relation("ShareRecipient")
+  documentPresence      DocumentPresence[]
 
   @@map("users")
 }
@@ -1644,6 +1652,11 @@ model Document {
   permissions DocumentPermission[]
   signatures  DocumentSignature[] @relation("DocumentSignatures")
   security    DocumentSecurity?   @relation("DocumentSecurity")
+
+  comments    DocumentComment[]
+  annotations DocumentAnnotation[]
+  shares      DocumentShare[]
+  presence    DocumentPresence[]
   
   @@index([module, referenceId])
   @@index([category])
@@ -1783,6 +1796,97 @@ model DocumentSecurity {
   updatedAt         DateTime  @updatedAt
   
   @@map("document_security")
+}
+
+// Phase 16.3: Document Collaboration & Annotations
+enum AnnotationType {
+  HIGHLIGHT
+  UNDERLINE
+  STRIKETHROUGH
+  NOTE
+  ARROW
+  RECTANGLE
+  TEXT
+}
+
+model DocumentComment {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation("CommentAuthor", fields: [authorId], references: [id])
+  content     String
+  pageNumber  Int?
+  positionX   Float?
+  positionY   Float?
+  isResolved  Boolean  @default(false)
+  resolvedById String?
+  resolvedBy  User?    @relation("CommentResolver", fields: [resolvedById], references: [id])
+  resolvedAt  DateTime?
+  parentId    String?
+  parent      DocumentComment? @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     DocumentComment[] @relation("CommentThread")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([parentId])
+  @@index([isResolved])
+  @@map("document_comments")
+}
+
+model DocumentAnnotation {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation("AnnotationAuthor", fields: [authorId], references: [id])
+  type        AnnotationType
+  pageNumber  Int
+  coordinates Json
+  content     String?
+  color       String   @default("#FFFF00")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([pageNumber])
+  @@map("document_annotations")
+}
+
+model DocumentShare {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sharedById  String
+  sharedBy    User     @relation("ShareAuthor", fields: [sharedById], references: [id])
+  sharedWithId String?
+  sharedWith  User?    @relation("ShareRecipient", fields: [sharedWithId], references: [id])
+  shareLink   String?  @unique
+  expiresAt   DateTime?
+  accessCount Int      @default(0)
+  canEdit     Boolean  @default(false)
+  canDownload Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
+  @@index([sharedById])
+  @@index([sharedWithId])
+  @@map("document_shares")
+}
+
+model DocumentPresence {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSeenAt  DateTime @default(now())
+
+  @@unique([documentId, userId])
+  @@index([documentId])
+  @@index([lastSeenAt])
+  @@map("document_presence")
 }
 
 // Phase 16.1: OCR & Text Extraction

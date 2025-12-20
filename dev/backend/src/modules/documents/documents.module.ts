@@ -14,16 +14,39 @@ import { OCRController } from './controllers/ocr.controller';
 import { PdfManipulatorController } from './controllers/pdf-manipulator.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { PdfManipulatorService } from './services/pdf-manipulator.service';
+import { DocumentCommentsController } from './controllers/document-comments.controller';
+import { DocumentAnnotationsController } from './controllers/document-annotations.controller';
+import { DocumentSharingController } from './controllers/document-sharing.controller';
+import { DocumentPresenceController } from './controllers/document-presence.controller';
+import { PublicShareController } from './controllers/public-share.controller';
+import { DocumentCommentsService } from './services/document-comments.service';
+import { DocumentAnnotationsService } from './services/document-annotations.service';
+import { DocumentSharingService } from './services/document-sharing.service';
+import { DocumentPresenceService } from './services/document-presence.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [DocumentsController, OCRController, PdfManipulatorController],
+  imports: [PrismaModule, NotificationsModule],
+  controllers: [
+    DocumentsController,
+    OCRController,
+    PdfManipulatorController,
+    DocumentCommentsController,
+    DocumentAnnotationsController,
+    DocumentSharingController,
+    DocumentPresenceController,
+    PublicShareController,
+  ],
   providers: [
     DocumentsService,
     StorageService,
     FileUploadService,
     PdfGeneratorService,
     PdfManipulatorService,
+    DocumentCommentsService,
+    DocumentAnnotationsService,
+    DocumentSharingService,
+    DocumentPresenceService,
     SignatureService,
     SecurityService,
     OCRService,
@@ -36,6 +59,10 @@ import { PdfManipulatorService } from './services/pdf-manipulator.service';
     StorageService, 
     PdfGeneratorService,
     PdfManipulatorService,
+    DocumentCommentsService,
+    DocumentAnnotationsService,
+    DocumentSharingService,
+    DocumentPresenceService,
     SignatureService,
     SecurityService,
     OCRService,

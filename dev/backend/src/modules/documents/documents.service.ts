@@ -94,6 +94,25 @@ export class DocumentsService {
     return document;
   }
 
+  async assertCanView(documentId: string, userId: string, userRole: UserRole) {
+    await this.findOne(documentId, userId, userRole);
+    return true;
+  }
+
+  async assertCanEdit(documentId: string, userId: string, userRole: UserRole) {
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+      include: { permissions: true },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    await this.checkEditPermission(document, userId, userRole);
+    return true;
+  }
+
   private async triggerAutoOCR(documentId: string, category: DocumentCategory, userId: string): Promise<void> {
     try {
       if (!this.ocrQueueService) {
@@ -357,6 +376,13 @@ export class DocumentsService {
   async getDownloadUrl(id: string, userId: string, userRole: UserRole) {
     const document = await this.findOne(id, userId, userRole);
 
+    if (userRole !== UserRole.SUPER_ADMIN && document.uploadedById !== userId) {
+      const share = await this.getActiveShareForUser(id, userId);
+      if (share && !share.canDownload) {
+        throw new ForbiddenException('You do not have permission to download this shared document');
+      }
+    }
+
     const provider = document.fileUrl.includes('s3.amazonaws.com') ? 's3' : 'local';
     const url = await this.storageService.getSignedDownloadUrl(
       document.fileName,
@@ -529,6 +555,11 @@ export class DocumentsService {
       return;
     }
 
+    const share = await this.getActiveShareForUser(document.id, userId);
+    if (share) {
+      return;
+    }
+
     const hasPermission = document.permissions.some(
       (p: any) => p.role === userRole && p.canView,
     );
@@ -543,6 +574,11 @@ export class DocumentsService {
       return;
     }
 
+    const share = await this.getActiveShareForUser(document.id, userId);
+    if (share && share.canEdit) {
+      return;
+    }
+
     const hasPermission = document.permissions.some(
       (p: any) => p.role === userRole && p.canEdit,
     );
@@ -550,6 +586,17 @@ export class DocumentsService {
     if (!hasPermission) {
       throw new ForbiddenException('You do not have permission to edit this document');
     }
+  }
+
+  private async getActiveShareForUser(documentId: string, userId: string) {
+    const now = new Date();
+    return this.prisma.documentShare.findFirst({
+      where: {
+        documentId,
+        sharedWithId: userId,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    });
   }
 
   private async checkDeletePermission(document: any, userId: string, userRole: UserRole) {
