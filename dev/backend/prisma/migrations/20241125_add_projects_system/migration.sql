@@ -1,14 +1,26 @@
 -- CreateEnum: Project Status
-CREATE TYPE "ProjectStatus" AS ENUM ('PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED');
+DO $$ BEGIN
+    CREATE TYPE "ProjectStatus" AS ENUM ('PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum: Project Priority  
-CREATE TYPE "ProjectPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
+DO $$ BEGIN
+    CREATE TYPE "ProjectPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum: Task Status
-CREATE TYPE "TaskStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED');
+DO $$ BEGIN
+    CREATE TYPE "TaskStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable: Projects
-CREATE TABLE "projects" (
+CREATE TABLE IF NOT EXISTS "projects" (
     "id" TEXT NOT NULL,
     "projectCode" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -30,7 +42,7 @@ CREATE TABLE "projects" (
 );
 
 -- CreateTable: Milestones
-CREATE TABLE "milestones" (
+CREATE TABLE IF NOT EXISTS "milestones" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -45,7 +57,7 @@ CREATE TABLE "milestones" (
 );
 
 -- CreateTable: Tasks
-CREATE TABLE "tasks" (
+CREATE TABLE IF NOT EXISTS "tasks" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -63,22 +75,34 @@ CREATE TABLE "tasks" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "projects_projectCode_key" ON "projects"("projectCode");
-CREATE INDEX "projects_status_idx" ON "projects"("status");
-CREATE INDEX "projects_priority_idx" ON "projects"("priority");
-CREATE INDEX "projects_startDate_idx" ON "projects"("startDate");
+CREATE UNIQUE INDEX IF NOT EXISTS "projects_projectCode_key" ON "projects"("projectCode");
+CREATE INDEX IF NOT EXISTS "projects_status_idx" ON "projects"("status");
+CREATE INDEX IF NOT EXISTS "projects_priority_idx" ON "projects"("priority");
+CREATE INDEX IF NOT EXISTS "projects_startDate_idx" ON "projects"("startDate");
 
 -- CreateIndex
-CREATE INDEX "milestones_projectId_idx" ON "milestones"("projectId");
-CREATE INDEX "milestones_dueDate_idx" ON "milestones"("dueDate");
+CREATE INDEX IF NOT EXISTS "milestones_projectId_idx" ON "milestones"("projectId");
+CREATE INDEX IF NOT EXISTS "milestones_dueDate_idx" ON "milestones"("dueDate");
 
 -- CreateIndex
-CREATE INDEX "tasks_projectId_idx" ON "tasks"("projectId");
-CREATE INDEX "tasks_status_idx" ON "tasks"("status");
-CREATE INDEX "tasks_assignedTo_idx" ON "tasks"("assignedTo");
+CREATE INDEX IF NOT EXISTS "tasks_projectId_idx" ON "tasks"("projectId");
+CREATE INDEX IF NOT EXISTS "tasks_status_idx" ON "tasks"("status");
+CREATE INDEX IF NOT EXISTS "tasks_assignedTo_idx" ON "tasks"("assignedTo");
 
 -- AddForeignKey
-ALTER TABLE "milestones" ADD CONSTRAINT "milestones_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'milestones_projectId_fkey') THEN
+        ALTER TABLE "milestones" ADD CONSTRAINT "milestones_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_projectId_fkey') THEN
+        ALTER TABLE "tasks" ADD CONSTRAINT "tasks_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;

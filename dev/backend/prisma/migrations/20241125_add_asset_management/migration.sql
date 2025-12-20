@@ -1,14 +1,26 @@
 -- CreateEnum: Asset Categories
-CREATE TYPE "AssetCategory" AS ENUM ('HEAVY_EQUIPMENT', 'VEHICLES', 'MACHINERY', 'TOOLS', 'COMPUTERS', 'FURNITURE', 'OTHER');
+DO $$ BEGIN
+    CREATE TYPE "AssetCategory" AS ENUM ('HEAVY_EQUIPMENT', 'VEHICLES', 'MACHINERY', 'TOOLS', 'COMPUTERS', 'FURNITURE', 'OTHER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum: Asset Status
-CREATE TYPE "AssetStatus" AS ENUM ('ACTIVE', 'MAINTENANCE', 'INACTIVE', 'RETIRED', 'DAMAGED');
+DO $$ BEGIN
+    CREATE TYPE "AssetStatus" AS ENUM ('ACTIVE', 'MAINTENANCE', 'INACTIVE', 'RETIRED', 'DAMAGED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum: Asset Condition
-CREATE TYPE "AssetCondition" AS ENUM ('EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'CRITICAL');
+DO $$ BEGIN
+    CREATE TYPE "AssetCondition" AS ENUM ('EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'CRITICAL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable: Assets
-CREATE TABLE "assets" (
+CREATE TABLE IF NOT EXISTS "assets" (
     "id" TEXT NOT NULL,
     "assetCode" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -36,7 +48,7 @@ CREATE TABLE "assets" (
 );
 
 -- CreateTable: Maintenance Logs
-CREATE TABLE "maintenance_logs" (
+CREATE TABLE IF NOT EXISTS "maintenance_logs" (
     "id" TEXT NOT NULL,
     "assetId" TEXT NOT NULL,
     "maintenanceType" TEXT NOT NULL,
@@ -52,14 +64,20 @@ CREATE TABLE "maintenance_logs" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "assets_assetCode_key" ON "assets"("assetCode");
-CREATE INDEX "assets_category_idx" ON "assets"("category");
-CREATE INDEX "assets_status_idx" ON "assets"("status");
-CREATE INDEX "assets_condition_idx" ON "assets"("condition");
+CREATE UNIQUE INDEX IF NOT EXISTS "assets_assetCode_key" ON "assets"("assetCode");
+CREATE INDEX IF NOT EXISTS "assets_category_idx" ON "assets"("category");
+CREATE INDEX IF NOT EXISTS "assets_status_idx" ON "assets"("status");
+CREATE INDEX IF NOT EXISTS "assets_condition_idx" ON "assets"("condition");
 
 -- CreateIndex
-CREATE INDEX "maintenance_logs_assetId_idx" ON "maintenance_logs"("assetId");
-CREATE INDEX "maintenance_logs_performedAt_idx" ON "maintenance_logs"("performedAt");
+CREATE INDEX IF NOT EXISTS "maintenance_logs_assetId_idx" ON "maintenance_logs"("assetId");
+CREATE INDEX IF NOT EXISTS "maintenance_logs_performedAt_idx" ON "maintenance_logs"("performedAt");
 
 -- AddForeignKey
-ALTER TABLE "maintenance_logs" ADD CONSTRAINT "maintenance_logs_assetId_fkey" FOREIGN KEY ("assetId") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'assets')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'maintenance_logs_assetId_fkey') THEN
+        ALTER TABLE "maintenance_logs" ADD CONSTRAINT "maintenance_logs_assetId_fkey" FOREIGN KEY ("assetId") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;

@@ -1,14 +1,26 @@
 -- CreateEnum: Stock Units
-CREATE TYPE "StockUnit" AS ENUM ('PIECES', 'KILOGRAMS', 'LITERS', 'METERS', 'BOXES', 'PALLETS', 'TONS', 'GALLONS', 'UNITS');
+DO $$ BEGIN
+    CREATE TYPE "StockUnit" AS ENUM ('PIECES', 'KILOGRAMS', 'LITERS', 'METERS', 'BOXES', 'PALLETS', 'TONS', 'GALLONS', 'UNITS');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum: Stock Categories
-CREATE TYPE "StockCategory" AS ENUM ('CONSUMABLES', 'EQUIPMENT', 'SPARE_PARTS', 'TOOLS', 'FUEL', 'CHEMICALS', 'SAFETY_GEAR', 'OFFICE_SUPPLIES', 'OTHER');
+DO $$ BEGIN
+    CREATE TYPE "StockCategory" AS ENUM ('CONSUMABLES', 'EQUIPMENT', 'SPARE_PARTS', 'TOOLS', 'FUEL', 'CHEMICALS', 'SAFETY_GEAR', 'OFFICE_SUPPLIES', 'OTHER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum: Movement Types
-CREATE TYPE "MovementType" AS ENUM ('STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT', 'TRANSFER', 'RETURN', 'DAMAGED', 'EXPIRED');
+DO $$ BEGIN
+    CREATE TYPE "MovementType" AS ENUM ('STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT', 'TRANSFER', 'RETURN', 'DAMAGED', 'EXPIRED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable: Warehouses
-CREATE TABLE "warehouses" (
+CREATE TABLE IF NOT EXISTS "warehouses" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -23,7 +35,7 @@ CREATE TABLE "warehouses" (
 );
 
 -- CreateTable: Stock Items
-CREATE TABLE "stock_items" (
+CREATE TABLE IF NOT EXISTS "stock_items" (
     "id" TEXT NOT NULL,
     "itemCode" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -45,7 +57,7 @@ CREATE TABLE "stock_items" (
 );
 
 -- CreateTable: Stock Movements
-CREATE TABLE "stock_movements" (
+CREATE TABLE IF NOT EXISTS "stock_movements" (
     "id" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
     "warehouseId" TEXT NOT NULL,
@@ -64,26 +76,44 @@ CREATE TABLE "stock_movements" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "warehouses_code_key" ON "warehouses"("code");
-CREATE INDEX "warehouses_isActive_idx" ON "warehouses"("isActive");
+CREATE UNIQUE INDEX IF NOT EXISTS "warehouses_code_key" ON "warehouses"("code");
+CREATE INDEX IF NOT EXISTS "warehouses_isActive_idx" ON "warehouses"("isActive");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "stock_items_itemCode_key" ON "stock_items"("itemCode");
-CREATE INDEX "stock_items_category_idx" ON "stock_items"("category");
-CREATE INDEX "stock_items_warehouseId_idx" ON "stock_items"("warehouseId");
-CREATE INDEX "stock_items_currentQuantity_idx" ON "stock_items"("currentQuantity");
+CREATE UNIQUE INDEX IF NOT EXISTS "stock_items_itemCode_key" ON "stock_items"("itemCode");
+CREATE INDEX IF NOT EXISTS "stock_items_category_idx" ON "stock_items"("category");
+CREATE INDEX IF NOT EXISTS "stock_items_warehouseId_idx" ON "stock_items"("warehouseId");
+CREATE INDEX IF NOT EXISTS "stock_items_currentQuantity_idx" ON "stock_items"("currentQuantity");
 
 -- CreateIndex
-CREATE INDEX "stock_movements_itemId_idx" ON "stock_movements"("itemId");
-CREATE INDEX "stock_movements_warehouseId_idx" ON "stock_movements"("warehouseId");
-CREATE INDEX "stock_movements_movementType_idx" ON "stock_movements"("movementType");
-CREATE INDEX "stock_movements_createdAt_idx" ON "stock_movements"("createdAt");
+CREATE INDEX IF NOT EXISTS "stock_movements_itemId_idx" ON "stock_movements"("itemId");
+CREATE INDEX IF NOT EXISTS "stock_movements_warehouseId_idx" ON "stock_movements"("warehouseId");
+CREATE INDEX IF NOT EXISTS "stock_movements_movementType_idx" ON "stock_movements"("movementType");
+CREATE INDEX IF NOT EXISTS "stock_movements_createdAt_idx" ON "stock_movements"("createdAt");
 
 -- AddForeignKey
-ALTER TABLE "stock_items" ADD CONSTRAINT "stock_items_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'warehouses')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_items_warehouseId_fkey') THEN
+        ALTER TABLE "stock_items" ADD CONSTRAINT "stock_items_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "stock_movements" ADD CONSTRAINT "stock_movements_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "stock_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stock_items')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_movements_itemId_fkey') THEN
+        ALTER TABLE "stock_movements" ADD CONSTRAINT "stock_movements_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "stock_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "stock_movements" ADD CONSTRAINT "stock_movements_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'warehouses')
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_movements_warehouseId_fkey') THEN
+        ALTER TABLE "stock_movements" ADD CONSTRAINT "stock_movements_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
