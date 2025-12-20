@@ -20,6 +20,20 @@ const nextConfig = {
       canvas: false,
     };
 
+    // Ignore canvas module completely for client-side builds
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        canvas: false,
+      };
+    }
+
+    // Add externals for canvas to prevent webpack from trying to bundle it
+    config.externals = config.externals || [];
+    config.externals.push({
+      canvas: 'canvas',
+    });
+
     return config;
   },
 };
