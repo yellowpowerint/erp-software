@@ -30,22 +30,26 @@ export class RequisitionsService {
   ) {}
 
   private canSeeAll(role: UserRole): boolean {
-    return [
-      UserRole.SUPER_ADMIN,
-      UserRole.CEO,
-      UserRole.CFO,
-      UserRole.PROCUREMENT_OFFICER,
-    ].includes(role);
+    return (
+      [
+        UserRole.SUPER_ADMIN,
+        UserRole.CEO,
+        UserRole.CFO,
+        UserRole.PROCUREMENT_OFFICER,
+      ] as UserRole[]
+    ).includes(role);
   }
 
   private canManageOthers(role: UserRole): boolean {
-    return [
-      UserRole.SUPER_ADMIN,
-      UserRole.CEO,
-      UserRole.CFO,
-      UserRole.PROCUREMENT_OFFICER,
-      UserRole.OPERATIONS_MANAGER,
-    ].includes(role);
+    return (
+      [
+        UserRole.SUPER_ADMIN,
+        UserRole.CEO,
+        UserRole.CFO,
+        UserRole.PROCUREMENT_OFFICER,
+        UserRole.OPERATIONS_MANAGER,
+      ] as UserRole[]
+    ).includes(role);
   }
 
   private toDecimal(value: string): Prisma.Decimal {
@@ -565,9 +569,9 @@ export class RequisitionsService {
     }
 
     if (
-      [RequisitionStatus.CANCELLED, RequisitionStatus.COMPLETED].includes(
-        requisition.status,
-      )
+      (
+        [RequisitionStatus.CANCELLED, RequisitionStatus.COMPLETED] as RequisitionStatus[]
+      ).includes(requisition.status)
     ) {
       throw new BadRequestException("Requisition cannot be cancelled");
     }
