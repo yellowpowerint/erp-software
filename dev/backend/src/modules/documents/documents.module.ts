@@ -30,6 +30,9 @@ import { DocumentConversionService } from './services/document-conversion.servic
 import { DocumentConversionQueueService } from './services/document-conversion-queue.service';
 import { DocumentFormsController } from './controllers/document-forms.controller';
 import { DocumentFormsService } from './services/document-forms.service';
+import { AuditPackagesController } from './controllers/audit-packages.controller';
+import { AuditPackagesService } from './services/audit-packages.service';
+import { AuditPackagesQueueService } from './services/audit-packages-queue.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -46,6 +49,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentPermissionsController,
     DocumentConversionController,
     DocumentFormsController,
+    AuditPackagesController,
   ],
   providers: [
     DocumentsService,
@@ -61,6 +65,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentConversionService,
     DocumentConversionQueueService,
     DocumentFormsService,
+    AuditPackagesService,
+    AuditPackagesQueueService,
     SignatureService,
     SecurityService,
     OCRService,
@@ -79,6 +85,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentPresenceService,
     DocumentConversionService,
     DocumentFormsService,
+    AuditPackagesService,
     SignatureService,
     SecurityService,
     OCRService,

@@ -16,6 +16,7 @@ import {
 } from '@/types/document';
 import { DocumentConversionJob } from '@/types/conversion';
 import { DocumentFormDraft, DocumentFormTemplate } from '@/types/forms';
+import { AuditPackageSpec, DocumentAuditPackageJob } from '@/types/audit-packages';
 
 type PermissionFlags = {
   canView?: boolean;
@@ -159,6 +160,68 @@ export const useDocuments = () => {
       return response.data;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to fetch documents';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const startAuditPackageJob = useCallback(
+    async (title: string, spec: AuditPackageSpec): Promise<DocumentAuditPackageJob> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.post('/documents/audit-packages/jobs', { title, spec });
+        return res.data.data;
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to start audit package job';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const listAuditPackageJobs = useCallback(async (): Promise<DocumentAuditPackageJob[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/documents/audit-packages/jobs');
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load audit package jobs';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getAuditPackageJob = useCallback(async (jobId: string): Promise<DocumentAuditPackageJob> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/audit-packages/jobs/${jobId}`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load audit package job';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const cancelAuditPackageJob = useCallback(async (jobId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.delete(`/documents/audit-packages/jobs/${jobId}`);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to cancel audit package job';
       setError(errorMessage);
       throw err;
     } finally {
@@ -1364,6 +1427,10 @@ export const useDocuments = () => {
     renderFormDraft,
     finalizeFormDraft,
     cancelFormDraft,
+    startAuditPackageJob,
+    listAuditPackageJobs,
+    getAuditPackageJob,
+    cancelAuditPackageJob,
     getDocument,
     updateDocument,
     deleteDocument,

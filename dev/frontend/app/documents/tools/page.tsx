@@ -11,8 +11,9 @@ import PDFEditor from '@/components/documents/PDFEditor';
 import RedactionTool from '@/components/documents/RedactionTool';
 import StampLibrary from '@/components/documents/StampLibrary';
 import PdfFormTemplatesPanel from '@/components/documents/PdfFormTemplatesPanel';
+import AuditPackageBuilderPanel from '@/components/documents/AuditPackageBuilderPanel';
 
-type ToolTab = 'merge' | 'edit' | 'redact' | 'stamps' | 'forms';
+type ToolTab = 'merge' | 'edit' | 'redact' | 'stamps' | 'forms' | 'audit';
 
 function ToolsContent() {
   const { getDocuments } = useDocuments();
@@ -114,6 +115,16 @@ function ToolsContent() {
         >
           Form Templates
         </button>
+        <button
+          onClick={() => setActiveTab('audit')}
+          className={
+            activeTab === 'audit'
+              ? 'px-4 py-2 rounded-md bg-blue-600 text-white text-sm'
+              : 'px-4 py-2 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200'
+          }
+        >
+          Audit Packages
+        </button>
       </div>
 
       {pdfDocuments.length === 0 ? (
@@ -127,6 +138,7 @@ function ToolsContent() {
           {activeTab === 'redact' && <RedactionTool documents={pdfDocuments} />}
           {activeTab === 'stamps' && <StampLibrary documents={pdfDocuments} />}
           {activeTab === 'forms' && <PdfFormTemplatesPanel documents={docs} />}
+          {activeTab === 'audit' && <AuditPackageBuilderPanel documents={docs} />}
         </>
       )}
     </div>

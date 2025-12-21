@@ -1497,6 +1497,68 @@ DELETE /api/documents/form-drafts/:draftId              // Cancel draft
 - ✅ Optional signature capture embeds a visible signature on the finalized PDF and records a signature audit entry
 - ✅ All endpoints enforce document permissions (view/edit/sign as applicable)
 
+---
+
+## Session 16.7: Audit Package Builder (Cover Page, TOC, Section Dividers, Bookmarks/Outlines)
+
+**Duration:** 1 session
+
+### Objective:
+Generate a professional “audit package” PDF from a set of existing PDF documents, including a cover page, table of contents, section dividers, and PDF bookmarks/outlines for fast navigation.
+
+### Backend Deliverables:
+- **Persistent Audit Package Jobs (DB-backed queue):**
+  - Store package build jobs in Postgres with statuses: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`
+  - Jobs survive restarts and can be resumed
+  - Concurrency limits and retry handling
+- **Package builder (PDF output):**
+  - Cover page with:
+    - Package title
+    - Date generated
+    - Prepared by (user)
+  - Table of Contents (multi-page if needed):
+    - Sections and included documents with page numbers
+  - Section dividers:
+    - A divider page per section
+  - Merge PDFs in the user-selected order
+  - Add PDF bookmarks/outlines:
+    - Section bookmarks
+    - Document bookmarks (point to first page of each document)
+- **Output handling:**
+  - On success, store the output PDF in configured storage (S3/local)
+  - Create a `Document` record for the audit package output (category `AUDIT_DOCUMENT`)
+  - The job stores the `outputDocumentId`
+
+### API:
+```typescript
+POST   /api/documents/audit-packages/jobs            // Start audit package job
+GET    /api/documents/audit-packages/jobs/:jobId     // Job status/details
+GET    /api/documents/audit-packages/jobs            // List user's jobs
+DELETE /api/documents/audit-packages/jobs/:jobId     // Cancel job
+```
+
+### Permissions:
+- Creating and viewing a job requires `view` permission for all included documents.
+- Cancelling a job requires being the job creator.
+
+### Frontend Deliverables:
+- **Audit Package Builder (PDF Tools):**
+  - Select multiple PDFs from the document library
+  - Create sections and order documents
+  - Provide package title
+  - Start package job
+  - Show job status (processing/success/failure)
+  - On success, allow opening/downloading the output package document
+  - List recent jobs
+
+### Acceptance Criteria (Production-Ready):
+- ✅ Package jobs are persistent (restart-safe) and observable via APIs
+- ✅ Package output includes cover page, TOC, and section divider pages
+- ✅ Package output merges the selected PDFs in the chosen order
+- ✅ Package output contains usable PDF bookmarks/outlines for sections and documents
+- ✅ Output is saved to configured storage and a `Document` record is created for the package
+- ✅ Endpoints enforce document access permissions
+
 # 📊 Summary of Document Management System
 
 ## Menu Structure (Left Sidebar)

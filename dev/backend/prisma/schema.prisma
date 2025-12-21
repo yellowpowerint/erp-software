@@ -106,6 +106,7 @@ model User {
   conversionJobs        DocumentConversionJob[] @relation("ConversionJobCreator")
   createdFormTemplates  DocumentFormTemplate[] @relation("FormTemplateCreator")
   formDrafts            DocumentFormDraft[] @relation("FormDraftCreator")
+  auditPackageJobs      DocumentAuditPackageJob[] @relation("AuditPackageJobCreator")
   validatedData         ExtractedDocumentData[] @relation("DataValidator")
   ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
 
@@ -1675,6 +1676,7 @@ model Document {
   conversionJobs DocumentConversionJob[]
   formTemplates DocumentFormTemplate[]
   formDrafts    DocumentFormDraft[]
+  auditPackageOutputJobs DocumentAuditPackageJob[] @relation("AuditPackageOutputDocument")
   
   @@index([module, referenceId])
   @@index([category])
@@ -2060,6 +2062,14 @@ enum DocumentFormDraftStatus {
   CANCELLED
 }
 
+enum DocumentAuditPackageStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 model DocumentConversionJob {
   id              String                   @id @default(uuid())
   documentId      String
@@ -2136,6 +2146,29 @@ model DocumentFormDraft {
   @@index([status])
   @@index([createdAt])
   @@map("document_form_drafts")
+}
+
+model DocumentAuditPackageJob {
+  id               String                   @id @default(uuid())
+  status           DocumentAuditPackageStatus @default(PENDING)
+  title            String
+  spec             Json
+  outputDocumentId String?
+  outputDocument   Document?                @relation("AuditPackageOutputDocument", fields: [outputDocumentId], references: [id], onDelete: SetNull)
+  errorMessage     String?
+  attempts         Int                      @default(0)
+  maxAttempts      Int                      @default(3)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdById      String
+  createdBy        User                     @relation("AuditPackageJobCreator", fields: [createdById], references: [id])
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("document_audit_package_jobs")
 }
 
 // Phase 16.1: OCR & Text Extraction
