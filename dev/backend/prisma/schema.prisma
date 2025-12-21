@@ -109,6 +109,9 @@ model User {
   auditPackageJobs      DocumentAuditPackageJob[] @relation("AuditPackageJobCreator")
   finalizeJobs          DocumentFinalizeJob[] @relation("FinalizeJobCreator")
   integritySeals        DocumentIntegritySeal[] @relation("IntegritySealCreator")
+  importJobs            ImportJob[]        @relation("ImportCreator")
+  exportJobs            ExportJob[]        @relation("ExportCreator")
+  importTemplates       ImportTemplate[]   @relation("ImportTemplateCreator")
   validatedData         ExtractedDocumentData[] @relation("DataValidator")
   ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
 
@@ -2082,6 +2085,22 @@ enum DocumentFinalizeStatus {
   CANCELLED
 }
 
+enum ImportStatus {
+  PENDING
+  VALIDATING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model DocumentConversionJob {
   id              String                   @id @default(uuid())
   documentId      String
@@ -2230,6 +2249,70 @@ model DocumentIntegritySeal {
   @@index([documentId])
   @@index([createdAt])
   @@map("document_integrity_seals")
+}
+
+model ImportJob {
+  id            String       @id @default(uuid())
+  module        String
+  fileName      String
+  fileUrl       String
+  storageProvider String     @default("local")
+  originalName  String
+  totalRows     Int
+  processedRows Int          @default(0)
+  successRows   Int          @default(0)
+  errorRows     Int          @default(0)
+  status        ImportStatus @default(PENDING)
+  errors        Json?
+  warnings      Json?
+  mappings      Json?
+  createdById   String
+  createdBy     User         @relation("ImportCreator", fields: [createdById], references: [id])
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([module])
+  @@index([createdById])
+  @@index([status])
+  @@map("import_jobs")
+}
+
+model ExportJob {
+  id            String       @id @default(uuid())
+  module        String
+  fileName      String
+  storageProvider String     @default("local")
+  filters       Json?
+  columns       String[]
+  totalRows     Int
+  status        ExportStatus @default(PENDING)
+  fileUrl       String?
+  expiresAt     DateTime?
+  createdById   String
+  createdBy     User         @relation("ExportCreator", fields: [createdById], references: [id])
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([module])
+  @@index([createdById])
+  @@map("export_jobs")
+}
+
+model ImportTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  module      String
+  description String?
+  columns     Json
+  isDefault   Boolean  @default(false)
+  createdById String
+  createdBy   User     @relation("ImportTemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, module])
+  @@map("import_templates")
 }
 
 // Phase 16.1: OCR & Text Extraction

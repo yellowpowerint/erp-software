@@ -566,6 +566,13 @@ export const menuItems: MenuItem[] = [
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.DEPARTMENT_HEAD, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.IT_MANAGER, UserRole.HR_MANAGER, UserRole.SAFETY_OFFICER, UserRole.WAREHOUSE_MANAGER, UserRole.EMPLOYEE],
       },
       {
+        id: 'settings-csv',
+        label: 'CSV Import/Export',
+        icon: Settings,
+        path: '/settings/csv',
+        roles: [UserRole.SUPER_ADMIN, UserRole.IT_MANAGER],
+      },
+      {
         id: 'settings-users',
         label: 'User Management',
         icon: Settings,

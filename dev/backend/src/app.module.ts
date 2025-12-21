@@ -19,6 +19,7 @@ import { SafetyModule } from "./modules/safety/safety.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { SettingsModule } from "./modules/settings/settings.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
+import { CsvModule } from "./modules/csv/csv.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
 
 @Module({
@@ -42,6 +43,7 @@ import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
     ReportsModule,
     SettingsModule,
     DocumentsModule,
+    CsvModule,
   ],
   controllers: [AppController],
   providers: [
