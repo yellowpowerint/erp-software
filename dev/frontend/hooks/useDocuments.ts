@@ -14,6 +14,7 @@ import {
   DocumentViewerPresence,
   BasicUser,
 } from '@/types/document';
+import { DocumentConversionJob } from '@/types/conversion';
 
 type PermissionFlags = {
   canView?: boolean;
@@ -250,6 +251,65 @@ export const useDocuments = () => {
       return res.data.data;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to load permission audit log';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const convertDocumentToPdf = useCallback(async (id: string): Promise<DocumentConversionJob> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.post(`/documents/${id}/convert-to-pdf`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to start PDF conversion';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getConversionJob = useCallback(async (jobId: string): Promise<DocumentConversionJob> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/conversion/jobs/${jobId}`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to fetch conversion job';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const listConversionJobs = useCallback(async (documentId: string): Promise<DocumentConversionJob[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/${documentId}/conversion-jobs`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to fetch conversion jobs';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const cancelConversionJob = useCallback(async (jobId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.delete(`/documents/conversion/jobs/${jobId}`);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to cancel conversion job';
       setError(errorMessage);
       throw err;
     } finally {
@@ -1124,6 +1184,10 @@ export const useDocuments = () => {
     listCategoryPermissions,
     listPermissionTemplates,
     listPermissionAuditLog,
+    convertDocumentToPdf,
+    getConversionJob,
+    listConversionJobs,
+    cancelConversionJob,
     getDocument,
     updateDocument,
     deleteDocument,

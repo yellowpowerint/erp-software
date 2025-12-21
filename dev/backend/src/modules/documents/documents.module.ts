@@ -25,6 +25,9 @@ import { DocumentSharingService } from './services/document-sharing.service';
 import { DocumentPresenceService } from './services/document-presence.service';
 import { DocumentPermissionsController } from './controllers/document-permissions.controller';
 import { DocumentPermissionsService } from './services/document-permissions.service';
+import { DocumentConversionController } from './controllers/document-conversion.controller';
+import { DocumentConversionService } from './services/document-conversion.service';
+import { DocumentConversionQueueService } from './services/document-conversion-queue.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -39,6 +42,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentPresenceController,
     PublicShareController,
     DocumentPermissionsController,
+    DocumentConversionController,
   ],
   providers: [
     DocumentsService,
@@ -51,6 +55,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentSharingService,
     DocumentPresenceService,
     DocumentPermissionsService,
+    DocumentConversionService,
+    DocumentConversionQueueService,
     SignatureService,
     SecurityService,
     OCRService,
@@ -67,6 +73,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentAnnotationsService,
     DocumentSharingService,
     DocumentPresenceService,
+    DocumentConversionService,
     SignatureService,
     SecurityService,
     OCRService,

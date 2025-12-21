@@ -103,6 +103,7 @@ model User {
   documentAccessLogs    DocumentAccessLog[] @relation("DocumentAccessor")
   createdSecurity       DocumentSecurity[]  @relation("SecurityCreator")
   ocrJobs               OCRJob[]          @relation("OCRJobCreator")
+  conversionJobs        DocumentConversionJob[] @relation("ConversionJobCreator")
   validatedData         ExtractedDocumentData[] @relation("DataValidator")
   ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
 
@@ -1669,6 +1670,7 @@ model Document {
   shares      DocumentShare[]
   presence    DocumentPresence[]
   aiInsight   DocumentAiInsight?
+  conversionJobs DocumentConversionJob[]
   
   @@index([module, referenceId])
   @@index([category])
@@ -2033,6 +2035,47 @@ model DocumentPresence {
   @@index([documentId])
   @@index([lastSeenAt])
   @@map("document_presence")
+}
+
+enum DocumentConversionProvider {
+  LOCAL
+  CLOUDCONVERT
+}
+
+enum DocumentConversionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model DocumentConversionJob {
+  id              String                   @id @default(uuid())
+  documentId      String
+  document        Document                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  provider        DocumentConversionProvider @default(LOCAL)
+  status          DocumentConversionStatus   @default(PENDING)
+  inputMimeType   String
+  outputFileUrl   String?
+  outputFileName  String?
+  outputFileSize  Int?
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  processingTime  Int?
+  attempts        Int                      @default(0)
+  maxAttempts     Int                      @default(3)
+  options         Json?
+  createdById     String
+  createdBy       User                     @relation("ConversionJobCreator", fields: [createdById], references: [id])
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([documentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("document_conversion_jobs")
 }
 
 // Phase 16.1: OCR & Text Extraction

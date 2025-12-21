@@ -68,6 +68,27 @@ export class StorageService {
     }
   }
 
+  async uploadBuffer(
+    buffer: Buffer,
+    originalName: string,
+    mimeType: string,
+    folder: string = 'documents',
+  ): Promise<UploadResult> {
+    const timestamp = Date.now();
+    const sanitizedFilename = this.sanitizeFilename(originalName);
+    const key = `${folder}/${timestamp}-${sanitizedFilename}`;
+
+    switch (this.provider) {
+      case StorageProvider.S3:
+        return this.uploadBufferToS3(buffer, key, mimeType);
+      case StorageProvider.CLOUDINARY:
+        return this.uploadToCloudinary({} as any, key);
+      case StorageProvider.LOCAL:
+      default:
+        return this.uploadBufferToLocal(buffer, key);
+    }
+  }
+
   private async ensureLocalStorageDirectory(): Promise<void> {
     try {
       await mkdir(this.localStoragePath, { recursive: true });
@@ -118,6 +139,25 @@ export class StorageService {
     };
   }
 
+  private async uploadBufferToLocal(buffer: Buffer, key: string): Promise<UploadResult> {
+    const filePath = path.join(this.localStoragePath, key);
+    const directory = path.dirname(filePath);
+
+    await mkdir(directory, { recursive: true });
+    await writeFile(filePath, buffer);
+
+    const baseUrl = this.configService.get<string>('BASE_URL', 'http://localhost:3000');
+    const url = `${baseUrl}/api/documents/files/${key}`;
+
+    this.logger.log(`File uploaded to local storage: ${key}`);
+
+    return {
+      url,
+      key,
+      provider: StorageProvider.LOCAL,
+    };
+  }
+
   private async uploadToS3(
     file: Express.Multer.File,
     key: string,
@@ -136,6 +176,36 @@ export class StorageService {
       Key: key,
       Body: file.buffer,
       ContentType: file.mimetype,
+    });
+
+    await this.s3Client.send(command);
+
+    const url = `https://${bucket}.s3.amazonaws.com/${key}`;
+
+    this.logger.log(`File uploaded to S3: ${key}`);
+
+    return {
+      url,
+      key,
+      provider: StorageProvider.S3,
+    };
+  }
+
+  private async uploadBufferToS3(buffer: Buffer, key: string, mimeType: string): Promise<UploadResult> {
+    if (!this.s3Client) {
+      throw new Error('S3 client not initialized');
+    }
+
+    const bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    if (!bucket) {
+      throw new Error('AWS_S3_BUCKET not configured');
+    }
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType,
     });
 
     await this.s3Client.send(command);

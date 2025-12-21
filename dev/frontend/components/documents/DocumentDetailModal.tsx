@@ -19,6 +19,7 @@ import DocumentAiInsightsPanel from './DocumentAiInsightsPanel';
 import DocumentDuplicateAlert from './DocumentDuplicateAlert';
 import DocumentQaPanel from './DocumentQaPanel';
 import PermissionEditor from './PermissionEditor';
+import ConvertToPdfPanel from './ConvertToPdfPanel';
 
 interface DocumentDetailModalProps {
   document: Document;
@@ -55,6 +56,7 @@ export default function DocumentDetailModal({
 
   const { 
     updateDocument, 
+    getDocument,
     downloadDocument, 
     deleteDocument, 
     getVersionHistory,
@@ -66,6 +68,11 @@ export default function DocumentDetailModal({
     getDocumentAccessLogs,
     loading 
   } = useDocuments();
+
+  const refreshDocument = async () => {
+    const updated = await getDocument(document.id);
+    onUpdate?.(updated);
+  };
 
   const handleSave = async () => {
     try {
@@ -336,6 +343,14 @@ export default function DocumentDetailModal({
 
                 {activeTab === 'details' && (
                   <div className="p-6 space-y-6">
+                    {document.mimeType !== 'application/pdf' && (
+                      <ConvertToPdfPanel
+                        documentId={document.id}
+                        mimeType={document.mimeType}
+                        onConverted={refreshDocument}
+                      />
+                    )}
+
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Document Details</h3>
                       {!isEditing ? (

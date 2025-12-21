@@ -1373,6 +1373,53 @@ Highest Priority → Lowest Priority
 
 ---
 
+## Session 16.5: Universal Document → PDF Conversion (Images + Office Docs + HTML)
+
+**Duration:** 1 session
+
+### Objective:
+Enable converting non-PDF documents to PDF in a production-ready way using async jobs, saving the output as a versioned document update.
+
+### Backend Deliverables:
+- ✅ **Persistent Conversion Jobs (DB-backed queue)**:
+  - Store conversion jobs in Postgres with statuses: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`
+  - Jobs survive restarts and can be resumed
+  - Concurrency limits and retry handling
+- ✅ **Conversion Providers**:
+  - Built-in conversion for common inputs:
+    - Images (`png`, `jpg`, `webp`) → PDF
+    - Text (`txt`, `csv`) → PDF
+  - Optional external conversion provider for:
+    - Office docs (`doc/docx`, `xls/xlsx`, `ppt/pptx`) → PDF
+    - HTML → PDF
+- ✅ **Versioning Output**:
+  - On successful conversion, store the output PDF in configured storage (S3/local)
+  - Archive current document state to `DocumentVersion`
+  - Update `Document` to the new PDF output and increment `version`
+- ✅ **API**:
+  ```typescript
+  POST   /api/documents/:id/convert-to-pdf      // Start conversion job
+  GET    /api/documents/conversion/jobs/:jobId  // Job status
+  GET    /api/documents/:id/conversion-jobs     // Job history
+  DELETE /api/documents/conversion/jobs/:jobId  // Cancel job
+  ```
+- ✅ **Permissions**:
+  - Conversion requires document `edit` permission (since it creates a new version)
+
+### Frontend Deliverables:
+- ✅ **Convert to PDF Action**:
+  - Show for non-PDF documents
+  - Trigger conversion job
+  - Display job status (processing/success/failure)
+  - On success, refresh document and allow viewing/downloading the PDF output
+
+### Acceptance Criteria (Production-Ready):
+- ✅ Converting supported image/text documents completes without external dependencies
+- ✅ Office/HTML conversion works when external provider credentials are configured; otherwise fails with a clear error
+- ✅ Jobs are persistent (restart-safe) and observable via APIs
+- ✅ Successful conversion creates a new document version and preserves history
+- ✅ Conversion endpoints enforce document permissions
+
 # 📊 Summary of Document Management System
 
 ## Menu Structure (Left Sidebar)

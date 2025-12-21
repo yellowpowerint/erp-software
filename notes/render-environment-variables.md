@@ -82,6 +82,17 @@ STORAGE_PROVIDER=local
 LOCAL_STORAGE_PATH=./uploads
 MAX_FILE_SIZE=10485760
 
+# ============================================
+# PHASE 16.5: DOCUMENT TO PDF CONVERSION
+# ============================================
+CONVERSION_WORKER_ENABLED=true
+CONVERSION_WORKER_CONCURRENCY=2
+CONVERSION_WORKER_STUCK_MINUTES=30
+
+# Optional (Office/HTML conversion via CloudConvert)
+# Requires STORAGE_PROVIDER=s3
+# CLOUDCONVERT_API_KEY=your_cloudconvert_api_key
+
 # For AWS S3 Storage (Optional - if you want cloud storage)
 # STORAGE_PROVIDER=s3
 # AWS_REGION=us-east-1
