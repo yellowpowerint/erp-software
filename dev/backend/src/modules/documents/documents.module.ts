@@ -23,6 +23,8 @@ import { DocumentCommentsService } from './services/document-comments.service';
 import { DocumentAnnotationsService } from './services/document-annotations.service';
 import { DocumentSharingService } from './services/document-sharing.service';
 import { DocumentPresenceService } from './services/document-presence.service';
+import { DocumentPermissionsController } from './controllers/document-permissions.controller';
+import { DocumentPermissionsService } from './services/document-permissions.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -36,6 +38,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentSharingController,
     DocumentPresenceController,
     PublicShareController,
+    DocumentPermissionsController,
   ],
   providers: [
     DocumentsService,
@@ -47,6 +50,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DocumentAnnotationsService,
     DocumentSharingService,
     DocumentPresenceService,
+    DocumentPermissionsService,
     SignatureService,
     SecurityService,
     OCRService,

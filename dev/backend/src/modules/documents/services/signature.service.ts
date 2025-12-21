@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { createHash } from 'crypto';
+import { DocumentPermissionsService } from './document-permissions.service';
 
 export interface SignDocumentDto {
   signatureData: string; // Base64 encoded signature image
@@ -17,7 +18,10 @@ export interface VerifySignatureDto {
 
 @Injectable()
 export class SignatureService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly documentPermissionsService: DocumentPermissionsService,
+  ) {}
 
   async signDocument(
     documentId: string,
@@ -26,6 +30,8 @@ export class SignatureService {
     ipAddress: string,
     userAgent: string,
   ) {
+    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'sign');
+
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { security: true },
@@ -223,6 +229,8 @@ export class SignatureService {
   }
 
   async checkSignatureRequirement(documentId: string, userId: string, userRole: string) {
+    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'view');
+
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { security: true },

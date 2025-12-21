@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Settings, Users, Shield, Database, Bell, FileText, BrainCircuit } from 'lucide-react';
+import { Settings, Users, Shield, Database, Bell, FileText, BrainCircuit, LockKeyhole } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -49,6 +49,9 @@ function SettingsDashboardContent() {
 
   const canManageAiSettings =
     user && [UserRole.SUPER_ADMIN, UserRole.IT_MANAGER].includes(user.role);
+
+  const canManageDocumentPermissions =
+    user && [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.IT_MANAGER].includes(user.role);
 
   return (
     <DashboardLayout>
@@ -151,6 +154,17 @@ function SettingsDashboardContent() {
           <h3 className="text-lg font-semibold text-gray-900 mb-1">Audit Logs</h3>
           <p className="text-sm text-gray-600">View system activity and audit logs</p>
         </Link>
+
+        {canManageDocumentPermissions && (
+          <Link
+            href="/settings/documents/permissions"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <LockKeyhole className="w-10 h-10 text-indigo-600 mb-3" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Document Permissions</h3>
+            <p className="text-sm text-gray-600">Manage document access rules, templates, and audit trail</p>
+          </Link>
+        )}
 
         {canManageAiSettings && (
           <Link

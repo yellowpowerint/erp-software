@@ -15,6 +15,15 @@ import {
   BasicUser,
 } from '@/types/document';
 
+type PermissionFlags = {
+  canView?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canShare?: boolean;
+  canSign?: boolean;
+  canUpload?: boolean;
+};
+
 export const useDocuments = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,6 +157,99 @@ export const useDocuments = () => {
       return response.data;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to fetch documents';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getDocumentPermissions = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/${id}/permissions`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load document permissions';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const grantUserDocumentPermission = useCallback(
+    async (id: string, userId: string, permissions: PermissionFlags, expiresAt?: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.post(`/documents/${id}/permissions/user`, { userId, permissions, expiresAt });
+        return res.data.data;
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to grant user permission';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const revokeUserDocumentPermission = useCallback(async (id: string, userId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.delete(`/documents/${id}/permissions/user/${userId}`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to revoke user permission';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const listCategoryPermissions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/documents/permissions/categories');
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load category permissions';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const listPermissionTemplates = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/documents/permissions/templates');
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load permission templates';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const listPermissionAuditLog = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/documents/permissions/audit-log');
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load permission audit log';
       setError(errorMessage);
       throw err;
     } finally {
@@ -1016,6 +1118,12 @@ export const useDocuments = () => {
     uploadDocument,
     uploadMultipleDocuments,
     getDocuments,
+    getDocumentPermissions,
+    grantUserDocumentPermission,
+    revokeUserDocumentPermission,
+    listCategoryPermissions,
+    listPermissionTemplates,
+    listPermissionAuditLog,
     getDocument,
     updateDocument,
     deleteDocument,

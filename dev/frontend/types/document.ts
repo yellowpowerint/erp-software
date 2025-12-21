@@ -39,6 +39,7 @@ export interface DocumentPermission {
   canEdit: boolean;
   canDelete: boolean;
   canShare: boolean;
+  canSign?: boolean;
 }
 
 export interface DocumentVersion {

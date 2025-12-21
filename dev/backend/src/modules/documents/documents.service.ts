@@ -3,6 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './services/storage.service';
 import { FileUploadService } from './services/file-upload.service';
 import { DocumentCategory, UserRole, OCRStatus } from '@prisma/client';
+import { DocumentPermissionsService } from './services/document-permissions.service';
 import { createHash } from 'crypto';
 import * as fs from 'fs/promises';
 
@@ -40,7 +41,12 @@ export class DocumentsService {
     private prisma: PrismaService,
     private storageService: StorageService,
     private fileUploadService: FileUploadService,
+    private documentPermissionsService: DocumentPermissionsService,
   ) {}
+
+  private prismaAny() {
+    return this.prisma as any;
+  }
 
   private computeFileHash(buffer: Buffer): string {
     return createHash('sha256').update(buffer).digest('hex');
@@ -187,6 +193,8 @@ export class DocumentsService {
     const where: any = {};
     const baseConditions: any = {};
 
+    const now = new Date();
+
     if (filters.category) {
       baseConditions.category = filters.category;
     }
@@ -237,6 +245,20 @@ export class DocumentsService {
         where.OR = searchConditions;
       }
     } else {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { department: true },
+      });
+
+      const categoryDefaults = await this.prismaAny().documentCategoryPermission.findMany({
+        where: {
+          role: userRole,
+          canView: true,
+        },
+        select: { category: true },
+      });
+      const categoryDefaultSet = new Set<string>(categoryDefaults.map((c: any) => String(c.category)));
+
       // Non-admin: must be owner OR have view permission
       const permissionConditions = [
         { uploadedById: userId },
@@ -248,7 +270,37 @@ export class DocumentsService {
             },
           },
         },
+        {
+          userPermissions: {
+            some: {
+              userId,
+              canView: true,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            },
+          },
+        },
+        user?.department
+          ? {
+              departmentPermissions: {
+                some: {
+                  department: user.department,
+                  canView: true,
+                },
+              },
+            }
+          : null,
+        {
+          shares: {
+            some: {
+              sharedWithId: userId,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            },
+          },
+        },
+        categoryDefaultSet.size > 0 ? { category: { in: Array.from(categoryDefaultSet) } } : null,
       ];
+
+      const filteredPermissionConditions = permissionConditions.filter(Boolean);
 
       // Combine: (base filters) AND (owner OR permission) AND (search if present)
       Object.assign(where, baseConditions);
@@ -256,12 +308,12 @@ export class DocumentsService {
       if (searchConditions.length > 0) {
         // Must satisfy: permission AND search
         where.AND = [
-          { OR: permissionConditions },
+          { OR: filteredPermissionConditions },
           { OR: searchConditions },
         ];
       } else {
         // Just permission check
-        where.OR = permissionConditions;
+        where.OR = filteredPermissionConditions;
       }
     }
 
@@ -384,6 +436,8 @@ export class DocumentsService {
 
   async getDownloadUrl(id: string, userId: string, userRole: UserRole) {
     const document = await this.findOne(id, userId, userRole);
+
+    await this.documentPermissionsService.assertHasPermission(id, userId, 'download');
 
     if (userRole !== UserRole.SUPER_ADMIN && document.uploadedById !== userId) {
       const share = await this.getActiveShareForUser(id, userId);
@@ -550,6 +604,7 @@ export class DocumentsService {
     for (const id of documentIds) {
       try {
         const document = await this.findOne(id, userId, userRole);
+        await this.documentPermissionsService.assertHasPermission(id, userId, 'download');
         documents.push(document);
       } catch (error) {
         this.logger.warn(`Failed to fetch document ${id} for download: ${error.message}`);
@@ -564,18 +619,7 @@ export class DocumentsService {
       return;
     }
 
-    const share = await this.getActiveShareForUser(document.id, userId);
-    if (share) {
-      return;
-    }
-
-    const hasPermission = document.permissions.some(
-      (p: any) => p.role === userRole && p.canView,
-    );
-
-    if (!hasPermission) {
-      throw new ForbiddenException('You do not have permission to view this document');
-    }
+    await this.documentPermissionsService.assertHasPermission(document.id, userId, 'view');
   }
 
   private async checkEditPermission(document: any, userId: string, userRole: UserRole) {
@@ -583,18 +627,7 @@ export class DocumentsService {
       return;
     }
 
-    const share = await this.getActiveShareForUser(document.id, userId);
-    if (share && share.canEdit) {
-      return;
-    }
-
-    const hasPermission = document.permissions.some(
-      (p: any) => p.role === userRole && p.canEdit,
-    );
-
-    if (!hasPermission) {
-      throw new ForbiddenException('You do not have permission to edit this document');
-    }
+    await this.documentPermissionsService.assertHasPermission(document.id, userId, 'edit');
   }
 
   private async getActiveShareForUser(documentId: string, userId: string) {
@@ -613,13 +646,7 @@ export class DocumentsService {
       return;
     }
 
-    const hasPermission = document.permissions.some(
-      (p: any) => p.role === userRole && p.canDelete,
-    );
-
-    if (!hasPermission) {
-      throw new ForbiddenException('You do not have permission to delete this document');
-    }
+    await this.documentPermissionsService.assertHasPermission(document.id, userId, 'delete');
   }
 
   // ===== Version Management Methods (Phase 15.3) =====

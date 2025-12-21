@@ -575,6 +575,7 @@ export class DocumentsController {
     UserRole.HR_MANAGER,
     UserRole.SAFETY_OFFICER,
     UserRole.WAREHOUSE_MANAGER,
+    UserRole.EMPLOYEE,
   )
   async update(
     @Param('id') id: string,
@@ -597,6 +598,7 @@ export class DocumentsController {
     UserRole.HR_MANAGER,
     UserRole.SAFETY_OFFICER,
     UserRole.WAREHOUSE_MANAGER,
+    UserRole.EMPLOYEE,
   )
   async delete(
     @Param('id') id: string,
@@ -1064,6 +1066,7 @@ export class DocumentsController {
     UserRole.PROCUREMENT_OFFICER,
     UserRole.OPERATIONS_MANAGER,
     UserRole.SAFETY_OFFICER,
+    UserRole.EMPLOYEE,
   )
   async signDocument(
     @Param('id') id: string,
@@ -1097,8 +1100,10 @@ export class DocumentsController {
     UserRole.CFO,
     UserRole.DEPARTMENT_HEAD,
     UserRole.ACCOUNTANT,
+    UserRole.EMPLOYEE,
   )
-  async getDocumentSignatures(@Param('id') id: string) {
+  async getDocumentSignatures(@Param('id') id: string, @Request() req) {
+    await this.documentsService.findOne(id, req.user.userId, req.user.role);
     return this.signatureService.getDocumentSignatures(id);
   }
 
@@ -1109,11 +1114,14 @@ export class DocumentsController {
     UserRole.CFO,
     UserRole.DEPARTMENT_HEAD,
     UserRole.ACCOUNTANT,
+    UserRole.EMPLOYEE,
   )
   async verifySignature(
     @Param('id') id: string,
     @Body() body: { signatureId: string },
+    @Request() req,
   ) {
+    await this.documentsService.findOne(id, req.user.userId, req.user.role);
     return this.signatureService.verifySignature(body.signatureId, id);
   }
 

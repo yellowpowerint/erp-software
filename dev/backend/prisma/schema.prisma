@@ -113,6 +113,13 @@ model User {
   documentSharesReceived DocumentShare[]   @relation("ShareRecipient")
   documentPresence      DocumentPresence[]
 
+  documentUserPermissions DocumentUserPermission[] @relation("DocumentUserAccess")
+  grantedDocumentUserPermissions DocumentUserPermission[] @relation("PermissionGranter")
+  categoryPermissionsSet DocumentCategoryPermission[] @relation("CategoryPermissionSetter")
+  permissionTemplatesCreated DocumentPermissionTemplate[] @relation("TemplateCreator")
+  permissionLogsPerformed DocumentPermissionLog[] @relation("PermissionChanger")
+  permissionLogsTarget DocumentPermissionLog[] @relation("PermissionTarget")
+
   @@map("users")
 }
 
@@ -1651,6 +1658,9 @@ model Document {
   versions    DocumentVersion[]
   metadata    DocumentMetadata?
   permissions DocumentPermission[]
+  userPermissions DocumentUserPermission[]
+  departmentPermissions DocumentDepartmentPermission[]
+  permissionLogs DocumentPermissionLog[]
   signatures  DocumentSignature[] @relation("DocumentSignatures")
   security    DocumentSecurity?   @relation("DocumentSecurity")
 
@@ -1735,9 +1745,116 @@ model DocumentPermission {
   canEdit     Boolean  @default(false)
   canDelete   Boolean  @default(false)
   canShare    Boolean  @default(false)
+  canSign     Boolean  @default(false)
   
   @@unique([documentId, role])
   @@map("document_permissions")
+}
+
+model DocumentUserPermission {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation("DocumentUserAccess", fields: [userId], references: [id], onDelete: Cascade)
+  canView     Boolean  @default(true)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  canShare    Boolean  @default(false)
+  canSign     Boolean  @default(false)
+  grantedById String
+  grantedBy   User     @relation("PermissionGranter", fields: [grantedById], references: [id])
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([documentId, userId])
+  @@index([userId])
+  @@map("document_user_permissions")
+}
+
+model DocumentDepartmentPermission {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  department  String
+  canView     Boolean  @default(true)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  canShare    Boolean  @default(false)
+  canSign     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@unique([documentId, department])
+  @@map("document_department_permissions")
+}
+
+model DocumentCategoryPermission {
+  id          String   @id @default(uuid())
+  category    DocumentCategory
+  role        UserRole
+  canView     Boolean  @default(false)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  canShare    Boolean  @default(false)
+  canSign     Boolean  @default(false)
+  canUpload   Boolean  @default(false)
+  setById     String
+  setBy       User     @relation("CategoryPermissionSetter", fields: [setById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([category, role])
+  @@map("document_category_permissions")
+}
+
+model DocumentPermissionTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  category    DocumentCategory?
+  module      String?
+  roles       Json
+  departments Json?
+  isDefault   Boolean  @default(false)
+  createdById String
+  createdBy   User     @relation("TemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("document_permission_templates")
+}
+
+enum PermissionAction {
+  GRANT
+  REVOKE
+  MODIFY
+  TEMPLATE_APPLIED
+  BULK_UPDATE
+}
+
+model DocumentPermissionLog {
+  id               String           @id @default(uuid())
+  documentId       String?
+  document         Document?        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  category         DocumentCategory?
+  action           PermissionAction
+  performedById    String
+  performedBy      User             @relation("PermissionChanger", fields: [performedById], references: [id])
+  targetUserId     String?
+  targetUser       User?            @relation("PermissionTarget", fields: [targetUserId], references: [id])
+  targetRole       UserRole?
+  targetDepartment String?
+  oldPermissions   Json?
+  newPermissions   Json
+  reason           String?
+  ipAddress        String
+  createdAt        DateTime         @default(now())
+
+  @@index([documentId])
+  @@index([performedById])
+  @@index([createdAt])
+  @@map("document_permission_logs")
 }
 
 // Phase 15.4: Digital Signatures & Document Security

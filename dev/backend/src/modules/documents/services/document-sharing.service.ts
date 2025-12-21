@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { DocumentsService } from '../documents.service';
+import { DocumentPermissionsService } from './document-permissions.service';
 import { UserRole } from '@prisma/client';
 import * as crypto from 'crypto';
 
@@ -9,6 +10,7 @@ export class DocumentSharingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly documentsService: DocumentsService,
+    private readonly documentPermissionsService: DocumentPermissionsService,
   ) {}
 
   async shareDocument(
@@ -142,22 +144,6 @@ export class DocumentSharingService {
   }
 
   private async assertCanShare(documentId: string, userId: string, userRole: UserRole) {
-    if (userRole === UserRole.SUPER_ADMIN) return;
-
-    const document = await this.prisma.document.findUnique({
-      where: { id: documentId },
-      include: { permissions: true },
-    });
-
-    if (!document) {
-      throw new NotFoundException('Document not found');
-    }
-
-    if (document.uploadedById === userId) return;
-
-    const canShare = document.permissions.some((p) => p.role === userRole && p.canShare);
-    if (!canShare) {
-      throw new ForbiddenException('You do not have permission to share this document');
-    }
+    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'share');
   }
 }
