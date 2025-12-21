@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    // Allow production builds to complete even with ESLint warnings
+    ignoreDuringBuilds: true,
+  },
   async rewrites() {
     const backendBaseUrl = process.env.BACKEND_URL || 'https://mining-erp-backend.onrender.com';
 

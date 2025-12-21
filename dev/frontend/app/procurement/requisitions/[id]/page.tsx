@@ -178,14 +178,14 @@ function RequisitionDetailContent() {
   };
 
   const canEdit = user && requisition && (
-    requisition.requestedBy.id === user.userId ||
+    requisition.requestedBy.id === user.id ||
     ['SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'OPERATIONS_MANAGER'].includes(user.role)
   ) && requisition.status === 'DRAFT';
 
   const canSubmit = canEdit && requisition?.items.length > 0;
 
   const canCancel = user && requisition && (
-    requisition.requestedBy.id === user.userId ||
+    requisition.requestedBy.id === user.id ||
     ['SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'OPERATIONS_MANAGER'].includes(user.role)
   ) && !['CANCELLED', 'COMPLETED'].includes(requisition.status);
 
