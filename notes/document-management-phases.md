@@ -1559,6 +1559,71 @@ DELETE /api/documents/audit-packages/jobs/:jobId     // Cancel job
 - ✅ Output is saved to configured storage and a `Document` record is created for the package
 - ✅ Endpoints enforce document access permissions
 
+---
+
+## Session 16.8: Scan Cleanup + Hardened PDF Security (Permanent Redaction, Restrictions, Tamper-Evident Integrity Hash + Finalize)
+
+**Duration:** 1 session
+
+### Objective:
+Provide production-ready “finalization” operations for PDF documents:
+- Clean up scanned PDFs (rasterize + quality controls)
+- Apply permanent redactions (irreversible)
+- Apply hardened security settings (app-enforced and stored; PDF-level restrictions when supported)
+- Generate a tamper-evident integrity seal for the finalized output
+
+### Backend Deliverables:
+- **Persistent Finalize Jobs (DB-backed queue):**
+  - Store finalize jobs in Postgres with statuses: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`
+  - Jobs survive restarts and can be resumed
+  - Concurrency limits and retry handling
+- **Finalize operations (PDF output):**
+  - **Scan cleanup**:
+    - Rasterize PDF pages to images and rebuild PDF
+    - Controls for `density` and `jpegQuality`
+    - Optional enhancement toggles (normalize/sharpen/grayscale)
+  - **Permanent redaction**:
+    - Apply redaction boxes by rasterizing pages and burning in black rectangles (irreversible)
+    - Output is a new PDF with the redacted content removed from extractable text
+  - **Security hardening (where supported):**
+    - Apply watermark text (optional)
+    - Persist security preferences (`allowPrint`, `allowCopy`, password requirement) using existing `document_security`
+    - Enforce restrictions at the application level; PDF-level restrictions are applied only when the PDF engine supports it
+  - **Finalize + versioning:**
+    - Always creates a new `DocumentVersion` entry and updates `Document` fileUrl/fileName/fileHash/version
+    - Stores a tamper-evident integrity seal for the finalized output
+
+### API:
+```typescript
+POST   /api/documents/:id/finalize/jobs            // Start finalize job (cleanup/redact/security options)
+GET    /api/documents/finalize/jobs/:jobId         // Job status/details
+GET    /api/documents/:id/finalize-jobs            // Job history for document
+DELETE /api/documents/finalize/jobs/:jobId         // Cancel job
+```
+
+### Permissions:
+- Starting a finalize job requires document `edit` permission (creates a new version)
+- Viewing job status/history requires document `view` permission
+- Cancelling requires document `edit` permission
+
+### Frontend Deliverables:
+- **Scan Cleanup + Finalize Panel (PDF Tools):**
+  - Select a PDF document
+  - Configure scan cleanup options (density/quality/enhancements)
+  - Optionally add redactions (reuse the existing redaction UX)
+  - Configure security options (watermark, allowPrint/allowCopy, password flag)
+  - Start finalize job
+  - Show job status (processing/success/failure)
+  - On success, refresh the document and allow opening/downloading the finalized output
+
+### Acceptance Criteria (Production-Ready):
+- ✅ Finalize jobs are persistent (restart-safe) and observable via APIs
+- ✅ Scan cleanup produces a valid PDF output and creates a new document version
+- ✅ Permanent redaction removes the redacted content from extractable text (rasterized burn-in)
+- ✅ Security settings are persisted and enforced by APIs/UI; PDF-level restrictions are applied when supported
+- ✅ Finalized outputs record a tamper-evident integrity seal/hash and preserve document history
+- ✅ All endpoints enforce document permissions
+
 # 📊 Summary of Document Management System
 
 ## Menu Structure (Left Sidebar)

@@ -365,12 +365,18 @@ export class PdfManipulatorService {
       rasterize?: boolean;
       density?: number;
       jpegQuality?: number;
+      grayscale?: boolean;
+      sharpen?: boolean;
+      normalize?: boolean;
     } = {},
   ): Promise<Buffer> {
     if (options.rasterize) {
       return this.rasterizeToPDF(buffer, {
         density: options.density,
         jpegQuality: options.jpegQuality,
+        grayscale: options.grayscale,
+        sharpen: options.sharpen,
+        normalize: options.normalize,
       });
     }
 
@@ -384,6 +390,9 @@ export class PdfManipulatorService {
     options: {
       redactions: Array<{ page: number; x: number; y: number; width: number; height: number }>;
       density?: number;
+      grayscale?: boolean;
+      sharpen?: boolean;
+      normalize?: boolean;
     },
   ): Promise<Buffer> {
     if (!options.redactions || options.redactions.length === 0) {
@@ -404,6 +413,15 @@ export class PdfManipulatorService {
       const png = await sharp(buffer, { density, page: pageIndex }).png().toBuffer();
 
       let image = sharp(png);
+      if (options.grayscale) {
+        image = image.grayscale();
+      }
+      if (options.normalize) {
+        image = image.normalize();
+      }
+      if (options.sharpen) {
+        image = image.sharpen();
+      }
       const metadata = await image.metadata();
       const imageWidth = metadata.width || 0;
       const imageHeight = metadata.height || 0;
@@ -471,7 +489,13 @@ export class PdfManipulatorService {
 
   private async rasterizeToPDF(
     buffer: Buffer,
-    options: { density?: number; jpegQuality?: number } = {},
+    options: {
+      density?: number;
+      jpegQuality?: number;
+      grayscale?: boolean;
+      sharpen?: boolean;
+      normalize?: boolean;
+    } = {},
   ): Promise<Buffer> {
     const src = await PDFDocument.load(buffer);
     const totalPages = src.getPageCount();
@@ -485,7 +509,17 @@ export class PdfManipulatorService {
       const srcPage = src.getPage(pageIndex);
       const { width, height } = srcPage.getSize();
 
-      const jpeg = await sharp(buffer, { density, page: pageIndex }).jpeg({ quality: jpegQuality }).toBuffer();
+      let pipeline = sharp(buffer, { density, page: pageIndex });
+      if (options.grayscale) {
+        pipeline = pipeline.grayscale();
+      }
+      if (options.normalize) {
+        pipeline = pipeline.normalize();
+      }
+      if (options.sharpen) {
+        pipeline = pipeline.sharpen();
+      }
+      const jpeg = await pipeline.jpeg({ quality: jpegQuality }).toBuffer();
       const embedded = await out.embedJpg(jpeg);
 
       const page = out.addPage([width, height]);

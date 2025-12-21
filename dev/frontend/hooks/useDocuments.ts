@@ -17,6 +17,7 @@ import {
 import { DocumentConversionJob } from '@/types/conversion';
 import { DocumentFormDraft, DocumentFormTemplate } from '@/types/forms';
 import { AuditPackageSpec, DocumentAuditPackageJob } from '@/types/audit-packages';
+import { DocumentFinalizeJob, FinalizeJobOptions } from '@/types/finalize';
 
 type PermissionFlags = {
   canView?: boolean;
@@ -160,6 +161,68 @@ export const useDocuments = () => {
       return response.data;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to fetch documents';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const startFinalizeJob = useCallback(
+    async (documentId: string, options: FinalizeJobOptions): Promise<DocumentFinalizeJob> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.post(`/documents/${documentId}/finalize/jobs`, options);
+        return res.data.data;
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to start finalize job';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const getFinalizeJob = useCallback(async (jobId: string): Promise<DocumentFinalizeJob> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/finalize/jobs/${jobId}`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load finalize job';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const listFinalizeJobs = useCallback(async (documentId: string): Promise<DocumentFinalizeJob[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/${documentId}/finalize-jobs`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load finalize jobs';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const cancelFinalizeJob = useCallback(async (jobId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.delete(`/documents/finalize/jobs/${jobId}`);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to cancel finalize job';
       setError(errorMessage);
       throw err;
     } finally {
@@ -1431,6 +1494,10 @@ export const useDocuments = () => {
     listAuditPackageJobs,
     getAuditPackageJob,
     cancelAuditPackageJob,
+    startFinalizeJob,
+    getFinalizeJob,
+    listFinalizeJobs,
+    cancelFinalizeJob,
     getDocument,
     updateDocument,
     deleteDocument,
