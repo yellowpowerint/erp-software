@@ -298,6 +298,20 @@ export const menuItems: MenuItem[] = [
         path: '/procurement/requisitions/pending',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER],
       },
+      {
+        id: 'procurement-workflows',
+        label: 'Procurement Workflows',
+        icon: ClipboardCheck,
+        path: '/procurement/workflows',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO],
+      },
+      {
+        id: 'procurement-delegations',
+        label: 'Approval Delegations',
+        icon: Users,
+        path: '/procurement/delegations',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER],
+      },
     ],
   },
   {

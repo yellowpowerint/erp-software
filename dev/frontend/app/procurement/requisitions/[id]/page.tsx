@@ -102,6 +102,13 @@ function RequisitionDetailContent() {
   const [requisition, setRequisition] = useState<Requisition | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [approveComments, setApproveComments] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
+  const [infoQuestions, setInfoQuestions] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
@@ -177,6 +184,87 @@ function RequisitionDetailContent() {
     }
   };
 
+  const handleApprove = async () => {
+    setActionLoading(true);
+    try {
+      await api.post(`/procurement/requisitions/${params.id}/approve`, {
+        comments: approveComments,
+      });
+      setShowApproveModal(false);
+      setApproveComments('');
+      fetchRequisition();
+    } catch (error: any) {
+      console.error('Failed to approve requisition:', error);
+      alert(error.response?.data?.message || 'Failed to approve requisition');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await api.post(`/procurement/requisitions/${params.id}/reject`, {
+        reason: rejectReason,
+      });
+      setShowRejectModal(false);
+      setRejectReason('');
+      fetchRequisition();
+    } catch (error: any) {
+      console.error('Failed to reject requisition:', error);
+      alert(error.response?.data?.message || 'Failed to reject requisition');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRequestInfo = async () => {
+    if (!infoQuestions.trim()) {
+      alert('Please provide the information being requested');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await api.post(`/procurement/requisitions/${params.id}/request-info`, {
+        questions: infoQuestions,
+      });
+      setShowInfoModal(false);
+      setInfoQuestions('');
+      alert('Info request sent');
+    } catch (error: any) {
+      console.error('Failed to request info:', error);
+      alert(error.response?.data?.message || 'Failed to request info');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEscalate = async () => {
+    if (
+      !window.confirm(
+        'Escalate this approval to the configured escalation target?',
+      )
+    )
+      return;
+
+    setActionLoading(true);
+    try {
+      await api.post(`/procurement/requisitions/${params.id}/escalate`);
+      fetchRequisition();
+    } catch (error: any) {
+      console.error('Failed to escalate:', error);
+      alert(error.response?.data?.message || 'Failed to escalate');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const canEdit = user && requisition && (
     requisition.requestedBy.id === user.id ||
     ['SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'OPERATIONS_MANAGER'].includes(user.role)
@@ -188,6 +276,10 @@ function RequisitionDetailContent() {
     requisition.requestedBy.id === user.id ||
     ['SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'OPERATIONS_MANAGER'].includes(user.role)
   ) && !['CANCELLED', 'COMPLETED'].includes(requisition.status);
+
+  const canTakeApprovalAction = user && requisition && (
+    ['SUPER_ADMIN', 'CEO', 'CFO', 'PROCUREMENT_OFFICER', 'DEPARTMENT_HEAD', 'OPERATIONS_MANAGER'].includes(user.role)
+  ) && requisition.status === 'PENDING_APPROVAL';
 
   if (loading) {
     return (
@@ -243,6 +335,38 @@ function RequisitionDetailContent() {
             <p className="text-gray-600 mt-1">{requisition.requisitionNo}</p>
           </div>
           <div className="flex items-center space-x-3">
+            {canTakeApprovalAction && (
+              <>
+                <button
+                  onClick={() => setShowApproveModal(true)}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => setShowInfoModal(true)}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-gray-400"
+                >
+                  Request Info
+                </button>
+                <button
+                  onClick={handleEscalate}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-400"
+                >
+                  Escalate
+                </button>
+              </>
+            )}
             {canSubmit && (
               <button
                 onClick={handleSubmit}
@@ -573,6 +697,108 @@ function RequisitionDetailContent() {
                   setCancelReason('');
                 }}
                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showApproveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Approve Requisition</h3>
+            <textarea
+              value={approveComments}
+              onChange={(e) => setApproveComments(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Comments (optional)"
+            />
+            <div className="flex space-x-3 mt-4">
+              <button
+                onClick={handleApprove}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+              >
+                Confirm Approve
+              </button>
+              <button
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setApproveComments('');
+                }}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Requisition</h3>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Reason for rejection"
+            />
+            <div className="flex space-x-3 mt-4">
+              <button
+                onClick={handleReject}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400"
+              >
+                Confirm Reject
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                }}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Request More Information</h3>
+            <textarea
+              value={infoQuestions}
+              onChange={(e) => setInfoQuestions(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="What information do you need from the requester?"
+            />
+            <div className="flex space-x-3 mt-4">
+              <button
+                onClick={handleRequestInfo}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-gray-400"
+              >
+                Send Request
+              </button>
+              <button
+                onClick={() => {
+                  setShowInfoModal(false);
+                  setInfoQuestions('');
+                }}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-200"
               >
                 Close
               </button>

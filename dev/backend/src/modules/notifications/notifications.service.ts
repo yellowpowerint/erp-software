@@ -7,6 +7,7 @@ export interface CreateNotificationDto {
     | "APPROVAL_REQUEST"
     | "APPROVAL_APPROVED"
     | "APPROVAL_REJECTED"
+    | "APPROVAL_INFO_REQUEST"
     | "SYSTEM_ALERT"
     | "MENTION";
   title: string;

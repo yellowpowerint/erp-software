@@ -20,8 +20,11 @@ import { multerConfig } from "../documents/config/multer.config";
 import { RequisitionsService } from "./requisitions.service";
 import {
   AddRequisitionItemDto,
+  ApproveRequisitionDto,
   CancelRequisitionDto,
   CreateRequisitionDto,
+  RejectRequisitionDto,
+  RequestInfoRequisitionDto,
   UpdateRequisitionDto,
   UpdateRequisitionItemDto,
 } from "./dto";
@@ -106,6 +109,57 @@ export class RequisitionsController {
   @Post(":id/submit")
   submit(@Param("id") id: string, @CurrentUser() user: any) {
     return this.requisitionsService.submitRequisition(
+      id,
+      user.userId,
+      user.role,
+    );
+  }
+
+  @Post(":id/approve")
+  approve(
+    @Param("id") id: string,
+    @Body() dto: ApproveRequisitionDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.requisitionsService.approveRequisition(
+      id,
+      user.userId,
+      user.role,
+      dto.comments,
+    );
+  }
+
+  @Post(":id/reject")
+  reject(
+    @Param("id") id: string,
+    @Body() dto: RejectRequisitionDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.requisitionsService.rejectRequisition(
+      id,
+      user.userId,
+      user.role,
+      dto.reason,
+    );
+  }
+
+  @Post(":id/request-info")
+  requestInfo(
+    @Param("id") id: string,
+    @Body() dto: RequestInfoRequisitionDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.requisitionsService.requestInfo(
+      id,
+      user.userId,
+      user.role,
+      dto.questions,
+    );
+  }
+
+  @Post(":id/escalate")
+  escalate(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.requisitionsService.escalateRequisition(
       id,
       user.userId,
       user.role,

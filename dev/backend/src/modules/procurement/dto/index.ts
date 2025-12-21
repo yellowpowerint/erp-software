@@ -3,3 +3,7 @@ export * from "./update-requisition.dto";
 export * from "./cancel-requisition.dto";
 export * from "./add-requisition-item.dto";
 export * from "./update-requisition-item.dto";
+export * from "./create-procurement-workflow.dto";
+export * from "./update-procurement-workflow.dto";
+export * from "./create-approval-delegation.dto";
+export * from "./requisition-approval-action.dto";

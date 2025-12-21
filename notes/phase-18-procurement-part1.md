@@ -18,7 +18,7 @@
 ## Implementation Status
 
 - [x] Session 18.1: Requisition Management ✅ **COMPLETED**
-- [ ] Session 18.2: Automated Approval Workflows
+- [x] Session 18.2: Automated Approval Workflows ✅ **COMPLETED**
 - [ ] Session 18.3: Vendor Management
 - [ ] Session 18.4: Budget Integration
 - [ ] Session 18.5: Procurement Analytics
@@ -250,6 +250,7 @@ model ProcurementWorkflow {
   createdBy       User                  @relation("WorkflowCreator", fields: [createdById], references: [id])
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
+  requisitions    Requisition[]
   
   @@map("procurement_workflows")
 }
@@ -263,9 +264,10 @@ model ProcurementWorkflowStage {
   approverRole    UserRole?           // Role-based approval
   approverId      String?             // Specific user approval
   approver        User?               @relation("StageApprover", fields: [approverId], references: [id])
-  approvalType    ApprovalType        @default(SINGLE)
+  approvalType    ProcurementApprovalType @default(SINGLE)
   escalationHours Int?                // Auto-escalate after X hours
-  escalateTo      String?             // User ID to escalate to
+  escalateToId    String?
+  escalateTo      User?               @relation("StageEscalationTarget", fields: [escalateToId], references: [id])
   
   @@unique([workflowId, stageNumber])
   @@map("procurement_workflow_stages")
@@ -286,35 +288,54 @@ model ApprovalDelegation {
   @@map("approval_delegations")
 }
 
-enum ApprovalType {
-  SINGLE          // Any one approver
-  ALL             // All approvers must approve
-  MAJORITY        // Majority must approve
+enum ProcurementApprovalType {
+  SINGLE
+  ALL
+  MAJORITY
+}
+
+model RequisitionApproval {
+  id            String         @id @default(uuid())
+  requisitionId String
+  stage         Int
+  approverId    String
+  status        ApprovalStatus @default(PENDING)
+  comments      String?
+  actionAt      DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@unique([requisitionId, stage, approverId])
 }
 ```
+
+**Migration:**
+- `dev/backend/prisma/migrations/20251221_add_phase_18_2_procurement_workflows/migration.sql`
+- Includes idempotent DDL for the new tables/enums and updates to `requisition_approvals`.
+
+**Notifications:**
+- `NotificationType` includes `APPROVAL_INFO_REQUEST` for requisition info requests.
 
 ### Workflow Service
 ```typescript
 // Workflow management
-- createWorkflow(dto: CreateWorkflowDto): Promise<ProcurementWorkflow>
-- updateWorkflow(id: string, dto: UpdateWorkflowDto): Promise<ProcurementWorkflow>
-- deleteWorkflow(id: string): Promise<void>
-- getWorkflows(): Promise<ProcurementWorkflow[]>
-- getApplicableWorkflow(requisition: Requisition): Promise<ProcurementWorkflow>
+- createWorkflow(dto: CreateProcurementWorkflowDto, user): Promise<ProcurementWorkflow>
+- updateWorkflow(id: string, dto: UpdateProcurementWorkflowDto, user): Promise<ProcurementWorkflow>
+- deleteWorkflow(id: string, user): Promise<{ success: true }>
+- getWorkflows(user): Promise<ProcurementWorkflow[]>
+- getWorkflowById(id: string, user): Promise<ProcurementWorkflow>
+- seedDefaultWorkflows(user): Promise<{ created: number }>
 
 // Approval processing
-- approveRequisition(id: string, userId: string, comments?: string): Promise<Requisition>
-- rejectRequisition(id: string, userId: string, reason: string): Promise<Requisition>
-- requestMoreInfo(id: string, userId: string, questions: string): Promise<Requisition>
-- escalateApproval(id: string): Promise<void>
-- delegateApproval(dto: DelegationDto): Promise<ApprovalDelegation>
-- getNextApprover(requisition: Requisition): Promise<User>
-- checkAutoApproval(requisition: Requisition): Promise<boolean>
+- submitRequisition(id: string, userId: string, role): Promise<Requisition>
+- approveRequisition(id: string, userId: string, role, comments?): Promise<Requisition>
+- rejectRequisition(id: string, userId: string, role, reason): Promise<Requisition>
+- requestInfo(id: string, userId: string, role, questions): Promise<Requisition>
+- escalateRequisition(id: string, userId: string, role): Promise<Requisition>
 
-// Notifications
-- notifyApprover(requisition: Requisition, approver: User): Promise<void>
-- notifyRequestor(requisition: Requisition, action: string): Promise<void>
-- sendEscalationNotice(requisition: Requisition): Promise<void>
+// Delegations
+- createDelegation(dto: CreateApprovalDelegationDto, user): Promise<ApprovalDelegation>
+- getDelegations(user): Promise<ApprovalDelegation[]>
+- cancelDelegation(id: string, user): Promise<{ success: true }>
 ```
 
 ### Default Mining Workflows
@@ -365,8 +386,10 @@ const DEFAULT_WORKFLOWS = [
 // Workflow management
 POST   /api/procurement/workflows                 // Create workflow
 GET    /api/procurement/workflows                 // List workflows
+GET    /api/procurement/workflows/:id             // Get workflow
 PUT    /api/procurement/workflows/:id             // Update workflow
 DELETE /api/procurement/workflows/:id             // Delete workflow
+POST   /api/procurement/workflows/seed            // Seed defaults
 
 // Approval actions
 POST   /api/procurement/requisitions/:id/approve  // Approve
@@ -380,19 +403,31 @@ GET    /api/procurement/delegations               // List delegations
 DELETE /api/procurement/delegations/:id           // Cancel delegation
 ```
 
+### RBAC (Enforced)
+- **Workflow management**
+  - Create/Update/Delete: `SUPER_ADMIN`, `CEO`
+  - List/Get: `SUPER_ADMIN`, `CEO`, `CFO`
+  - Seed defaults: `SUPER_ADMIN`
+- **Delegations**
+  - Users can create/cancel their own delegations.
+  - `SUPER_ADMIN`, `CEO`, `CFO` can manage delegations for others and list all.
+- **Requisition approvals**
+  - Only assigned approvers for the current stage (or their active delegates) can approve/reject/request-info/escalate.
+
+### Frontend Pages (Implemented)
+- `/procurement/workflows` - Workflow list/create + seed defaults
+- `/procurement/delegations` - Create/list/cancel delegations
+- `/procurement/requisitions/pending` - Pending approvals list
+- `/procurement/requisitions/:id` - Approval actions (approve/reject/request-info/escalate)
+
 ## Frontend Deliverables
 
 ### Workflow Management Pages
-- `/settings/procurement/workflows` - Manage workflows
-- `/settings/procurement/workflows/new` - Create workflow
-- `/settings/procurement/workflows/:id` - Edit workflow
+- `/procurement/workflows` - Manage workflows
+- `/procurement/delegations` - Manage approval delegations
 
 ### Components
-- `WorkflowBuilder` - Visual workflow stage builder
-- `ApprovalPanel` - Approve/reject/request info panel
-- `ApprovalTimeline` - Visual approval progress
-- `DelegationModal` - Set up approval delegation
-- `EscalationAlert` - Overdue approval warning
+- Approvals are managed directly from requisition detail view: `/procurement/requisitions/:id`
 
 ## Testing
 - Create multi-stage workflow
@@ -401,6 +436,22 @@ DELETE /api/procurement/delegations/:id           // Cancel delegation
 - Reject with reason
 - Escalation after timeout
 - Delegation during absence
+
+---
+
+## Deployment Notes (Session 18.2)
+
+### Database Migration
+- Run the SQL file in the Render Postgres Query Console:
+  - `dev/backend/prisma/migrations/20251221_add_phase_18_2_procurement_workflows/migration.sql`
+
+### Smoke Test Checklist
+- Create an active workflow (or seed defaults)
+- Submit a requisition that matches the workflow amount/type
+- Verify approver(s) receive notifications and requisition appears in `/procurement/requisitions/pending`
+- Approve at stage 1 and verify stage advancement and next approver notifications
+- Create an approval delegation and verify delegate can approve on behalf of delegator
+- Request info and verify requestor notification (`APPROVAL_INFO_REQUEST`)
 
 ---
 

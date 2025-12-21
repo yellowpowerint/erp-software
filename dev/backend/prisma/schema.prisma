@@ -46,6 +46,12 @@ enum ApprovalType {
   PAYMENT_REQUEST
 }
 
+enum ProcurementApprovalType {
+  SINGLE
+  ALL
+  MAJORITY
+}
+
 enum Priority {
   LOW
   MEDIUM
@@ -80,6 +86,7 @@ enum NotificationType {
   APPROVAL_REQUEST
   APPROVAL_APPROVED
   APPROVAL_REJECTED
+  APPROVAL_INFO_REQUEST
   SYSTEM_ALERT
   MENTION
 }
@@ -153,6 +160,12 @@ model User {
   requisitionsRejected           Requisition[]           @relation("RequisitionRejecter")
   requisitionStageApprovals      RequisitionApproval[]   @relation("RequisitionStageApprover")
   requisitionAttachmentsUploaded RequisitionAttachment[] @relation("RequisitionAttachmentUploader")
+
+  procurementWorkflowsCreated       ProcurementWorkflow[]      @relation("WorkflowCreator")
+  procurementWorkflowStageApprovals ProcurementWorkflowStage[] @relation("StageApprover")
+  procurementWorkflowEscalations    ProcurementWorkflowStage[] @relation("StageEscalationTarget")
+  approvalDelegationsGiven          ApprovalDelegation[]       @relation("Delegator")
+  approvalDelegationsReceived       ApprovalDelegation[]       @relation("Delegate")
 
   documentComments         DocumentComment[]    @relation("CommentAuthor")
   resolvedDocumentComments DocumentComment[]    @relation("CommentResolver")
@@ -276,6 +289,9 @@ model Requisition {
   totalEstimate Decimal           @default(0) @db.Decimal(15, 2)
   currency      String            @default("GHS")
 
+  workflowId String?
+  workflow   ProcurementWorkflow? @relation(fields: [workflowId], references: [id])
+
   requestedById String
   requestedBy   User   @relation("RequisitionRequestor", fields: [requestedById], references: [id])
 
@@ -351,9 +367,73 @@ model RequisitionApproval {
   comments      String?
   actionAt      DateTime?
 
-  @@unique([requisitionId, stage])
+  createdAt DateTime @default(now())
+
+  @@unique([requisitionId, stage, approverId])
+  @@index([requisitionId, stage])
   @@index([approverId])
   @@map("requisition_approvals")
+}
+
+model ProcurementWorkflow {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  type        RequisitionType?
+  isActive    Boolean          @default(true)
+  minAmount   Decimal?         @db.Decimal(15, 2)
+  maxAmount   Decimal?         @db.Decimal(15, 2)
+
+  stages ProcurementWorkflowStage[]
+
+  createdById String
+  createdBy   User     @relation("WorkflowCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requisitions Requisition[]
+
+  @@index([isActive])
+  @@index([type])
+  @@map("procurement_workflows")
+}
+
+model ProcurementWorkflowStage {
+  id              String                  @id @default(uuid())
+  workflowId      String
+  workflow        ProcurementWorkflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  stageNumber     Int
+  name            String
+  approverRole    UserRole?
+  approverId      String?
+  approver        User?                   @relation("StageApprover", fields: [approverId], references: [id])
+  approvalType    ProcurementApprovalType @default(SINGLE)
+  escalationHours Int?
+  escalateToId    String?
+  escalateTo      User?                   @relation("StageEscalationTarget", fields: [escalateToId], references: [id])
+
+  @@unique([workflowId, stageNumber])
+  @@index([workflowId])
+  @@index([approverId])
+  @@map("procurement_workflow_stages")
+}
+
+model ApprovalDelegation {
+  id          String   @id @default(uuid())
+  delegatorId String
+  delegator   User     @relation("Delegator", fields: [delegatorId], references: [id])
+  delegateId  String
+  delegate    User     @relation("Delegate", fields: [delegateId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([delegatorId])
+  @@index([delegateId])
+  @@index([isActive])
+  @@map("approval_delegations")
 }
 
 model ApprovalHistory {
