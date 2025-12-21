@@ -1,8 +1,13 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { DocumentsService } from '../documents.service';
-import { NotificationsService } from '../../notifications/notifications.service';
-import { UserRole, UserStatus } from '@prisma/client';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { DocumentsService } from "../documents.service";
+import { NotificationsService } from "../../notifications/notifications.service";
+import { UserRole, UserStatus } from "@prisma/client";
 
 @Injectable()
 export class DocumentCommentsService {
@@ -18,10 +23,26 @@ export class DocumentCommentsService {
     const comments = await this.prisma.documentComment.findMany({
       where: { documentId },
       include: {
-        author: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        resolvedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        author: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
 
     const byId = new Map<string, any>();
@@ -46,15 +67,24 @@ export class DocumentCommentsService {
 
   async addComment(
     documentId: string,
-    data: { content: string; pageNumber?: number; positionX?: number; positionY?: number },
+    data: {
+      content: string;
+      pageNumber?: number;
+      positionX?: number;
+      positionY?: number;
+    },
     user: { userId: string; role: UserRole },
   ) {
-    const content = (data.content || '').trim();
+    const content = (data.content || "").trim();
     if (!content) {
-      throw new BadRequestException('Comment content is required');
+      throw new BadRequestException("Comment content is required");
     }
 
-    const document = await this.documentsService.findOne(documentId, user.userId, user.role);
+    const document = await this.documentsService.findOne(
+      documentId,
+      user.userId,
+      user.role,
+    );
 
     const comment = await this.prisma.documentComment.create({
       data: {
@@ -66,36 +96,73 @@ export class DocumentCommentsService {
         positionY: data.positionY,
       },
       include: {
-        author: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        resolvedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        author: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
 
-    await this.handleMentions(content, comment.id, document.id, document.originalName, comment.author);
+    await this.handleMentions(
+      content,
+      comment.id,
+      document.id,
+      document.originalName,
+      comment.author,
+    );
 
     return comment;
   }
 
   async replyToComment(
     parentCommentId: string,
-    data: { content: string; pageNumber?: number; positionX?: number; positionY?: number },
+    data: {
+      content: string;
+      pageNumber?: number;
+      positionX?: number;
+      positionY?: number;
+    },
     user: { userId: string; role: UserRole },
   ) {
-    const content = (data.content || '').trim();
+    const content = (data.content || "").trim();
     if (!content) {
-      throw new BadRequestException('Reply content is required');
+      throw new BadRequestException("Reply content is required");
     }
 
     const parent = await this.prisma.documentComment.findUnique({
       where: { id: parentCommentId },
-      select: { id: true, documentId: true, pageNumber: true, positionX: true, positionY: true },
+      select: {
+        id: true,
+        documentId: true,
+        pageNumber: true,
+        positionX: true,
+        positionY: true,
+      },
     });
 
     if (!parent) {
-      throw new NotFoundException('Parent comment not found');
+      throw new NotFoundException("Parent comment not found");
     }
 
-    const document = await this.documentsService.findOne(parent.documentId, user.userId, user.role);
+    const document = await this.documentsService.findOne(
+      parent.documentId,
+      user.userId,
+      user.role,
+    );
 
     const reply = await this.prisma.documentComment.create({
       data: {
@@ -108,12 +175,34 @@ export class DocumentCommentsService {
         positionY: data.positionY ?? parent.positionY ?? undefined,
       },
       include: {
-        author: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        resolvedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        author: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
 
-    await this.handleMentions(content, reply.id, document.id, document.originalName, reply.author);
+    await this.handleMentions(
+      content,
+      reply.id,
+      document.id,
+      document.originalName,
+      reply.author,
+    );
 
     return reply;
   }
@@ -123,9 +212,9 @@ export class DocumentCommentsService {
     data: { content: string },
     user: { userId: string; role: UserRole },
   ) {
-    const content = (data.content || '').trim();
+    const content = (data.content || "").trim();
     if (!content) {
-      throw new BadRequestException('Comment content is required');
+      throw new BadRequestException("Comment content is required");
     }
 
     const existing = await this.prisma.documentComment.findUnique({
@@ -134,21 +223,44 @@ export class DocumentCommentsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Comment not found');
+      throw new NotFoundException("Comment not found");
     }
 
-    await this.documentsService.findOne(existing.documentId, user.userId, user.role);
+    await this.documentsService.findOne(
+      existing.documentId,
+      user.userId,
+      user.role,
+    );
 
-    if (user.role !== UserRole.SUPER_ADMIN && existing.authorId !== user.userId) {
-      throw new ForbiddenException('You can only edit your own comments');
+    if (
+      user.role !== UserRole.SUPER_ADMIN &&
+      existing.authorId !== user.userId
+    ) {
+      throw new ForbiddenException("You can only edit your own comments");
     }
 
     const updated = await this.prisma.documentComment.update({
       where: { id: commentId },
       data: { content },
       include: {
-        author: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        resolvedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        author: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -158,26 +270,42 @@ export class DocumentCommentsService {
     });
 
     if (document) {
-      await this.handleMentions(content, updated.id, document.id, document.originalName, updated.author);
+      await this.handleMentions(
+        content,
+        updated.id,
+        document.id,
+        document.originalName,
+        updated.author,
+      );
     }
 
     return updated;
   }
 
-  async deleteComment(commentId: string, user: { userId: string; role: UserRole }) {
+  async deleteComment(
+    commentId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     const existing = await this.prisma.documentComment.findUnique({
       where: { id: commentId },
       select: { id: true, documentId: true, authorId: true },
     });
 
     if (!existing) {
-      throw new NotFoundException('Comment not found');
+      throw new NotFoundException("Comment not found");
     }
 
-    await this.documentsService.findOne(existing.documentId, user.userId, user.role);
+    await this.documentsService.findOne(
+      existing.documentId,
+      user.userId,
+      user.role,
+    );
 
-    if (user.role !== UserRole.SUPER_ADMIN && existing.authorId !== user.userId) {
-      throw new ForbiddenException('You can only delete your own comments');
+    if (
+      user.role !== UserRole.SUPER_ADMIN &&
+      existing.authorId !== user.userId
+    ) {
+      throw new ForbiddenException("You can only delete your own comments");
     }
 
     await this.prisma.documentComment.delete({ where: { id: commentId } });
@@ -196,10 +324,14 @@ export class DocumentCommentsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Comment not found');
+      throw new NotFoundException("Comment not found");
     }
 
-    await this.documentsService.findOne(existing.documentId, user.userId, user.role);
+    await this.documentsService.findOne(
+      existing.documentId,
+      user.userId,
+      user.role,
+    );
 
     const resolved = data.resolved ?? true;
 
@@ -211,8 +343,24 @@ export class DocumentCommentsService {
         resolvedAt: resolved ? new Date() : null,
       },
       include: {
-        author: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        resolvedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        author: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        resolvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
   }
@@ -246,10 +394,10 @@ export class DocumentCommentsService {
       .filter((u) => u.id !== author.id)
       .map((u) => ({
         userId: u.id,
-        type: 'MENTION' as const,
-        title: 'You were mentioned',
+        type: "MENTION" as const,
+        title: "You were mentioned",
         message: `${author.firstName} ${author.lastName} mentioned you in a document comment: ${documentName}`,
-        referenceType: 'document_comment',
+        referenceType: "document_comment",
         referenceId: `${documentId}:${commentId}`,
       }));
 

@@ -1,19 +1,24 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import * as fs from 'fs';
-import * as path from 'path';
-import { promisify } from 'util';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import * as fs from "fs";
+import * as path from "path";
+import { promisify } from "util";
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const mkdir = promisify(fs.mkdir);
 
 export enum StorageProvider {
-  LOCAL = 'local',
-  S3 = 's3',
-  CLOUDINARY = 'cloudinary',
+  LOCAL = "local",
+  S3 = "s3",
+  CLOUDINARY = "cloudinary",
 }
 
 export interface UploadResult {
@@ -30,20 +35,28 @@ export class StorageService {
   private readonly localStoragePath: string;
 
   constructor(private configService: ConfigService) {
-    const configuredProvider = this.configService.get<StorageProvider>('STORAGE_PROVIDER', StorageProvider.LOCAL);
-    this.localStoragePath = this.configService.get<string>('LOCAL_STORAGE_PATH', './uploads');
+    const configuredProvider = this.configService.get<StorageProvider>(
+      "STORAGE_PROVIDER",
+      StorageProvider.LOCAL,
+    );
+    this.localStoragePath = this.configService.get<string>(
+      "LOCAL_STORAGE_PATH",
+      "./uploads",
+    );
 
     // Validate Cloudinary is not used (not implemented)
     if (configuredProvider === StorageProvider.CLOUDINARY) {
       throw new Error(
-        'Cloudinary storage provider is not yet implemented. Please use "local" or "s3" as STORAGE_PROVIDER.'
+        'Cloudinary storage provider is not yet implemented. Please use "local" or "s3" as STORAGE_PROVIDER.',
       );
     }
 
     if (configuredProvider === StorageProvider.S3) {
-      const region = this.configService.get<string>('AWS_REGION');
-      const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
-      const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
+      const region = this.configService.get<string>("AWS_REGION");
+      const accessKeyId = this.configService.get<string>("AWS_ACCESS_KEY_ID");
+      const secretAccessKey = this.configService.get<string>(
+        "AWS_SECRET_ACCESS_KEY",
+      );
 
       if (region && accessKeyId && secretAccessKey) {
         this.s3Client = new S3Client({
@@ -54,9 +67,11 @@ export class StorageService {
           },
         });
         this.provider = StorageProvider.S3;
-        this.logger.log('S3 storage initialized');
+        this.logger.log("S3 storage initialized");
       } else {
-        this.logger.warn('S3 credentials not found, falling back to local storage');
+        this.logger.warn(
+          "S3 credentials not found, falling back to local storage",
+        );
         this.provider = StorageProvider.LOCAL;
       }
     } else {
@@ -72,7 +87,7 @@ export class StorageService {
     buffer: Buffer,
     originalName: string,
     mimeType: string,
-    folder: string = 'documents',
+    folder: string = "documents",
   ): Promise<UploadResult> {
     const timestamp = Date.now();
     const sanitizedFilename = this.sanitizeFilename(originalName);
@@ -92,15 +107,17 @@ export class StorageService {
   private async ensureLocalStorageDirectory(): Promise<void> {
     try {
       await mkdir(this.localStoragePath, { recursive: true });
-      this.logger.log(`Local storage directory ensured: ${this.localStoragePath}`);
+      this.logger.log(
+        `Local storage directory ensured: ${this.localStoragePath}`,
+      );
     } catch (error) {
-      this.logger.error('Failed to create local storage directory', error);
+      this.logger.error("Failed to create local storage directory", error);
     }
   }
 
   async uploadFile(
     file: Express.Multer.File,
-    folder: string = 'documents',
+    folder: string = "documents",
   ): Promise<UploadResult> {
     const timestamp = Date.now();
     const sanitizedFilename = this.sanitizeFilename(file.originalname);
@@ -127,7 +144,10 @@ export class StorageService {
     await mkdir(directory, { recursive: true });
     await writeFile(filePath, file.buffer);
 
-    const baseUrl = this.configService.get<string>('BASE_URL', 'http://localhost:3000');
+    const baseUrl = this.configService.get<string>(
+      "BASE_URL",
+      "http://localhost:3000",
+    );
     const url = `${baseUrl}/api/documents/files/${key}`;
 
     this.logger.log(`File uploaded to local storage: ${key}`);
@@ -139,14 +159,20 @@ export class StorageService {
     };
   }
 
-  private async uploadBufferToLocal(buffer: Buffer, key: string): Promise<UploadResult> {
+  private async uploadBufferToLocal(
+    buffer: Buffer,
+    key: string,
+  ): Promise<UploadResult> {
     const filePath = path.join(this.localStoragePath, key);
     const directory = path.dirname(filePath);
 
     await mkdir(directory, { recursive: true });
     await writeFile(filePath, buffer);
 
-    const baseUrl = this.configService.get<string>('BASE_URL', 'http://localhost:3000');
+    const baseUrl = this.configService.get<string>(
+      "BASE_URL",
+      "http://localhost:3000",
+    );
     const url = `${baseUrl}/api/documents/files/${key}`;
 
     this.logger.log(`File uploaded to local storage: ${key}`);
@@ -163,12 +189,12 @@ export class StorageService {
     key: string,
   ): Promise<UploadResult> {
     if (!this.s3Client) {
-      throw new Error('S3 client not initialized');
+      throw new Error("S3 client not initialized");
     }
 
-    const bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    const bucket = this.configService.get<string>("AWS_S3_BUCKET");
     if (!bucket) {
-      throw new Error('AWS_S3_BUCKET not configured');
+      throw new Error("AWS_S3_BUCKET not configured");
     }
 
     const command = new PutObjectCommand({
@@ -191,14 +217,18 @@ export class StorageService {
     };
   }
 
-  private async uploadBufferToS3(buffer: Buffer, key: string, mimeType: string): Promise<UploadResult> {
+  private async uploadBufferToS3(
+    buffer: Buffer,
+    key: string,
+    mimeType: string,
+  ): Promise<UploadResult> {
     if (!this.s3Client) {
-      throw new Error('S3 client not initialized');
+      throw new Error("S3 client not initialized");
     }
 
-    const bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    const bucket = this.configService.get<string>("AWS_S3_BUCKET");
     if (!bucket) {
-      throw new Error('AWS_S3_BUCKET not configured');
+      throw new Error("AWS_S3_BUCKET not configured");
     }
 
     const command = new PutObjectCommand({
@@ -222,10 +252,10 @@ export class StorageService {
   }
 
   private async uploadToCloudinary(
-    file: Express.Multer.File,
-    key: string,
+    _file: Express.Multer.File,
+    _key: string,
   ): Promise<UploadResult> {
-    throw new Error('Cloudinary storage not yet implemented');
+    throw new Error("Cloudinary storage not yet implemented");
   }
 
   async deleteFile(key: string, provider: StorageProvider): Promise<void> {
@@ -246,18 +276,21 @@ export class StorageService {
       await unlink(filePath);
       this.logger.log(`File deleted from local storage: ${key}`);
     } catch (error) {
-      this.logger.error(`Failed to delete file from local storage: ${key}`, error);
+      this.logger.error(
+        `Failed to delete file from local storage: ${key}`,
+        error,
+      );
     }
   }
 
   private async deleteFromS3(key: string): Promise<void> {
     if (!this.s3Client) {
-      throw new Error('S3 client not initialized');
+      throw new Error("S3 client not initialized");
     }
 
-    const bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    const bucket = this.configService.get<string>("AWS_S3_BUCKET");
     if (!bucket) {
-      throw new Error('AWS_S3_BUCKET not configured');
+      throw new Error("AWS_S3_BUCKET not configured");
     }
 
     const command = new DeleteObjectCommand({
@@ -269,13 +302,17 @@ export class StorageService {
     this.logger.log(`File deleted from S3: ${key}`);
   }
 
-  private async deleteFromCloudinary(key: string): Promise<void> {
-    throw new Error('Cloudinary storage not yet implemented');
+  private async deleteFromCloudinary(_key: string): Promise<void> {
+    throw new Error("Cloudinary storage not yet implemented");
   }
 
-  async getSignedDownloadUrl(key: string, provider: StorageProvider, expiresIn: number = 3600): Promise<string> {
+  async getSignedDownloadUrl(
+    key: string,
+    provider: StorageProvider,
+    expiresIn: number = 3600,
+  ): Promise<string> {
     if (provider === StorageProvider.S3 && this.s3Client) {
-      const bucket = this.configService.get<string>('AWS_S3_BUCKET');
+      const bucket = this.configService.get<string>("AWS_S3_BUCKET");
       const command = new GetObjectCommand({
         Bucket: bucket,
         Key: key,
@@ -283,7 +320,10 @@ export class StorageService {
       return getSignedUrl(this.s3Client, command, { expiresIn });
     }
 
-    const baseUrl = this.configService.get<string>('BASE_URL', 'http://localhost:3000');
+    const baseUrl = this.configService.get<string>(
+      "BASE_URL",
+      "http://localhost:3000",
+    );
     return `${baseUrl}/api/documents/files/${key}`;
   }
 
@@ -298,13 +338,13 @@ export class StorageService {
   async getLocalPath(fileUrl: string): Promise<string | null> {
     try {
       // Check if it's a local file URL
-      if (fileUrl.includes('/api/documents/files/')) {
+      if (fileUrl.includes("/api/documents/files/")) {
         // Extract the key from the URL
-        const urlParts = fileUrl.split('/api/documents/files/');
+        const urlParts = fileUrl.split("/api/documents/files/");
         if (urlParts.length > 1) {
           const key = urlParts[1];
           const localPath = this.getLocalFilePath(key);
-          
+
           // Verify file exists
           if (fs.existsSync(localPath)) {
             return localPath;
@@ -313,7 +353,10 @@ export class StorageService {
       }
 
       // Check if it's an S3 URL
-      if (fileUrl.includes('s3.amazonaws.com') || fileUrl.includes('amazonaws.com')) {
+      if (
+        fileUrl.includes("s3.amazonaws.com") ||
+        fileUrl.includes("amazonaws.com")
+      ) {
         return await this.downloadS3FileToTemp(fileUrl);
       }
 
@@ -325,7 +368,7 @@ export class StorageService {
       this.logger.warn(`Could not resolve file path for URL: ${fileUrl}`);
       return null;
     } catch (error) {
-      this.logger.error('Error resolving local path for OCR', error);
+      this.logger.error("Error resolving local path for OCR", error);
       return null;
     }
   }
@@ -335,23 +378,23 @@ export class StorageService {
    */
   private async downloadS3FileToTemp(s3Url: string): Promise<string> {
     if (!this.s3Client) {
-      throw new Error('S3 client not initialized');
+      throw new Error("S3 client not initialized");
     }
 
-    const bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    const bucket = this.configService.get<string>("AWS_S3_BUCKET");
     if (!bucket) {
-      throw new Error('AWS_S3_BUCKET not configured');
+      throw new Error("AWS_S3_BUCKET not configured");
     }
 
     // Extract key from S3 URL
     const urlParts = s3Url.split(`${bucket}.s3.amazonaws.com/`);
     if (urlParts.length < 2) {
-      throw new Error('Invalid S3 URL format');
+      throw new Error("Invalid S3 URL format");
     }
     const key = urlParts[1];
 
     // Create temp directory if it doesn't exist
-    const tempDir = path.join(this.localStoragePath, 'temp');
+    const tempDir = path.join(this.localStoragePath, "temp");
     await mkdir(tempDir, { recursive: true });
 
     // Generate temp file path
@@ -366,13 +409,13 @@ export class StorageService {
 
     const response = await this.s3Client.send(command);
     const stream = response.Body as any;
-    
+
     // Write to temp file
     await new Promise<void>((resolve, reject) => {
       const writeStream = fs.createWriteStream(tempFilePath);
       stream.pipe(writeStream);
-      writeStream.on('finish', () => resolve());
-      writeStream.on('error', reject);
+      writeStream.on("finish", () => resolve());
+      writeStream.on("error", reject);
     });
 
     this.logger.log(`Downloaded S3 file to temp: ${tempFilePath}`);
@@ -389,14 +432,14 @@ export class StorageService {
         this.logger.log(`Cleaned up temp file: ${filePath}`);
       }
     } catch (error) {
-      this.logger.error('Error cleaning up temp file', error);
+      this.logger.error("Error cleaning up temp file", error);
     }
   }
 
   private sanitizeFilename(filename: string): string {
     return filename
-      .replace(/[^a-zA-Z0-9.-]/g, '_')
-      .replace(/_{2,}/g, '_')
+      .replace(/[^a-zA-Z0-9.-]/g, "_")
+      .replace(/_{2,}/g, "_")
       .toLowerCase();
   }
 }

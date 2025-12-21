@@ -11,6 +11,27 @@ export type CsvModule =
 export type ImportStatus = 'PENDING' | 'VALIDATING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 export type ExportStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
+export interface ExportPreviewResult {
+  totalRows: number;
+  previewRows: Record<string, any>[];
+  estimatedSizeBytes: number;
+}
+
+export interface CsvAuditLog {
+  id: string;
+  jobType: string;
+  jobId?: string | null;
+  action: string;
+  details?: any;
+  createdById?: string | null;
+  createdAt: string;
+}
+
+export interface CsvStatsResult {
+  imports: Array<{ status: string; count: number }>;
+  exports: Array<{ status: string; count: number }>;
+}
+
 export interface CsvUploadPreviewRow {
   rowNumber: number;
   data: Record<string, any>;
@@ -48,6 +69,8 @@ export interface ImportJob {
   warnings?: any[];
   mappings?: any;
   context?: any;
+  scheduledAt?: string | null;
+  batchId?: string | null;
   createdById: string;
   startedAt?: string | null;
   completedAt?: string | null;
@@ -81,4 +104,61 @@ export interface ImportTemplate {
   createdById: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CsvBatch {
+  id: string;
+  status: string;
+  totalJobs: number;
+  completedJobs: number;
+  failedJobs: number;
+  createdById: string;
+  createdAt: string;
+  jobs?: ImportJob[];
+}
+
+export interface BackupExportResult {
+  fileUrl: string;
+  fileName: string;
+  size: number;
+  manifest: any;
+}
+
+export interface BackupValidateResult {
+  valid: boolean;
+  manifest?: any;
+  errors: string[];
+}
+
+export interface BackupImportResult {
+  restored: boolean;
+  message: string;
+}
+
+export interface ScheduledExport {
+  id: string;
+  name: string;
+  module: string;
+  filters?: any;
+  columns: string[];
+  context?: any;
+  schedule: string;
+  recipients: string[];
+  format: string;
+  isActive: boolean;
+  lastRunAt?: string | null;
+  nextRunAt?: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScheduledExportRun {
+  id: string;
+  scheduledExportId: string;
+  exportJobId?: string | null;
+  status: string;
+  errorMessage?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
 }

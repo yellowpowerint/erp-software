@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { ExtractedDataType } from '@prisma/client';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { ExtractedDataType } from "@prisma/client";
 
 export interface InvoiceData {
   invoiceNumber?: string;
@@ -58,7 +58,7 @@ export class DataExtractionService {
     this.logger.log(`Parsing invoice data for document ${documentId}`);
 
     const invoiceData: InvoiceData = {};
-    const lines = extractedText.split('\n').map((line) => line.trim());
+    const lines = extractedText.split("\n").map((line) => line.trim());
 
     // Extract invoice number
     invoiceData.invoiceNumber = this.extractInvoiceNumber(lines);
@@ -79,7 +79,7 @@ export class DataExtractionService {
     const amounts = this.extractAmounts(extractedText);
     if (amounts.length > 0) {
       invoiceData.totalAmount = amounts[amounts.length - 1]; // Last amount is usually total
-      
+
       // Try to identify tax amount
       const taxAmount = this.extractTaxAmount(extractedText);
       if (taxAmount) {
@@ -88,7 +88,7 @@ export class DataExtractionService {
     }
 
     // Extract currency
-    invoiceData.currency = this.extractCurrency(extractedText) || 'GHS';
+    invoiceData.currency = this.extractCurrency(extractedText) || "GHS";
 
     // Extract line items
     invoiceData.lineItems = this.extractLineItems(lines);
@@ -119,7 +119,7 @@ export class DataExtractionService {
     this.logger.log(`Parsing receipt data for document ${documentId}`);
 
     const receiptData: ReceiptData = {};
-    const lines = extractedText.split('\n').map((line) => line.trim());
+    const lines = extractedText.split("\n").map((line) => line.trim());
 
     // Extract vendor name (usually at the top)
     receiptData.vendorName = this.extractVendorName(lines);
@@ -242,7 +242,7 @@ export class DataExtractionService {
    */
   private extractDates(text: string): Date[] {
     const dates: Date[] = [];
-    
+
     // Common date patterns
     const patterns = [
       /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/g, // DD/MM/YYYY or MM/DD/YYYY
@@ -255,13 +255,21 @@ export class DataExtractionService {
       while ((match = pattern.exec(text)) !== null) {
         try {
           let date: Date;
-          
-          if (match[0].includes('Jan') || match[0].includes('Feb') || match[0].includes('Mar')) {
+
+          if (
+            match[0].includes("Jan") ||
+            match[0].includes("Feb") ||
+            match[0].includes("Mar")
+          ) {
             // Month name format
             date = new Date(match[0]);
           } else if (match[1].length === 4) {
             // YYYY-MM-DD
-            date = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+            date = new Date(
+              parseInt(match[1]),
+              parseInt(match[2]) - 1,
+              parseInt(match[3]),
+            );
           } else {
             // DD/MM/YYYY (assuming European format for Ghana)
             const day = parseInt(match[1]);
@@ -287,7 +295,7 @@ export class DataExtractionService {
    */
   private extractAmounts(text: string): number[] {
     const amounts: number[] = [];
-    
+
     // Patterns for amounts with currency symbols
     const patterns = [
       /(?:GHS|₵|GH₵)\s*([0-9,]+\.?\d*)/gi,
@@ -299,7 +307,7 @@ export class DataExtractionService {
     for (const pattern of patterns) {
       let match;
       while ((match = pattern.exec(text)) !== null) {
-        const amountStr = match[1].replace(/,/g, '');
+        const amountStr = match[1].replace(/,/g, "");
         const amount = parseFloat(amountStr);
         if (!isNaN(amount) && amount > 0) {
           amounts.push(amount);
@@ -317,7 +325,11 @@ export class DataExtractionService {
     // Supplier name is usually in the first few lines
     for (let i = 0; i < Math.min(5, lines.length); i++) {
       const line = lines[i];
-      if (line.length > 3 && line.length < 100 && !line.match(/invoice|bill|receipt/i)) {
+      if (
+        line.length > 3 &&
+        line.length < 100 &&
+        !line.match(/invoice|bill|receipt/i)
+      ) {
         // Skip lines with common keywords
         if (!line.match(/date|total|amount|tax|phone|email|address/i)) {
           return line;
@@ -339,7 +351,7 @@ export class DataExtractionService {
     for (const pattern of patterns) {
       const match = text.match(pattern);
       if (match) {
-        const amountStr = match[1].replace(/,/g, '');
+        const amountStr = match[1].replace(/,/g, "");
         const amount = parseFloat(amountStr);
         if (!isNaN(amount)) {
           return amount;
@@ -354,10 +366,10 @@ export class DataExtractionService {
    * Extract currency
    */
   private extractCurrency(text: string): string | undefined {
-    if (text.match(/GHS|₵|GH₵/i)) return 'GHS';
-    if (text.match(/\$/)) return 'USD';
-    if (text.match(/€/)) return 'EUR';
-    if (text.match(/£/)) return 'GBP';
+    if (text.match(/GHS|₵|GH₵/i)) return "GHS";
+    if (text.match(/\$/)) return "USD";
+    if (text.match(/€/)) return "EUR";
+    if (text.match(/£/)) return "GBP";
     return undefined;
   }
 
@@ -366,13 +378,13 @@ export class DataExtractionService {
    */
   private extractLineItems(lines: string[]): Array<any> {
     const items: Array<any> = [];
-    
+
     // Look for lines that might be items (contain description and amount)
     for (const line of lines) {
       const amounts = this.extractAmounts(line);
       if (amounts.length > 0 && line.length > 10) {
         // This line might be an item
-        const description = line.replace(/[0-9,]+\.?\d*/g, '').trim();
+        const description = line.replace(/[0-9,]+\.?\d*/g, "").trim();
         if (description.length > 3) {
           items.push({
             description,
@@ -418,8 +430,16 @@ export class DataExtractionService {
    * Extract payment method
    */
   private extractPaymentMethod(text: string): string | undefined {
-    const methods = ['cash', 'card', 'credit', 'debit', 'mobile money', 'momo', 'bank transfer'];
-    
+    const methods = [
+      "cash",
+      "card",
+      "credit",
+      "debit",
+      "mobile money",
+      "momo",
+      "bank transfer",
+    ];
+
     for (const method of methods) {
       if (text.toLowerCase().includes(method)) {
         return method.toUpperCase();
@@ -461,7 +481,7 @@ export class DataExtractionService {
    */
   private extractPartyNames(text: string): string[] {
     const parties: string[] = [];
-    
+
     // Look for common patterns
     const patterns = [
       /between\s+([A-Z][A-Za-z\s&]+)\s+and\s+([A-Z][A-Za-z\s&]+)/i,
@@ -488,12 +508,12 @@ export class DataExtractionService {
    */
   private extractContractTerms(text: string): string[] {
     const terms: string[] = [];
-    
+
     // Look for numbered or bulleted terms
-    const lines = text.split('\n');
+    const lines = text.split("\n");
     for (const line of lines) {
       if (line.match(/^\s*[\d\.\)]+\s+/) || line.match(/^\s*[-•]\s+/)) {
-        const term = line.replace(/^\s*[\d\.\)\-•]+\s+/, '').trim();
+        const term = line.replace(/^\s*[\d\.\)\-•]+\s+/, "").trim();
         if (term.length > 10) {
           terms.push(term);
         }
@@ -510,7 +530,7 @@ export class DataExtractionService {
     const fields = Object.keys(data);
     const filledFields = fields.filter((key) => {
       const value = data[key];
-      return value !== undefined && value !== null && value !== '';
+      return value !== undefined && value !== null && value !== "";
     });
 
     const confidence = (filledFields.length / fields.length) * 100;
@@ -564,9 +584,11 @@ export class DataExtractionService {
         },
       });
 
-      this.logger.log(`Stored extracted ${dataType} data with confidence ${confidence}%`);
+      this.logger.log(
+        `Stored extracted ${dataType} data with confidence ${confidence}%`,
+      );
     } catch (error) {
-      this.logger.error('Failed to store extracted data', error);
+      this.logger.error("Failed to store extracted data", error);
       throw error;
     }
   }
@@ -582,7 +604,7 @@ export class DataExtractionService {
 
     return this.prisma.extractedDocumentData.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         ocrJob: true,
       },

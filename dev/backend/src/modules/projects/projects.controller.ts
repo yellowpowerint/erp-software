@@ -132,9 +132,17 @@ export class ProjectsController {
       throw new BadRequestException("file is required");
     }
 
-    const mappings = body.mappings ? this.csvService.parseJson(body.mappings, "mappings") : undefined;
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
     const context = { duplicateStrategy: body.duplicateStrategy };
-    const job = await this.csvService.createImportJob("projects", file, req.user.userId, mappings, context);
+    const job = await this.csvService.createImportJob(
+      "projects",
+      file,
+      req.user.userId,
+      mappings,
+      context,
+    );
     return { success: true, data: job };
   }
 
@@ -142,7 +150,10 @@ export class ProjectsController {
   async downloadProjectsSample(@Res({ passthrough: true }) res: Response) {
     const template = await this.csvService.getSampleTemplate("projects");
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=projects-sample.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=projects-sample.csv`,
+    );
     return template;
   }
 
@@ -177,7 +188,13 @@ export class ProjectsController {
     if (status) filters.status = status;
     if (priority) filters.priority = priority;
 
-    const job = await this.csvService.createExportJob("projects", filters, cols, req.user.userId, undefined);
+    const job = await this.csvService.createExportJob(
+      "projects",
+      filters,
+      cols,
+      req.user.userId,
+      undefined,
+    );
     return { success: true, data: job };
   }
 
@@ -196,9 +213,17 @@ export class ProjectsController {
       throw new BadRequestException("file is required");
     }
 
-    const mappings = body.mappings ? this.csvService.parseJson(body.mappings, "mappings") : undefined;
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
     const context = { projectId };
-    const job = await this.csvService.createImportJob("project_tasks", file, req.user.userId, mappings, context);
+    const job = await this.csvService.createImportJob(
+      "project_tasks",
+      file,
+      req.user.userId,
+      mappings,
+      context,
+    );
     return { success: true, data: job };
   }
 
@@ -213,7 +238,15 @@ export class ProjectsController {
           .split(",")
           .map((c) => c.trim())
           .filter(Boolean)
-      : ["title", "description", "status", "assignedTo", "dueDate", "order", "createdAt"];
+      : [
+          "title",
+          "description",
+          "status",
+          "assignedTo",
+          "dueDate",
+          "order",
+          "createdAt",
+        ];
 
     const job = await this.csvService.createExportJob(
       "project_tasks",

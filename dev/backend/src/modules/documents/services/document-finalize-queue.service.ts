@@ -1,9 +1,16 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { DocumentFinalizeService } from './document-finalize.service';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { DocumentFinalizeService } from "./document-finalize.service";
 
 @Injectable()
-export class DocumentFinalizeQueueService implements OnModuleInit, OnModuleDestroy {
+export class DocumentFinalizeQueueService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(DocumentFinalizeQueueService.name);
   private processingInterval: NodeJS.Timeout | null = null;
   private processing = false;
@@ -15,12 +22,14 @@ export class DocumentFinalizeQueueService implements OnModuleInit, OnModuleDestr
   ) {}
 
   async onModuleInit() {
-    const enabled = this.configService.get<string>('FINALIZE_WORKER_ENABLED', 'true') === 'true';
+    const enabled =
+      this.configService.get<string>("FINALIZE_WORKER_ENABLED", "true") ===
+      "true";
     if (!enabled) {
       return;
     }
 
-    this.logger.log('Document Finalize Queue Service initialized');
+    this.logger.log("Document Finalize Queue Service initialized");
     await this.recoverStuckJobs();
     this.startProcessing();
   }
@@ -47,7 +56,10 @@ export class DocumentFinalizeQueueService implements OnModuleInit, OnModuleDestr
   }
 
   private getMaxConcurrent(): number {
-    const v = this.configService.get<string>('FINALIZE_WORKER_CONCURRENCY', '1');
+    const v = this.configService.get<string>(
+      "FINALIZE_WORKER_CONCURRENCY",
+      "1",
+    );
     const n = Number(v);
     if (!Number.isFinite(n) || n <= 0) {
       return 1;
@@ -89,10 +101,12 @@ export class DocumentFinalizeQueueService implements OnModuleInit, OnModuleDestr
 
   private async recoverStuckJobs() {
     try {
-      const minutes = Number(this.configService.get<string>('FINALIZE_WORKER_STUCK_MINUTES', '30'));
+      const minutes = Number(
+        this.configService.get<string>("FINALIZE_WORKER_STUCK_MINUTES", "30"),
+      );
       await this.finalizeService.recoverStuckJobs(minutes);
     } catch (error) {
-      this.logger.error('Failed to recover stuck finalize jobs', error as any);
+      this.logger.error("Failed to recover stuck finalize jobs", error as any);
     }
   }
 }

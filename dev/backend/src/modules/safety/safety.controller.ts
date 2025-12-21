@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Param, Query, Body, Res, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Query,
+  Body,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
 import type { Response } from "express";
 import { parse as json2csv } from "json2csv";
 import { SafetyService } from "./safety.service";
@@ -185,7 +195,10 @@ export class SafetyController {
       if (endDate) where.scheduledDate.lte = new Date(endDate);
     }
 
-    const rows = await this.prisma.safetyInspection.findMany({ where, orderBy: { scheduledDate: "desc" } });
+    const rows = await this.prisma.safetyInspection.findMany({
+      where,
+      orderBy: { scheduledDate: "desc" },
+    });
     const fields = [
       "inspectionId",
       "type",
@@ -212,7 +225,10 @@ export class SafetyController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=safety-inspections-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=safety-inspections-export.csv`,
+    );
     return csv;
   }
 
@@ -235,7 +251,10 @@ export class SafetyController {
       if (endDate) where.incidentDate.lte = new Date(endDate);
     }
 
-    const rows = await this.prisma.safetyIncident.findMany({ where, orderBy: { incidentDate: "desc" } });
+    const rows = await this.prisma.safetyIncident.findMany({
+      where,
+      orderBy: { incidentDate: "desc" },
+    });
     const fields = [
       "incidentNumber",
       "type",
@@ -261,7 +280,10 @@ export class SafetyController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=safety-incidents-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=safety-incidents-export.csv`,
+    );
     return csv;
   }
 
@@ -284,7 +306,10 @@ export class SafetyController {
       if (endDate) where.scheduledDate.lte = new Date(endDate);
     }
 
-    const rows = await this.prisma.safetyTraining.findMany({ where, orderBy: { scheduledDate: "desc" } });
+    const rows = await this.prisma.safetyTraining.findMany({
+      where,
+      orderBy: { scheduledDate: "desc" },
+    });
     const fields = [
       "trainingId",
       "type",
@@ -314,7 +339,10 @@ export class SafetyController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=safety-training-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=safety-training-export.csv`,
+    );
     return csv;
   }
 }

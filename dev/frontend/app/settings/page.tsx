@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Settings, Users, Shield, Database, Bell, FileText, BrainCircuit, LockKeyhole, Upload } from 'lucide-react';
+import { Settings, Users, Shield, Database, Bell, FileText, BrainCircuit, LockKeyhole, Upload, Calendar, DatabaseBackup, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -112,6 +112,33 @@ function SettingsDashboardContent() {
           <Upload className="w-10 h-10 text-emerald-600 mb-3" />
           <h3 className="text-lg font-semibold text-gray-900 mb-1">CSV Import/Export</h3>
           <p className="text-sm text-gray-600">Bulk upload and export via CSV templates</p>
+        </Link>
+
+        <Link
+          href="/settings/import-export"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+        >
+          <FileSpreadsheet className="w-10 h-10 text-indigo-600 mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Import/Export</h3>
+          <p className="text-sm text-gray-600">History, errors, and rollback controls</p>
+        </Link>
+
+        <Link
+          href="/settings/data-migration"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+        >
+          <DatabaseBackup className="w-10 h-10 text-green-600 mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Data Migration</h3>
+          <p className="text-sm text-gray-600">Export and restore full backups</p>
+        </Link>
+
+        <Link
+          href="/settings/scheduled-exports"
+          className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+        >
+          <Calendar className="w-10 h-10 text-purple-600 mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Scheduled Exports</h3>
+          <p className="text-sm text-gray-600">Cron-based exports with email delivery</p>
         </Link>
 
         <Link

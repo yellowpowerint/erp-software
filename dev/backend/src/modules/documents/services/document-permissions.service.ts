@@ -3,24 +3,28 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import {
-  DocumentCategory,
-  UserRole,
-} from '@prisma/client';
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { DocumentCategory, UserRole } from "@prisma/client";
 
 const PermissionAction = {
-  GRANT: 'GRANT',
-  REVOKE: 'REVOKE',
-  MODIFY: 'MODIFY',
-  TEMPLATE_APPLIED: 'TEMPLATE_APPLIED',
-  BULK_UPDATE: 'BULK_UPDATE',
+  GRANT: "GRANT",
+  REVOKE: "REVOKE",
+  MODIFY: "MODIFY",
+  TEMPLATE_APPLIED: "TEMPLATE_APPLIED",
+  BULK_UPDATE: "BULK_UPDATE",
 } as const;
 
-type PermissionAction = (typeof PermissionAction)[keyof typeof PermissionAction];
+type PermissionAction =
+  (typeof PermissionAction)[keyof typeof PermissionAction];
 
-export type DocumentPermissionKey = 'view' | 'edit' | 'delete' | 'share' | 'sign' | 'download';
+export type DocumentPermissionKey =
+  | "view"
+  | "edit"
+  | "delete"
+  | "share"
+  | "sign"
+  | "download";
 
 export interface EffectiveDocumentPermissions {
   canView: boolean;
@@ -70,7 +74,10 @@ export class DocumentPermissionsService {
     };
   }
 
-  private merge(a: EffectiveDocumentPermissions, b: Partial<EffectiveDocumentPermissions>): EffectiveDocumentPermissions {
+  private merge(
+    a: EffectiveDocumentPermissions,
+    b: Partial<EffectiveDocumentPermissions>,
+  ): EffectiveDocumentPermissions {
     return {
       canView: a.canView || !!b.canView,
       canEdit: a.canEdit || !!b.canEdit,
@@ -81,7 +88,10 @@ export class DocumentPermissionsService {
     };
   }
 
-  async getEffectivePermissions(documentId: string, userId: string): Promise<EffectiveDocumentPermissions> {
+  async getEffectivePermissions(
+    documentId: string,
+    userId: string,
+  ): Promise<EffectiveDocumentPermissions> {
     const [user, document] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
@@ -99,58 +109,64 @@ export class DocumentPermissionsService {
     ]);
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
-    if (user.role === UserRole.SUPER_ADMIN || document.uploadedById === userId) {
+    if (
+      user.role === UserRole.SUPER_ADMIN ||
+      document.uploadedById === userId
+    ) {
       return this.all();
     }
 
     const now = new Date();
 
-    const [userPermission, departmentPermission, categoryPermission, share] = await Promise.all([
-      this.prismaAny().documentUserPermission.findUnique({
-        where: {
-          documentId_userId: {
-            documentId,
-            userId,
-          },
-        },
-      }),
-      user.department
-        ? this.prismaAny().documentDepartmentPermission.findFirst({
-            where: {
+    const [userPermission, departmentPermission, categoryPermission, share] =
+      await Promise.all([
+        this.prismaAny().documentUserPermission.findUnique({
+          where: {
+            documentId_userId: {
               documentId,
-              department: user.department,
+              userId,
             },
-          })
-        : null,
-      this.prismaAny().documentCategoryPermission.findUnique({
-        where: {
-          category_role: {
-            category: document.category,
-            role: user.role,
           },
-        },
-      }),
-      this.prisma.documentShare.findFirst({
-        where: {
-          documentId,
-          sharedWithId: userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        },
-        select: { canEdit: true, canDownload: true },
-      }),
-    ]);
+        }),
+        user.department
+          ? this.prismaAny().documentDepartmentPermission.findFirst({
+              where: {
+                documentId,
+                department: user.department,
+              },
+            })
+          : null,
+        this.prismaAny().documentCategoryPermission.findUnique({
+          where: {
+            category_role: {
+              category: document.category,
+              role: user.role,
+            },
+          },
+        }),
+        this.prisma.documentShare.findFirst({
+          where: {
+            documentId,
+            sharedWithId: userId,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          },
+          select: { canEdit: true, canDownload: true },
+        }),
+      ]);
 
     let effective = this.none();
     let hasNonShareView = false;
 
-    const rolePermission = document.permissions.find((p) => p.role === user.role);
+    const rolePermission = document.permissions.find(
+      (p) => p.role === user.role,
+    );
     if (rolePermission) {
       hasNonShareView = hasNonShareView || !!rolePermission.canView;
       effective = this.merge(effective, {
@@ -163,7 +179,9 @@ export class DocumentPermissionsService {
     }
 
     if (userPermission) {
-      const isExpired = userPermission.expiresAt && userPermission.expiresAt.getTime() <= now.getTime();
+      const isExpired =
+        userPermission.expiresAt &&
+        userPermission.expiresAt.getTime() <= now.getTime();
       if (!isExpired) {
         hasNonShareView = hasNonShareView || !!userPermission.canView;
         effective = this.merge(effective, {
@@ -213,36 +231,59 @@ export class DocumentPermissionsService {
     return effective;
   }
 
-  async assertHasPermission(documentId: string, userId: string, permission: DocumentPermissionKey) {
+  async assertHasPermission(
+    documentId: string,
+    userId: string,
+    permission: DocumentPermissionKey,
+  ) {
     const perms = await this.getEffectivePermissions(documentId, userId);
 
     const allowed =
-      (permission === 'view' && perms.canView) ||
-      (permission === 'edit' && perms.canEdit) ||
-      (permission === 'delete' && perms.canDelete) ||
-      (permission === 'share' && perms.canShare) ||
-      (permission === 'sign' && perms.canSign) ||
-      (permission === 'download' && perms.canDownload);
+      (permission === "view" && perms.canView) ||
+      (permission === "edit" && perms.canEdit) ||
+      (permission === "delete" && perms.canDelete) ||
+      (permission === "share" && perms.canShare) ||
+      (permission === "sign" && perms.canSign) ||
+      (permission === "download" && perms.canDownload);
 
     if (!allowed) {
-      throw new ForbiddenException('You do not have permission to perform this action');
+      throw new ForbiddenException(
+        "You do not have permission to perform this action",
+      );
     }
   }
 
   async getDocumentPermissions(documentId: string, userId: string) {
-    await this.assertHasPermission(documentId, userId, 'view');
+    await this.assertHasPermission(documentId, userId, "view");
 
     const [roles, users, departments] = await Promise.all([
-      this.prisma.documentPermission.findMany({ where: { documentId }, orderBy: { role: 'asc' } }),
+      this.prisma.documentPermission.findMany({
+        where: { documentId },
+        orderBy: { role: "asc" },
+      }),
       this.prismaAny().documentUserPermission.findMany({
         where: { documentId },
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, department: true } },
-          grantedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
+              department: true,
+            },
+          },
+          grantedBy: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
-      this.prismaAny().documentDepartmentPermission.findMany({ where: { documentId }, orderBy: { department: 'asc' } }),
+      this.prismaAny().documentDepartmentPermission.findMany({
+        where: { documentId },
+        orderBy: { department: "asc" },
+      }),
     ]);
 
     return {
@@ -253,7 +294,7 @@ export class DocumentPermissionsService {
   }
 
   private normalizeReason(reason?: unknown): string | undefined {
-    if (typeof reason !== 'string') return undefined;
+    if (typeof reason !== "string") return undefined;
     const trimmed = reason.trim();
     return trimmed.length > 0 ? trimmed : undefined;
   }
@@ -267,9 +308,16 @@ export class DocumentPermissionsService {
     reason?: string;
     ipAddress: string;
   }) {
-    const { documentId, targetUserId, permissions, grantedById, expiresAt, ipAddress } = params;
+    const {
+      documentId,
+      targetUserId,
+      permissions,
+      grantedById,
+      expiresAt,
+      ipAddress,
+    } = params;
 
-    await this.assertHasPermission(documentId, grantedById, 'share');
+    await this.assertHasPermission(documentId, grantedById, "share");
 
     const existing = await this.prismaAny().documentUserPermission.findUnique({
       where: { documentId_userId: { documentId, userId: targetUserId } },
@@ -297,8 +345,19 @@ export class DocumentPermissionsService {
         expiresAt,
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, department: true } },
-        grantedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            department: true,
+          },
+        },
+        grantedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 
@@ -341,14 +400,14 @@ export class DocumentPermissionsService {
   }) {
     const { documentId, targetUserId, performedById, ipAddress } = params;
 
-    await this.assertHasPermission(documentId, performedById, 'share');
+    await this.assertHasPermission(documentId, performedById, "share");
 
     const existing = await this.prismaAny().documentUserPermission.findUnique({
       where: { documentId_userId: { documentId, userId: targetUserId } },
     });
 
     if (!existing) {
-      throw new NotFoundException('User permission not found');
+      throw new NotFoundException("User permission not found");
     }
 
     await this.prismaAny().documentUserPermission.delete({
@@ -386,7 +445,7 @@ export class DocumentPermissionsService {
   }) {
     const { documentId, role, permissions, performedById, ipAddress } = params;
 
-    await this.assertHasPermission(documentId, performedById, 'share');
+    await this.assertHasPermission(documentId, performedById, "share");
 
     const existing = await this.prisma.documentPermission.findUnique({
       where: { documentId_role: { documentId, role } },
@@ -449,14 +508,14 @@ export class DocumentPermissionsService {
   }) {
     const { documentId, role, performedById, ipAddress } = params;
 
-    await this.assertHasPermission(documentId, performedById, 'share');
+    await this.assertHasPermission(documentId, performedById, "share");
 
     const existing = await this.prisma.documentPermission.findUnique({
       where: { documentId_role: { documentId, role } },
     });
 
     if (!existing) {
-      throw new NotFoundException('Role permission not found');
+      throw new NotFoundException("Role permission not found");
     }
 
     await this.prismaAny().documentPermission.delete({
@@ -491,21 +550,30 @@ export class DocumentPermissionsService {
     reason?: string;
     ipAddress: string;
   }) {
-    const { documentId, department, permissions, performedById, ipAddress } = params;
+    const { documentId, department, permissions, performedById, ipAddress } =
+      params;
 
-    const normalizedDepartment = (department || '').trim();
+    const normalizedDepartment = (department || "").trim();
     if (!normalizedDepartment) {
-      throw new BadRequestException('department is required');
+      throw new BadRequestException("department is required");
     }
 
-    await this.assertHasPermission(documentId, performedById, 'share');
+    await this.assertHasPermission(documentId, performedById, "share");
 
-    const existing = await this.prismaAny().documentDepartmentPermission.findUnique({
-      where: { documentId_department: { documentId, department: normalizedDepartment } },
-    });
+    const existing =
+      await this.prismaAny().documentDepartmentPermission.findUnique({
+        where: {
+          documentId_department: {
+            documentId,
+            department: normalizedDepartment,
+          },
+        },
+      });
 
     const updated = await this.prismaAny().documentDepartmentPermission.upsert({
-      where: { documentId_department: { documentId, department: normalizedDepartment } },
+      where: {
+        documentId_department: { documentId, department: normalizedDepartment },
+      },
       create: {
         documentId,
         department: normalizedDepartment,
@@ -561,23 +629,31 @@ export class DocumentPermissionsService {
   }) {
     const { documentId, department, performedById, ipAddress } = params;
 
-    const normalizedDepartment = (department || '').trim();
+    const normalizedDepartment = (department || "").trim();
     if (!normalizedDepartment) {
-      throw new BadRequestException('department is required');
+      throw new BadRequestException("department is required");
     }
 
-    await this.assertHasPermission(documentId, performedById, 'share');
+    await this.assertHasPermission(documentId, performedById, "share");
 
-    const existing = await this.prismaAny().documentDepartmentPermission.findUnique({
-      where: { documentId_department: { documentId, department: normalizedDepartment } },
-    });
+    const existing =
+      await this.prismaAny().documentDepartmentPermission.findUnique({
+        where: {
+          documentId_department: {
+            documentId,
+            department: normalizedDepartment,
+          },
+        },
+      });
 
     if (!existing) {
-      throw new NotFoundException('Department permission not found');
+      throw new NotFoundException("Department permission not found");
     }
 
     await this.prismaAny().documentDepartmentPermission.delete({
-      where: { documentId_department: { documentId, department: normalizedDepartment } },
+      where: {
+        documentId_department: { documentId, department: normalizedDepartment },
+      },
     });
 
     await this.logPermissionChange({
@@ -603,9 +679,11 @@ export class DocumentPermissionsService {
   async listCategoryPermissions() {
     return this.prismaAny().documentCategoryPermission.findMany({
       include: {
-        setBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        setBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
-      orderBy: [{ category: 'asc' }, { role: 'asc' }],
+      orderBy: [{ category: "asc" }, { role: "asc" }],
     });
   }
 
@@ -619,9 +697,10 @@ export class DocumentPermissionsService {
   }) {
     const { category, role, permissions, setById, ipAddress } = params;
 
-    const existing = await this.prismaAny().documentCategoryPermission.findUnique({
-      where: { category_role: { category, role } },
-    });
+    const existing =
+      await this.prismaAny().documentCategoryPermission.findUnique({
+        where: { category_role: { category, role } },
+      });
 
     const updated = await this.prismaAny().documentCategoryPermission.upsert({
       where: { category_role: { category, role } },
@@ -646,7 +725,9 @@ export class DocumentPermissionsService {
         setById,
       },
       include: {
-        setBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        setBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 
@@ -673,16 +754,24 @@ export class DocumentPermissionsService {
     return updated;
   }
 
-  async deleteCategoryPermission(params: { id: string; performedById: string; ipAddress: string; reason?: string }) {
-    const existing = await this.prismaAny().documentCategoryPermission.findUnique({
-      where: { id: params.id },
-    });
+  async deleteCategoryPermission(params: {
+    id: string;
+    performedById: string;
+    ipAddress: string;
+    reason?: string;
+  }) {
+    const existing =
+      await this.prismaAny().documentCategoryPermission.findUnique({
+        where: { id: params.id },
+      });
 
     if (!existing) {
-      throw new NotFoundException('Category permission not found');
+      throw new NotFoundException("Category permission not found");
     }
 
-    await this.prismaAny().documentCategoryPermission.delete({ where: { id: params.id } });
+    await this.prismaAny().documentCategoryPermission.delete({
+      where: { id: params.id },
+    });
 
     await this.prismaAny().documentPermissionLog.create({
       data: {
@@ -703,9 +792,11 @@ export class DocumentPermissionsService {
   async listTemplates() {
     return this.prismaAny().documentPermissionTemplate.findMany({
       include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -719,9 +810,9 @@ export class DocumentPermissionsService {
     isDefault?: boolean;
     createdById: string;
   }) {
-    const name = (params.name || '').trim();
+    const name = (params.name || "").trim();
     if (!name) {
-      throw new BadRequestException('name is required');
+      throw new BadRequestException("name is required");
     }
 
     return this.prismaAny().documentPermissionTemplate.create({
@@ -736,23 +827,31 @@ export class DocumentPermissionsService {
         createdById: params.createdById,
       },
       include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
   }
 
-  async updateTemplate(id: string, params: {
-    name?: string;
-    description?: string;
-    category?: DocumentCategory | null;
-    module?: string | null;
-    roles?: any;
-    departments?: any;
-    isDefault?: boolean;
-  }) {
-    const existing = await this.prismaAny().documentPermissionTemplate.findUnique({ where: { id } });
+  async updateTemplate(
+    id: string,
+    params: {
+      name?: string;
+      description?: string;
+      category?: DocumentCategory | null;
+      module?: string | null;
+      roles?: any;
+      departments?: any;
+      isDefault?: boolean;
+    },
+  ) {
+    const existing =
+      await this.prismaAny().documentPermissionTemplate.findUnique({
+        where: { id },
+      });
     if (!existing) {
-      throw new NotFoundException('Template not found');
+      throw new NotFoundException("Template not found");
     }
 
     const name = params.name !== undefined ? params.name.trim() : undefined;
@@ -769,15 +868,20 @@ export class DocumentPermissionsService {
         isDefault: params.isDefault,
       },
       include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
   }
 
   async deleteTemplate(id: string) {
-    const existing = await this.prismaAny().documentPermissionTemplate.findUnique({ where: { id } });
+    const existing =
+      await this.prismaAny().documentPermissionTemplate.findUnique({
+        where: { id },
+      });
     if (!existing) {
-      throw new NotFoundException('Template not found');
+      throw new NotFoundException("Template not found");
     }
 
     await this.prismaAny().documentPermissionTemplate.delete({ where: { id } });
@@ -793,30 +897,46 @@ export class DocumentPermissionsService {
   }) {
     const { documentId, templateId, performedById, ipAddress } = params;
 
-    await this.assertHasPermission(documentId, performedById, 'share');
+    await this.assertHasPermission(documentId, performedById, "share");
 
     const [template, document] = await Promise.all([
-      this.prismaAny().documentPermissionTemplate.findUnique({ where: { id: templateId } }),
-      this.prisma.document.findUnique({ where: { id: documentId }, select: { id: true, category: true, module: true } }),
+      this.prismaAny().documentPermissionTemplate.findUnique({
+        where: { id: templateId },
+      }),
+      this.prisma.document.findUnique({
+        where: { id: documentId },
+        select: { id: true, category: true, module: true },
+      }),
     ]);
 
     if (!template) {
-      throw new NotFoundException('Template not found');
+      throw new NotFoundException("Template not found");
     }
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     const roleEntries = Array.isArray(template.roles) ? template.roles : [];
-    const departmentEntries = Array.isArray(template.departments) ? template.departments : [];
+    const departmentEntries = Array.isArray(template.departments)
+      ? template.departments
+      : [];
 
-    const oldRolePermissions = await this.prisma.documentPermission.findMany({ where: { documentId } });
-    const oldDeptPermissions = await this.prismaAny().documentDepartmentPermission.findMany({ where: { documentId } });
+    const oldRolePermissions = await this.prisma.documentPermission.findMany({
+      where: { documentId },
+    });
+    const oldDeptPermissions =
+      await this.prismaAny().documentDepartmentPermission.findMany({
+        where: { documentId },
+      });
 
     await this.prisma.$transaction(async (tx) => {
-      await (tx as any).documentPermission.deleteMany({ where: { documentId } });
-      await (tx as any).documentDepartmentPermission.deleteMany({ where: { documentId } });
+      await (tx as any).documentPermission.deleteMany({
+        where: { documentId },
+      });
+      await (tx as any).documentDepartmentPermission.deleteMany({
+        where: { documentId },
+      });
 
       for (const entry of roleEntries) {
         if (!entry || !entry.role || !entry.permissions) continue;
@@ -839,7 +959,10 @@ export class DocumentPermissionsService {
           data: {
             documentId,
             department: String(entry.department),
-            canView: entry.permissions.canView !== undefined ? !!entry.permissions.canView : true,
+            canView:
+              entry.permissions.canView !== undefined
+                ? !!entry.permissions.canView
+                : true,
             canEdit: !!entry.permissions.canEdit,
             canDelete: !!entry.permissions.canDelete,
             canShare: !!entry.permissions.canShare,
@@ -881,7 +1004,7 @@ export class DocumentPermissionsService {
     ipAddress: string;
   }) {
     if (!Array.isArray(params.documentIds) || params.documentIds.length === 0) {
-      throw new BadRequestException('documentIds is required');
+      throw new BadRequestException("documentIds is required");
     }
 
     const results: any[] = [];
@@ -899,7 +1022,11 @@ export class DocumentPermissionsService {
         });
         results.push({ documentId, success: true, granted });
       } catch (error: any) {
-        results.push({ documentId, success: false, error: error?.message || 'Failed' });
+        results.push({
+          documentId,
+          success: false,
+          error: error?.message || "Failed",
+        });
       }
     }
 
@@ -929,7 +1056,7 @@ export class DocumentPermissionsService {
     ipAddress: string;
   }) {
     if (!Array.isArray(params.documentIds) || params.documentIds.length === 0) {
-      throw new BadRequestException('documentIds is required');
+      throw new BadRequestException("documentIds is required");
     }
 
     const results: any[] = [];
@@ -945,7 +1072,11 @@ export class DocumentPermissionsService {
         });
         results.push({ documentId, success: true, revoked });
       } catch (error: any) {
-        results.push({ documentId, success: false, error: error?.message || 'Failed' });
+        results.push({
+          documentId,
+          success: false,
+          error: error?.message || "Failed",
+        });
       }
     }
 
@@ -967,35 +1098,77 @@ export class DocumentPermissionsService {
   }
 
   async getPermissionHistory(documentId: string, userId: string) {
-    await this.assertHasPermission(documentId, userId, 'view');
+    await this.assertHasPermission(documentId, userId, "view");
 
     return this.prismaAny().documentPermissionLog.findMany({
       where: { documentId },
       include: {
-        performedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        targetUser: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        performedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        targetUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
   async getAuditLog(params: { performedById?: string; userId: string }) {
-    const user = await this.prisma.user.findUnique({ where: { id: params.userId }, select: { role: true } });
-    if (!user) throw new NotFoundException('User not found');
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { role: true },
+    });
+    if (!user) throw new NotFoundException("User not found");
 
-    const allowedRoles: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.IT_MANAGER];
+    const allowedRoles: UserRole[] = [
+      UserRole.SUPER_ADMIN,
+      UserRole.CEO,
+      UserRole.CFO,
+      UserRole.IT_MANAGER,
+    ];
     if (!allowedRoles.includes(user.role)) {
-      throw new ForbiddenException('Not authorized');
+      throw new ForbiddenException("Not authorized");
     }
 
     return this.prismaAny().documentPermissionLog.findMany({
-      where: params.performedById ? { performedById: params.performedById } : undefined,
+      where: params.performedById
+        ? { performedById: params.performedById }
+        : undefined,
       include: {
-        performedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        targetUser: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        performedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        targetUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
         document: { select: { id: true, originalName: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 500,
     });
   }

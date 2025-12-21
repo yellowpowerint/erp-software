@@ -1,11 +1,16 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { createHash } from 'crypto';
-import { DocumentPermissionsService } from './document-permissions.service';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { createHash } from "crypto";
+import { DocumentPermissionsService } from "./document-permissions.service";
 
 export interface SignDocumentDto {
   signatureData: string; // Base64 encoded signature image
-  signatureType?: 'DRAWN' | 'TYPED' | 'UPLOADED' | 'CERTIFICATE';
+  signatureType?: "DRAWN" | "TYPED" | "UPLOADED" | "CERTIFICATE";
   location?: string; // GPS coordinates
   reason?: string;
   metadata?: any;
@@ -30,7 +35,11 @@ export class SignatureService {
     ipAddress: string,
     userAgent: string,
   ) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'sign');
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "sign",
+    );
 
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
@@ -38,7 +47,7 @@ export class SignatureService {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     if (document.security?.requireSignature) {
@@ -51,7 +60,7 @@ export class SignatureService {
       });
 
       if (existingSignature) {
-        throw new BadRequestException('You have already signed this document');
+        throw new BadRequestException("You have already signed this document");
       }
     }
 
@@ -68,7 +77,7 @@ export class SignatureService {
         documentId,
         signerId: userId,
         signatureData: signatureDto.signatureData,
-        signatureType: signatureDto.signatureType || 'DRAWN',
+        signatureType: signatureDto.signatureType || "DRAWN",
         signatureHash,
         ipAddress,
         userAgent,
@@ -90,7 +99,7 @@ export class SignatureService {
       },
     });
 
-    await this.logAccess(documentId, userId, 'SIGNED', ipAddress, userAgent, {
+    await this.logAccess(documentId, userId, "SIGNED", ipAddress, userAgent, {
       signatureId: signature.id,
       reason: signatureDto.reason,
     });
@@ -104,7 +113,7 @@ export class SignatureService {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     return this.prisma.documentSignature.findMany({
@@ -128,7 +137,7 @@ export class SignatureService {
           },
         },
       },
-      orderBy: { signedAt: 'desc' },
+      orderBy: { signedAt: "desc" },
     });
   }
 
@@ -149,11 +158,13 @@ export class SignatureService {
     });
 
     if (!signature) {
-      throw new NotFoundException('Signature not found');
+      throw new NotFoundException("Signature not found");
     }
 
     if (signature.documentId !== documentId) {
-      throw new BadRequestException('Signature does not belong to this document');
+      throw new BadRequestException(
+        "Signature does not belong to this document",
+      );
     }
 
     const expectedHash = this.generateSignatureHash(
@@ -163,7 +174,10 @@ export class SignatureService {
       signature.signedAt,
     );
 
-    const isValid = signature.signatureHash === expectedHash && signature.isValid && !signature.revokedAt;
+    const isValid =
+      signature.signatureHash === expectedHash &&
+      signature.isValid &&
+      !signature.revokedAt;
 
     return {
       signature,
@@ -186,15 +200,20 @@ export class SignatureService {
     });
 
     if (!signature) {
-      throw new NotFoundException('Signature not found');
+      throw new NotFoundException("Signature not found");
     }
 
-    if (signature.signerId !== userId && !['SUPER_ADMIN', 'CEO', 'CFO'].includes(userRole)) {
-      throw new ForbiddenException('You do not have permission to revoke this signature');
+    if (
+      signature.signerId !== userId &&
+      !["SUPER_ADMIN", "CEO", "CFO"].includes(userRole)
+    ) {
+      throw new ForbiddenException(
+        "You do not have permission to revoke this signature",
+      );
     }
 
     if (signature.revokedAt) {
-      throw new BadRequestException('Signature has already been revoked');
+      throw new BadRequestException("Signature has already been revoked");
     }
 
     const revokedSignature = await this.prisma.documentSignature.update({
@@ -228,8 +247,16 @@ export class SignatureService {
     return revokedSignature;
   }
 
-  async checkSignatureRequirement(documentId: string, userId: string, userRole: string) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'view');
+  async checkSignatureRequirement(
+    documentId: string,
+    userId: string,
+    _userRole: string,
+  ) {
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "view",
+    );
 
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
@@ -237,7 +264,7 @@ export class SignatureService {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     if (!document.security?.requireSignature) {
@@ -259,10 +286,15 @@ export class SignatureService {
     };
   }
 
-  private generateSignatureHash(signatureData: string, userId: string, documentId: string, signedAt: Date): string {
+  private generateSignatureHash(
+    signatureData: string,
+    userId: string,
+    documentId: string,
+    signedAt: Date,
+  ): string {
     const timestamp = signedAt.toISOString();
     const data = `${signatureData}:${userId}:${documentId}:${timestamp}`;
-    return createHash('sha256').update(data).digest('hex');
+    return createHash("sha256").update(data).digest("hex");
   }
 
   private async logAccess(

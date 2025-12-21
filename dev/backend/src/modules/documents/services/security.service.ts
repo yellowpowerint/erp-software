@@ -1,7 +1,12 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
-import * as bcrypt from 'bcrypt';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
+import * as bcrypt from "bcrypt";
 
 export interface DocumentSecurityDto {
   isPasswordProtected?: boolean;
@@ -17,14 +22,23 @@ export interface DocumentSecurityDto {
 }
 
 export interface AccessLogDto {
-  action: 'VIEWED' | 'DOWNLOADED' | 'EDITED' | 'DELETED' | 'SHARED' | 'SIGNED' | 'PERMISSION_CHANGED' | 'SECURITY_UPDATED';
+  action:
+    | "VIEWED"
+    | "DOWNLOADED"
+    | "EDITED"
+    | "DELETED"
+    | "SHARED"
+    | "SIGNED"
+    | "PERMISSION_CHANGED"
+    | "SECURITY_UPDATED";
   metadata?: any;
 }
 
 @Injectable()
 export class SecurityService {
-  private readonly ENCRYPTION_ALGORITHM = 'aes-256-cbc';
-  private readonly ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY || randomBytes(32).toString('hex');
+  private readonly ENCRYPTION_ALGORITHM = "aes-256-cbc";
+  private readonly ENCRYPTION_KEY =
+    process.env.DOCUMENT_ENCRYPTION_KEY || randomBytes(32).toString("hex");
 
   constructor(private prisma: PrismaService) {}
 
@@ -39,7 +53,7 @@ export class SecurityService {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     let passwordHash: string | null = null;
@@ -111,7 +125,10 @@ export class SecurityService {
     };
   }
 
-  async verifyDocumentPassword(documentId: string, password: string): Promise<boolean> {
+  async verifyDocumentPassword(
+    documentId: string,
+    password: string,
+  ): Promise<boolean> {
     const security = await this.prisma.documentSecurity.findUnique({
       where: { documentId },
     });
@@ -123,7 +140,10 @@ export class SecurityService {
     return bcrypt.compare(password, security.passwordHash);
   }
 
-  async checkDocumentAccess(documentId: string, userId: string): Promise<{
+  async checkDocumentAccess(
+    documentId: string,
+    userId: string,
+  ): Promise<{
     canAccess: boolean;
     reason?: string;
     requiresPassword?: boolean;
@@ -137,7 +157,7 @@ export class SecurityService {
     });
 
     if (!document) {
-      return { canAccess: false, reason: 'Document not found' };
+      return { canAccess: false, reason: "Document not found" };
     }
 
     const security = document.security;
@@ -147,14 +167,21 @@ export class SecurityService {
     }
 
     if (security.expiresAt && new Date() > security.expiresAt) {
-      return { canAccess: false, reason: 'Document has expired', isExpired: true };
+      return {
+        canAccess: false,
+        reason: "Document has expired",
+        isExpired: true,
+      };
     }
 
-    if (security.maxDownloads && security.downloadCount >= security.maxDownloads) {
-      return { 
-        canAccess: false, 
-        reason: 'Download limit reached', 
-        downloadLimitReached: true 
+    if (
+      security.maxDownloads &&
+      security.downloadCount >= security.maxDownloads
+    ) {
+      return {
+        canAccess: false,
+        reason: "Download limit reached",
+        downloadLimitReached: true,
       };
     }
 
@@ -168,19 +195,19 @@ export class SecurityService {
       });
 
       if (!signature) {
-        return { 
-          canAccess: false, 
-          reason: 'Document requires signature', 
-          requiresSignature: true 
+        return {
+          canAccess: false,
+          reason: "Document requires signature",
+          requiresSignature: true,
         };
       }
     }
 
     if (security.isPasswordProtected) {
-      return { 
-        canAccess: false, 
-        reason: 'Document is password protected', 
-        requiresPassword: true 
+      return {
+        canAccess: false,
+        reason: "Document is password protected",
+        requiresPassword: true,
       };
     }
 
@@ -199,7 +226,7 @@ export class SecurityService {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     const accessLog = await this.prisma.documentAccessLog.create({
@@ -224,19 +251,22 @@ export class SecurityService {
       },
     });
 
-    if (accessLogDto.action === 'DOWNLOADED') {
+    if (accessLogDto.action === "DOWNLOADED") {
       await this.incrementDownloadCount(documentId);
     }
 
     return accessLog;
   }
 
-  async getDocumentAccessLogs(documentId: string, filters?: {
-    action?: string;
-    userId?: string;
-    startDate?: Date;
-    endDate?: Date;
-  }) {
+  async getDocumentAccessLogs(
+    documentId: string,
+    filters?: {
+      action?: string;
+      userId?: string;
+      startDate?: Date;
+      endDate?: Date;
+    },
+  ) {
     const where: any = { documentId };
 
     if (filters?.action) {
@@ -270,15 +300,18 @@ export class SecurityService {
           },
         },
       },
-      orderBy: { accessedAt: 'desc' },
+      orderBy: { accessedAt: "desc" },
     });
   }
 
-  async getUserAccessLogs(userId: string, filters?: {
-    action?: string;
-    startDate?: Date;
-    endDate?: Date;
-  }) {
+  async getUserAccessLogs(
+    userId: string,
+    filters?: {
+      action?: string;
+      startDate?: Date;
+      endDate?: Date;
+    },
+  ) {
     const where: any = { userId };
 
     if (filters?.action) {
@@ -308,37 +341,43 @@ export class SecurityService {
           },
         },
       },
-      orderBy: { accessedAt: 'desc' },
+      orderBy: { accessedAt: "desc" },
       take: 100,
     });
   }
 
-  async removeDocumentSecurity(documentId: string, userId: string, userRole: string) {
+  async removeDocumentSecurity(
+    documentId: string,
+    userId: string,
+    userRole: string,
+  ) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { security: true },
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     if (!document.security) {
-      throw new BadRequestException('Document has no security settings');
+      throw new BadRequestException("Document has no security settings");
     }
 
     if (
       document.uploadedById !== userId &&
-      !['SUPER_ADMIN', 'CEO', 'CFO'].includes(userRole)
+      !["SUPER_ADMIN", "CEO", "CFO"].includes(userRole)
     ) {
-      throw new ForbiddenException('You do not have permission to remove security settings');
+      throw new ForbiddenException(
+        "You do not have permission to remove security settings",
+      );
     }
 
     await this.prisma.documentSecurity.delete({
       where: { id: document.security.id },
     });
 
-    return { message: 'Security settings removed successfully' };
+    return { message: "Security settings removed successfully" };
   }
 
   private async incrementDownloadCount(documentId: string) {
@@ -359,24 +398,32 @@ export class SecurityService {
   }
 
   private generateEncryptionKey(): string {
-    return randomBytes(32).toString('hex');
+    return randomBytes(32).toString("hex");
   }
 
   encryptData(data: string, key: string): string {
     const iv = randomBytes(16);
-    const cipher = createCipheriv(this.ENCRYPTION_ALGORITHM, Buffer.from(key, 'hex'), iv);
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
+    const cipher = createCipheriv(
+      this.ENCRYPTION_ALGORITHM,
+      Buffer.from(key, "hex"),
+      iv,
+    );
+    let encrypted = cipher.update(data, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    return iv.toString("hex") + ":" + encrypted;
   }
 
   decryptData(encryptedData: string, key: string): string {
-    const parts = encryptedData.split(':');
-    const iv = Buffer.from(parts[0], 'hex');
+    const parts = encryptedData.split(":");
+    const iv = Buffer.from(parts[0], "hex");
     const encrypted = parts[1];
-    const decipher = createDecipheriv(this.ENCRYPTION_ALGORITHM, Buffer.from(key, 'hex'), iv);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    const decipher = createDecipheriv(
+      this.ENCRYPTION_ALGORITHM,
+      Buffer.from(key, "hex"),
+      iv,
+    );
+    let decrypted = decipher.update(encrypted, "hex", "utf8");
+    decrypted += decipher.final("utf8");
     return decrypted;
   }
 }

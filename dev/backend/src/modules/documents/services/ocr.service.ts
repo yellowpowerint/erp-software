@@ -1,14 +1,13 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { createWorker, Worker } from 'tesseract.js';
-import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import sharp from 'sharp';
-import { OCRProvider, OCRStatus, ExtractedDataType } from '@prisma/client';
-import * as pdfParse from 'pdf-parse';
-import * as PDFDocument from 'pdfkit';
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { createWorker, Worker } from "tesseract.js";
+import * as fs from "fs/promises";
+import * as path from "path";
+import * as os from "os";
+import sharp from "sharp";
+import { OCRProvider, OCRStatus } from "@prisma/client";
+import * as pdfParse from "pdf-parse";
+import * as PDFDocument from "pdfkit";
 
 export interface OCROptions {
   language?: string;
@@ -31,7 +30,7 @@ export class OCRService {
   private tesseractWorker: Worker | null = null;
   private isInitialized = false;
   private webhookService: any = null;
-  private tesseractLanguage = 'eng';
+  private tesseractLanguage = "eng";
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -48,14 +47,14 @@ export class OCRService {
     }
 
     try {
-      this.logger.log('Initializing Tesseract.js worker...');
-      this.tesseractWorker = await createWorker('eng');
+      this.logger.log("Initializing Tesseract.js worker...");
+      this.tesseractWorker = await createWorker("eng");
       this.isInitialized = true;
-      this.tesseractLanguage = 'eng';
-      this.logger.log('Tesseract.js worker initialized successfully');
+      this.tesseractLanguage = "eng";
+      this.logger.log("Tesseract.js worker initialized successfully");
     } catch (error) {
-      this.logger.error('Failed to initialize Tesseract worker', error);
-      throw new Error('OCR service initialization failed');
+      this.logger.error("Failed to initialize Tesseract worker", error);
+      throw new Error("OCR service initialization failed");
     }
   }
 
@@ -69,14 +68,16 @@ export class OCRService {
 
     try {
       const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
-        const doc = new PDFDocument({ size: 'A4', margin: 50 });
+        const doc = new PDFDocument({ size: "A4", margin: 50 });
         const chunks: Buffer[] = [];
 
-        doc.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-        doc.on('end', () => resolve(Buffer.concat(chunks)));
-        doc.on('error', reject);
+        doc.on("data", (chunk) =>
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)),
+        );
+        doc.on("end", () => resolve(Buffer.concat(chunks)));
+        doc.on("error", reject);
 
-        doc.text('OCR capability check');
+        doc.text("OCR capability check");
         doc.end();
       });
 
@@ -106,7 +107,7 @@ export class OCRService {
         documentId,
         provider: options.provider || OCRProvider.TESSERACT_JS,
         status: OCRStatus.PENDING,
-        language: options.language || 'eng',
+        language: options.language || "eng",
         autoRotate: options.autoRotate ?? true,
         enhanceImage: options.enhanceImage ?? true,
         priority: options.priority || 5,
@@ -133,11 +134,11 @@ export class OCRService {
     });
 
     if (!job) {
-      throw new BadRequestException('OCR job not found');
+      throw new BadRequestException("OCR job not found");
     }
 
     if (job.status === OCRStatus.CANCELLED) {
-      throw new BadRequestException('OCR job has been cancelled');
+      throw new BadRequestException("OCR job has been cancelled");
     }
 
     try {
@@ -149,10 +150,10 @@ export class OCRService {
         },
       });
 
-      await this.logOCRProcess(jobId, 'INFO', 'OCR processing started');
+      await this.logOCRProcess(jobId, "INFO", "OCR processing started");
 
       let result: OCRResult;
-      if (filePath.toLowerCase().endsWith('.pdf')) {
+      if (filePath.toLowerCase().endsWith(".pdf")) {
         result = await this.extractFromPDF(filePath, options);
       } else {
         switch (options.provider || job.provider || OCRProvider.TESSERACT_JS) {
@@ -160,9 +161,11 @@ export class OCRService {
             result = await this.performTesseractOCR(filePath, options);
             break;
           case OCRProvider.GOOGLE_VISION:
-            throw new BadRequestException('Google Vision API not yet implemented');
+            throw new BadRequestException(
+              "Google Vision API not yet implemented",
+            );
           case OCRProvider.AWS_TEXTRACT:
-            throw new BadRequestException('AWS Textract not yet implemented');
+            throw new BadRequestException("AWS Textract not yet implemented");
           default:
             result = await this.performTesseractOCR(filePath, options);
         }
@@ -186,7 +189,7 @@ export class OCRService {
 
       await this.logOCRProcess(
         jobId,
-        'INFO',
+        "INFO",
         `OCR completed successfully. Confidence: ${result.confidence}%`,
       );
 
@@ -214,7 +217,7 @@ export class OCRService {
         },
       });
 
-      await this.logOCRProcess(jobId, 'ERROR', `OCR failed: ${error.message}`);
+      await this.logOCRProcess(jobId, "ERROR", `OCR failed: ${error.message}`);
 
       if (this.webhookService?.notifyOCRComplete) {
         await this.webhookService.notifyOCRComplete(
@@ -234,7 +237,10 @@ export class OCRService {
   /**
    * Extract text from PDF (handles both text PDFs and scanned PDFs)
    */
-  private async extractFromPDF(filePath: string, options: OCROptions): Promise<OCRResult> {
+  private async extractFromPDF(
+    filePath: string,
+    options: OCROptions,
+  ): Promise<OCRResult> {
     try {
       const dataBuffer = await fs.readFile(filePath);
       const pdfData = await pdfParse(dataBuffer);
@@ -248,24 +254,34 @@ export class OCRService {
         };
       }
 
-      return await this.performPdfPageOCR(filePath, pdfData.numpages || 1, options);
+      return await this.performPdfPageOCR(
+        filePath,
+        pdfData.numpages || 1,
+        options,
+      );
     } catch (error) {
-      this.logger.error('PDF extraction failed, trying OCR', error);
+      this.logger.error("PDF extraction failed, trying OCR", error);
       return await this.performPdfPageOCR(filePath, 1, options);
     }
   }
 
-  private async performPdfPageOCR(filePath: string, pageCount: number, options: OCROptions): Promise<OCRResult> {
+  private async performPdfPageOCR(
+    filePath: string,
+    pageCount: number,
+    _options: OCROptions,
+  ): Promise<OCRResult> {
     await this.initializeTesseract();
 
     const safePageCount = Math.max(1, pageCount);
     const maxPages = 20;
     const pagesToProcess = Math.min(safePageCount, maxPages);
     if (safePageCount > maxPages) {
-      this.logger.warn(`PDF has ${safePageCount} pages; processing first ${maxPages} pages only`);
+      this.logger.warn(
+        `PDF has ${safePageCount} pages; processing first ${maxPages} pages only`,
+      );
     }
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mining-erp-ocr-'));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "mining-erp-ocr-"));
     const texts: string[] = [];
     let confidenceSum = 0;
     let processed = 0;
@@ -280,7 +296,7 @@ export class OCRService {
           data: { text, confidence },
         } = await this.tesseractWorker.recognize(pngBuffer);
 
-        const trimmed = (text || '').trim();
+        const trimmed = (text || "").trim();
         if (trimmed) {
           texts.push(trimmed);
         }
@@ -289,13 +305,16 @@ export class OCRService {
       }
 
       return {
-        text: texts.join('\n\n').trim(),
-        confidence: processed > 0 ? Math.round((confidenceSum / processed) * 100) / 100 : 0,
+        text: texts.join("\n\n").trim(),
+        confidence:
+          processed > 0
+            ? Math.round((confidenceSum / processed) * 100) / 100
+            : 0,
         pageCount: pagesToProcess,
         processingTime: 0,
       };
     } catch (error) {
-      this.logger.error('PDF page OCR failed', error);
+      this.logger.error("PDF page OCR failed", error);
       throw new Error(`PDF OCR processing failed: ${error.message}`);
     } finally {
       try {
@@ -334,7 +353,7 @@ export class OCRService {
         processingTime: 0, // Will be calculated by caller
       };
     } catch (error) {
-      this.logger.error('Tesseract OCR failed', error);
+      this.logger.error("Tesseract OCR failed", error);
       throw new Error(`OCR processing failed: ${error.message}`);
     }
   }
@@ -365,7 +384,7 @@ export class OCRService {
         });
       }
     } catch (error) {
-      this.logger.error('Failed to update document metadata', error);
+      this.logger.error("Failed to update document metadata", error);
     }
   }
 
@@ -387,7 +406,7 @@ export class OCRService {
   async getDocumentOCRJobs(documentId: string) {
     return this.prisma.oCRJob.findMany({
       where: { documentId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         extractedData: true,
       },
@@ -433,7 +452,7 @@ export class OCRService {
             documentId,
             provider: options.provider || OCRProvider.TESSERACT_JS,
             status: OCRStatus.PENDING,
-            language: options.language || 'eng',
+            language: options.language || "eng",
             autoRotate: options.autoRotate ?? true,
             enhanceImage: options.enhanceImage ?? true,
             priority: options.priority || 5,
@@ -443,7 +462,10 @@ export class OCRService {
 
         jobs.push({ jobId: ocrJob.id, documentId });
       } catch (error) {
-        this.logger.error(`Failed to create OCR job for document ${documentId}`, error);
+        this.logger.error(
+          `Failed to create OCR job for document ${documentId}`,
+          error,
+        );
       }
     }
 
@@ -459,11 +481,16 @@ export class OCRService {
     });
 
     if (!job) {
-      throw new BadRequestException('OCR job not found');
+      throw new BadRequestException("OCR job not found");
     }
 
-    if (job.status !== OCRStatus.PENDING && job.status !== OCRStatus.PROCESSING) {
-      throw new BadRequestException('Can only cancel pending or processing jobs');
+    if (
+      job.status !== OCRStatus.PENDING &&
+      job.status !== OCRStatus.PROCESSING
+    ) {
+      throw new BadRequestException(
+        "Can only cancel pending or processing jobs",
+      );
     }
 
     await this.prisma.oCRJob.update({
@@ -474,7 +501,7 @@ export class OCRService {
       },
     });
 
-    await this.logOCRProcess(jobId, 'INFO', `Job cancelled by user ${userId}`);
+    await this.logOCRProcess(jobId, "INFO", `Job cancelled by user ${userId}`);
   }
 
   /**
@@ -496,7 +523,7 @@ export class OCRService {
         },
       });
     } catch (error) {
-      this.logger.error('Failed to log OCR process', error);
+      this.logger.error("Failed to log OCR process", error);
     }
   }
 
@@ -505,7 +532,7 @@ export class OCRService {
    */
   async getOCRConfiguration() {
     const config = await this.prisma.oCRConfiguration.findFirst({
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
     });
 
     if (!config) {
@@ -515,7 +542,7 @@ export class OCRService {
         autoOCREnabled: false,
         autoOCRCategories: [],
         maxConcurrentJobs: 3,
-        defaultLanguage: 'eng',
+        defaultLanguage: "eng",
         confidenceThreshold: 70.0,
         autoCreateInvoice: false,
         autoCreateExpense: false,
@@ -560,7 +587,7 @@ export class OCRService {
   async onModuleDestroy() {
     if (this.tesseractWorker) {
       await this.tesseractWorker.terminate();
-      this.logger.log('Tesseract worker terminated');
+      this.logger.log("Tesseract worker terminated");
     }
   }
 }

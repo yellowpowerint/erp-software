@@ -655,12 +655,21 @@ POST   /api/csv/schedule                  // Schedule import
 // Data migration
 POST   /api/csv/backup/export             // Export full backup
 POST   /api/csv/backup/import             // Import backup
-GET    /api/csv/backup/validate           // Validate backup file
+POST   /api/csv/backup/validate           // Validate backup file
 
 // History & audit
 GET    /api/csv/audit/:jobId              // Get audit trail
 POST   /api/csv/rollback/:jobId           // Rollback import
 GET    /api/csv/stats                     // Import/export statistics
+
+// Export preview
+POST   /api/csv/export/:module/preview    // Preview export (rows + count + estimated size)
+
+// Scheduled exports
+POST   /api/csv/scheduled-exports         // Create scheduled export
+GET    /api/csv/scheduled-exports         // List scheduled exports
+POST   /api/csv/scheduled-exports/:id/active // Enable/disable schedule
+GET    /api/csv/scheduled-exports/:id/runs   // Scheduled export run history
 ```
 
 ### Scheduled Exports
@@ -671,6 +680,7 @@ model ScheduledExport {
   module      String
   filters     Json?
   columns     String[]
+  context     Json?     // Optional module context (e.g. projectId for project_tasks)
   schedule    String   // Cron expression
   recipients  String[] // Email addresses
   format      String   @default("csv")
@@ -684,6 +694,36 @@ model ScheduledExport {
   @@map("scheduled_exports")
 }
 ```
+
+### Operational Setup (Session 17.3)
+
+**Scheduled Exports Runtime:**
+- Scheduled exports run inside the backend process on a polling interval.
+- To enable/disable in production, set:
+  - `CSV_SCHEDULED_EXPORTS_ENABLED=true`
+
+**Schedule formats supported:**
+- `daily`
+- `weekly`
+- `monthly`
+- Cron expressions (validated with `cron-parser`)
+
+**SMTP (Email Delivery):**
+Set these environment variables on the backend:
+- `SMTP_HOST`
+- `SMTP_PORT` (e.g. `587`)
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM` (optional; falls back to `SMTP_USER`)
+- `SMTP_SECURE` (`true` for port 465, otherwise `false`)
+
+**Frontend Settings Pages (Session 17.3):**
+- `/settings/import-export`
+  - Roles: `SUPER_ADMIN`, `CEO`, `IT_MANAGER`
+- `/settings/data-migration`
+  - Roles: `SUPER_ADMIN`, `IT_MANAGER`
+- `/settings/scheduled-exports`
+  - Roles: `SUPER_ADMIN`, `CEO`, `CFO`, `IT_MANAGER`
 
 ## Frontend Deliverables
 
@@ -858,4 +898,4 @@ Add to Settings submenu:
 
 **Author:** Mining ERP Development Team  
 **Last Updated:** December 2025  
-**Status:** Ready for Implementation
+**Status:** Implemented (Sessions 17.1 - 17.3)

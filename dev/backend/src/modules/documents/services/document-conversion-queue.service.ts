@@ -1,18 +1,25 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { DocumentConversionService } from './document-conversion.service';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { DocumentConversionService } from "./document-conversion.service";
 
 const DocumentConversionStatus = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-  CANCELLED: 'CANCELLED',
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
 } as const;
 
 @Injectable()
-export class DocumentConversionQueueService implements OnModuleInit, OnModuleDestroy {
+export class DocumentConversionQueueService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(DocumentConversionQueueService.name);
   private processingInterval: NodeJS.Timeout | null = null;
   private processing = false;
@@ -25,12 +32,14 @@ export class DocumentConversionQueueService implements OnModuleInit, OnModuleDes
   ) {}
 
   async onModuleInit() {
-    const enabled = this.configService.get<string>('CONVERSION_WORKER_ENABLED', 'true') === 'true';
+    const enabled =
+      this.configService.get<string>("CONVERSION_WORKER_ENABLED", "true") ===
+      "true";
     if (!enabled) {
       return;
     }
 
-    this.logger.log('Document Conversion Queue Service initialized');
+    this.logger.log("Document Conversion Queue Service initialized");
     await this.recoverStuckJobs();
     this.startProcessing();
   }
@@ -57,7 +66,10 @@ export class DocumentConversionQueueService implements OnModuleInit, OnModuleDes
   }
 
   private getMaxConcurrent(): number {
-    const v = this.configService.get<string>('CONVERSION_WORKER_CONCURRENCY', '2');
+    const v = this.configService.get<string>(
+      "CONVERSION_WORKER_CONCURRENCY",
+      "2",
+    );
     const n = Number(v);
     if (!Number.isFinite(n) || n <= 0) {
       return 2;
@@ -98,16 +110,20 @@ export class DocumentConversionQueueService implements OnModuleInit, OnModuleDes
   }
 
   private async claimNextJob(): Promise<{ id: string } | null> {
-    const candidates = await (this.prisma as any).documentConversionJob.findMany({
+    const candidates = await (
+      this.prisma as any
+    ).documentConversionJob.findMany({
       where: {
         status: DocumentConversionStatus.PENDING,
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       take: 10,
     });
 
     for (const c of candidates) {
-      const updated = await (this.prisma as any).documentConversionJob.updateMany({
+      const updated = await (
+        this.prisma as any
+      ).documentConversionJob.updateMany({
         where: {
           id: c.id,
           status: DocumentConversionStatus.PENDING,
@@ -131,10 +147,14 @@ export class DocumentConversionQueueService implements OnModuleInit, OnModuleDes
 
   private async recoverStuckJobs() {
     try {
-      const minutes = Number(this.configService.get<string>('CONVERSION_WORKER_STUCK_MINUTES', '30'));
+      const minutes = Number(
+        this.configService.get<string>("CONVERSION_WORKER_STUCK_MINUTES", "30"),
+      );
       const threshold = new Date(Date.now() - Math.max(5, minutes) * 60_000);
 
-      const result = await (this.prisma as any).documentConversionJob.updateMany({
+      const result = await (
+        this.prisma as any
+      ).documentConversionJob.updateMany({
         where: {
           status: DocumentConversionStatus.PROCESSING,
           startedAt: { lt: threshold },
@@ -149,7 +169,10 @@ export class DocumentConversionQueueService implements OnModuleInit, OnModuleDes
         this.logger.warn(`Recovered ${result.count} stuck conversion jobs`);
       }
     } catch (error) {
-      this.logger.error('Failed to recover stuck conversion jobs', error as any);
+      this.logger.error(
+        "Failed to recover stuck conversion jobs",
+        error as any,
+      );
     }
   }
 }

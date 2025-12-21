@@ -1,9 +1,16 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { AuditPackagesService } from './audit-packages.service';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { AuditPackagesService } from "./audit-packages.service";
 
 @Injectable()
-export class AuditPackagesQueueService implements OnModuleInit, OnModuleDestroy {
+export class AuditPackagesQueueService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(AuditPackagesQueueService.name);
   private processingInterval: NodeJS.Timeout | null = null;
   private processing = false;
@@ -15,14 +22,16 @@ export class AuditPackagesQueueService implements OnModuleInit, OnModuleDestroy 
   ) {}
 
   async onModuleInit() {
-    const enabled = this.configService.get<string>('AUDIT_PACKAGE_WORKER_ENABLED', 'true') === 'true';
+    const enabled =
+      this.configService.get<string>("AUDIT_PACKAGE_WORKER_ENABLED", "true") ===
+      "true";
     if (!enabled) {
       return;
     }
 
     await this.recoverStuckJobs();
     this.startProcessing();
-    this.logger.log('Audit Packages Queue Service initialized');
+    this.logger.log("Audit Packages Queue Service initialized");
   }
 
   async onModuleDestroy() {
@@ -47,7 +56,10 @@ export class AuditPackagesQueueService implements OnModuleInit, OnModuleDestroy 
   }
 
   private getMaxConcurrent(): number {
-    const v = this.configService.get<string>('AUDIT_PACKAGE_WORKER_CONCURRENCY', '1');
+    const v = this.configService.get<string>(
+      "AUDIT_PACKAGE_WORKER_CONCURRENCY",
+      "1",
+    );
     const n = Number(v);
     if (!Number.isFinite(n) || n <= 0) {
       return 1;
@@ -88,11 +100,19 @@ export class AuditPackagesQueueService implements OnModuleInit, OnModuleDestroy 
   }
 
   private async recoverStuckJobs() {
-    const minutes = Number(this.configService.get<string>('AUDIT_PACKAGE_WORKER_STUCK_MINUTES', '30'));
+    const minutes = Number(
+      this.configService.get<string>(
+        "AUDIT_PACKAGE_WORKER_STUCK_MINUTES",
+        "30",
+      ),
+    );
     try {
       await this.auditPackagesService.recoverStuckJobs(minutes);
     } catch (error) {
-      this.logger.error('Failed to recover stuck audit package jobs', error as any);
+      this.logger.error(
+        "Failed to recover stuck audit package jobs",
+        error as any,
+      );
     }
   }
 

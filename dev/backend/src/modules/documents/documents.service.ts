@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { StorageService } from './services/storage.service';
-import { FileUploadService } from './services/file-upload.service';
-import { DocumentCategory, UserRole, OCRStatus } from '@prisma/client';
-import { DocumentPermissionsService } from './services/document-permissions.service';
-import { createHash } from 'crypto';
-import * as fs from 'fs/promises';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { StorageService } from "./services/storage.service";
+import { FileUploadService } from "./services/file-upload.service";
+import { DocumentCategory, UserRole, OCRStatus } from "@prisma/client";
+import { DocumentPermissionsService } from "./services/document-permissions.service";
+import { createHash } from "crypto";
+import * as fs from "fs/promises";
 
 export interface CreateDocumentDto {
   category: DocumentCategory;
@@ -49,7 +54,7 @@ export class DocumentsService {
   }
 
   private computeFileHash(buffer: Buffer): string {
-    return createHash('sha256').update(buffer).digest('hex');
+    return createHash("sha256").update(buffer).digest("hex");
   }
 
   setOCRQueueService(ocrQueueService: any) {
@@ -65,7 +70,10 @@ export class DocumentsService {
 
     const fileHash = this.computeFileHash(file.buffer);
 
-    const uploadResult = await this.storageService.uploadFile(file, createDto.module);
+    const uploadResult = await this.storageService.uploadFile(
+      file,
+      createDto.module,
+    );
 
     const document = await this.prisma.document.create({
       data: {
@@ -98,7 +106,9 @@ export class DocumentsService {
     await this.prisma.documentMetadata.create({
       data: {
         documentId: document.id,
-        pageCount: this.fileUploadService.isPdfFile(file.mimetype) ? null : null,
+        pageCount: this.fileUploadService.isPdfFile(file.mimetype)
+          ? null
+          : null,
       },
     });
 
@@ -121,28 +131,33 @@ export class DocumentsService {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     await this.checkEditPermission(document, userId, userRole);
     return true;
   }
 
-  private async triggerAutoOCR(documentId: string, category: DocumentCategory, userId: string): Promise<void> {
+  private async triggerAutoOCR(
+    documentId: string,
+    category: DocumentCategory,
+    userId: string,
+  ): Promise<void> {
     try {
       if (!this.ocrQueueService) {
         return;
       }
 
       const config = await this.prisma.oCRConfiguration.findFirst({
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updatedAt: "desc" },
       });
 
       if (!config || !config.autoOCREnabled) {
         return;
       }
 
-      const autoCategories = (config.autoOCRCategories as any as string[]) || [];
+      const autoCategories =
+        (config.autoOCRCategories as any as string[]) || [];
       if (autoCategories.length > 0 && !autoCategories.includes(category)) {
         return;
       }
@@ -152,7 +167,7 @@ export class DocumentsService {
           documentId,
           provider: config.defaultProvider,
           status: OCRStatus.PENDING,
-          language: config.defaultLanguage || 'eng',
+          language: config.defaultLanguage || "eng",
           autoRotate: true,
           enhanceImage: true,
           priority: 5,
@@ -161,13 +176,16 @@ export class DocumentsService {
       });
 
       await this.ocrQueueService.enqueueJob(ocrJob.id, documentId, userId, {
-        language: config.defaultLanguage || 'eng',
+        language: config.defaultLanguage || "eng",
         provider: config.defaultProvider,
       });
 
       this.logger.log(`Auto-OCR enqueued for document ${documentId}`);
     } catch (error) {
-      this.logger.error(`Failed to trigger auto-OCR for document ${documentId}:`, error);
+      this.logger.error(
+        `Failed to trigger auto-OCR for document ${documentId}:`,
+        error,
+      );
     }
   }
 
@@ -178,8 +196,8 @@ export class DocumentsService {
   ) {
     this.fileUploadService.validateMultipleFiles(files);
 
-    const uploadPromises = files.map(file => 
-      this.uploadDocument(file, createDto, userId)
+    const uploadPromises = files.map((file) =>
+      this.uploadDocument(file, createDto, userId),
     );
 
     const documents = await Promise.all(uploadPromises);
@@ -189,7 +207,11 @@ export class DocumentsService {
     return documents;
   }
 
-  async findAll(filters: DocumentSearchFilters = {}, userId: string, userRole: UserRole) {
+  async findAll(
+    filters: DocumentSearchFilters = {},
+    userId: string,
+    userRole: UserRole,
+  ) {
     const where: any = {};
     const baseConditions: any = {};
 
@@ -231,9 +253,9 @@ export class DocumentsService {
     const searchConditions: any[] = [];
     if (filters.search) {
       searchConditions.push(
-        { originalName: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { tags: { hasSome: [filters.search] } }
+        { originalName: { contains: filters.search, mode: "insensitive" } },
+        { description: { contains: filters.search, mode: "insensitive" } },
+        { tags: { hasSome: [filters.search] } },
       );
     }
 
@@ -250,14 +272,17 @@ export class DocumentsService {
         select: { department: true },
       });
 
-      const categoryDefaults = await this.prismaAny().documentCategoryPermission.findMany({
-        where: {
-          role: userRole,
-          canView: true,
-        },
-        select: { category: true },
-      });
-      const categoryDefaultSet = new Set<string>(categoryDefaults.map((c: any) => String(c.category)));
+      const categoryDefaults =
+        await this.prismaAny().documentCategoryPermission.findMany({
+          where: {
+            role: userRole,
+            canView: true,
+          },
+          select: { category: true },
+        });
+      const categoryDefaultSet = new Set<string>(
+        categoryDefaults.map((c: any) => String(c.category)),
+      );
 
       // Non-admin: must be owner OR have view permission
       const permissionConditions = [
@@ -297,14 +322,16 @@ export class DocumentsService {
             },
           },
         },
-        categoryDefaultSet.size > 0 ? { category: { in: Array.from(categoryDefaultSet) } } : null,
+        categoryDefaultSet.size > 0
+          ? { category: { in: Array.from(categoryDefaultSet) } }
+          : null,
       ];
 
       const filteredPermissionConditions = permissionConditions.filter(Boolean);
 
       // Combine: (base filters) AND (owner OR permission) AND (search if present)
       Object.assign(where, baseConditions);
-      
+
       if (searchConditions.length > 0) {
         // Must satisfy: permission AND search
         where.AND = [
@@ -332,7 +359,7 @@ export class DocumentsService {
         permissions: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
@@ -365,14 +392,14 @@ export class DocumentsService {
             },
           },
           orderBy: {
-            versionNumber: 'desc',
+            versionNumber: "desc",
           },
         },
       },
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     // Check permissions
@@ -381,7 +408,12 @@ export class DocumentsService {
     return document;
   }
 
-  async update(id: string, updateDto: UpdateDocumentDto, userId: string, userRole: UserRole) {
+  async update(
+    id: string,
+    updateDto: UpdateDocumentDto,
+    userId: string,
+    userRole: UserRole,
+  ) {
     const document = await this.findOne(id, userId, userRole);
 
     // Check edit permission
@@ -421,7 +453,9 @@ export class DocumentsService {
     // Delete file from storage
     await this.storageService.deleteFile(
       document.fileName,
-      document.fileUrl.includes('s3.amazonaws.com') ? 's3' as any : 'local' as any,
+      document.fileUrl.includes("s3.amazonaws.com")
+        ? ("s3" as any)
+        : ("local" as any),
     );
 
     // Delete document and related records (cascade)
@@ -431,22 +465,30 @@ export class DocumentsService {
 
     this.logger.log(`Document deleted: ${id} by user ${userId}`);
 
-    return { message: 'Document deleted successfully' };
+    return { message: "Document deleted successfully" };
   }
 
   async getDownloadUrl(id: string, userId: string, userRole: UserRole) {
     const document = await this.findOne(id, userId, userRole);
 
-    await this.documentPermissionsService.assertHasPermission(id, userId, 'download');
+    await this.documentPermissionsService.assertHasPermission(
+      id,
+      userId,
+      "download",
+    );
 
     if (userRole !== UserRole.SUPER_ADMIN && document.uploadedById !== userId) {
       const share = await this.getActiveShareForUser(id, userId);
       if (share && !share.canDownload) {
-        throw new ForbiddenException('You do not have permission to download this shared document');
+        throw new ForbiddenException(
+          "You do not have permission to download this shared document",
+        );
       }
     }
 
-    const provider = document.fileUrl.includes('s3.amazonaws.com') ? 's3' : 'local';
+    const provider = document.fileUrl.includes("s3.amazonaws.com")
+      ? "s3"
+      : "local";
     const url = await this.storageService.getSignedDownloadUrl(
       document.fileName,
       provider as any,
@@ -460,11 +502,20 @@ export class DocumentsService {
     return this.findAll({ search: query }, userId, userRole);
   }
 
-  async getDocumentsByModule(module: string, referenceId: string, userId: string, userRole: UserRole) {
+  async getDocumentsByModule(
+    module: string,
+    referenceId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
     return this.findAll({ module, referenceId }, userId, userRole);
   }
 
-  async getRecentDocuments(userId: string, userRole: UserRole, limit: number = 10) {
+  async getRecentDocuments(
+    userId: string,
+    userRole: UserRole,
+    limit: number = 10,
+  ) {
     const documents = await this.findAll({}, userId, userRole);
     return documents.slice(0, limit);
   }
@@ -486,7 +537,7 @@ export class DocumentsService {
         metadata: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }
@@ -495,10 +546,13 @@ export class DocumentsService {
     const documents = await this.findAll({}, userId, userRole);
 
     const totalSize = documents.reduce((sum, doc) => sum + doc.fileSize, 0);
-    const categoryCounts = documents.reduce((acc, doc) => {
-      acc[doc.category] = (acc[doc.category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const categoryCounts = documents.reduce(
+      (acc, doc) => {
+        acc[doc.category] = (acc[doc.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalDocuments: documents.length,
@@ -512,24 +566,30 @@ export class DocumentsService {
   async getStorageUsage(userId: string, userRole: UserRole) {
     const documents = await this.findAll({}, userId, userRole);
 
-    const byModule = documents.reduce((acc, doc) => {
-      if (!acc[doc.module]) {
-        acc[doc.module] = { count: 0, size: 0 };
-      }
-      acc[doc.module].count++;
-      acc[doc.module].size += doc.fileSize;
-      return acc;
-    }, {} as Record<string, { count: number; size: number }>);
+    const byModule = documents.reduce(
+      (acc, doc) => {
+        if (!acc[doc.module]) {
+          acc[doc.module] = { count: 0, size: 0 };
+        }
+        acc[doc.module].count++;
+        acc[doc.module].size += doc.fileSize;
+        return acc;
+      },
+      {} as Record<string, { count: number; size: number }>,
+    );
 
-    const byUser = documents.reduce((acc, doc) => {
-      const userName = `${doc.uploadedBy.firstName} ${doc.uploadedBy.lastName}`;
-      if (!acc[userName]) {
-        acc[userName] = { count: 0, size: 0, userId: doc.uploadedById };
-      }
-      acc[userName].count++;
-      acc[userName].size += doc.fileSize;
-      return acc;
-    }, {} as Record<string, { count: number; size: number; userId: string }>);
+    const byUser = documents.reduce(
+      (acc, doc) => {
+        const userName = `${doc.uploadedBy.firstName} ${doc.uploadedBy.lastName}`;
+        if (!acc[userName]) {
+          acc[userName] = { count: 0, size: 0, userId: doc.uploadedById };
+        }
+        acc[userName].count++;
+        acc[userName].size += doc.fileSize;
+        return acc;
+      },
+      {} as Record<string, { count: number; size: number; userId: string }>,
+    );
 
     const totalSize = documents.reduce((sum, doc) => sum + doc.fileSize, 0);
 
@@ -555,17 +615,24 @@ export class DocumentsService {
       } catch (error: any) {
         results.failed.push({
           id,
-          error: error.message || 'Failed to delete document',
+          error: error.message || "Failed to delete document",
         });
       }
     }
 
-    this.logger.log(`Batch delete: ${results.deleted.length} deleted, ${results.failed.length} failed by user ${userId}`);
+    this.logger.log(
+      `Batch delete: ${results.deleted.length} deleted, ${results.failed.length} failed by user ${userId}`,
+    );
 
     return results;
   }
 
-  async batchAddTags(documentIds: string[], tags: string[], userId: string, userRole: UserRole) {
+  async batchAddTags(
+    documentIds: string[],
+    tags: string[],
+    userId: string,
+    userRole: UserRole,
+  ) {
     const results = {
       updated: [] as string[],
       failed: [] as { id: string; error: string }[],
@@ -588,46 +655,74 @@ export class DocumentsService {
       } catch (error: any) {
         results.failed.push({
           id,
-          error: error.message || 'Failed to update tags',
+          error: error.message || "Failed to update tags",
         });
       }
     }
 
-    this.logger.log(`Batch tag: ${results.updated.length} updated, ${results.failed.length} failed by user ${userId}`);
+    this.logger.log(
+      `Batch tag: ${results.updated.length} updated, ${results.failed.length} failed by user ${userId}`,
+    );
 
     return results;
   }
 
-  async getDocumentsForDownload(documentIds: string[], userId: string, userRole: UserRole) {
+  async getDocumentsForDownload(
+    documentIds: string[],
+    userId: string,
+    userRole: UserRole,
+  ) {
     const documents = [];
 
     for (const id of documentIds) {
       try {
         const document = await this.findOne(id, userId, userRole);
-        await this.documentPermissionsService.assertHasPermission(id, userId, 'download');
+        await this.documentPermissionsService.assertHasPermission(
+          id,
+          userId,
+          "download",
+        );
         documents.push(document);
       } catch (error) {
-        this.logger.warn(`Failed to fetch document ${id} for download: ${error.message}`);
+        this.logger.warn(
+          `Failed to fetch document ${id} for download: ${error.message}`,
+        );
       }
     }
 
     return documents;
   }
 
-  private async checkViewPermission(document: any, userId: string, userRole: UserRole) {
+  private async checkViewPermission(
+    document: any,
+    userId: string,
+    userRole: UserRole,
+  ) {
     if (userRole === UserRole.SUPER_ADMIN || document.uploadedById === userId) {
       return;
     }
 
-    await this.documentPermissionsService.assertHasPermission(document.id, userId, 'view');
+    await this.documentPermissionsService.assertHasPermission(
+      document.id,
+      userId,
+      "view",
+    );
   }
 
-  private async checkEditPermission(document: any, userId: string, userRole: UserRole) {
+  private async checkEditPermission(
+    document: any,
+    userId: string,
+    userRole: UserRole,
+  ) {
     if (userRole === UserRole.SUPER_ADMIN || document.uploadedById === userId) {
       return;
     }
 
-    await this.documentPermissionsService.assertHasPermission(document.id, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      document.id,
+      userId,
+      "edit",
+    );
   }
 
   private async getActiveShareForUser(documentId: string, userId: string) {
@@ -641,17 +736,29 @@ export class DocumentsService {
     });
   }
 
-  private async checkDeletePermission(document: any, userId: string, userRole: UserRole) {
+  private async checkDeletePermission(
+    document: any,
+    userId: string,
+    userRole: UserRole,
+  ) {
     if (userRole === UserRole.SUPER_ADMIN || document.uploadedById === userId) {
       return;
     }
 
-    await this.documentPermissionsService.assertHasPermission(document.id, userId, 'delete');
+    await this.documentPermissionsService.assertHasPermission(
+      document.id,
+      userId,
+      "delete",
+    );
   }
 
   // ===== Version Management Methods (Phase 15.3) =====
 
-  async getVersionHistory(documentId: string, userId: string, userRole: UserRole) {
+  async getVersionHistory(
+    documentId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: {
@@ -685,13 +792,18 @@ export class DocumentsService {
           },
         },
       },
-      orderBy: { versionNumber: 'desc' },
+      orderBy: { versionNumber: "desc" },
     });
 
     return versions;
   }
 
-  async getSpecificVersion(documentId: string, versionNumber: number, userId: string, userRole: UserRole) {
+  async getSpecificVersion(
+    documentId: string,
+    versionNumber: number,
+    userId: string,
+    userRole: UserRole,
+  ) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { permissions: true },
@@ -723,7 +835,9 @@ export class DocumentsService {
     });
 
     if (!version) {
-      throw new NotFoundException(`Version ${versionNumber} not found for document ${documentId}`);
+      throw new NotFoundException(
+        `Version ${versionNumber} not found for document ${documentId}`,
+      );
     }
 
     return version;
@@ -752,7 +866,10 @@ export class DocumentsService {
     const fileHash = this.computeFileHash(file.buffer);
 
     // Upload new file
-    const uploadResult = await this.storageService.uploadFile(file, document.module);
+    const uploadResult = await this.storageService.uploadFile(
+      file,
+      document.module,
+    );
 
     // Create version record for the current document state
     await this.prisma.documentVersion.create({
@@ -763,7 +880,7 @@ export class DocumentsService {
         fileUrl: document.fileUrl,
         fileSize: document.fileSize,
         uploadedById: document.uploadedById,
-        changeNotes: 'Previous version archived',
+        changeNotes: "Previous version archived",
       },
     });
 
@@ -800,12 +917,14 @@ export class DocumentsService {
               },
             },
           },
-          orderBy: { versionNumber: 'desc' },
+          orderBy: { versionNumber: "desc" },
         },
       },
     });
 
-    this.logger.log(`New version ${updatedDocument.version} uploaded for document ${documentId} by user ${userId}`);
+    this.logger.log(
+      `New version ${updatedDocument.version} uploaded for document ${documentId} by user ${userId}`,
+    );
 
     return updatedDocument;
   }
@@ -837,12 +956,16 @@ export class DocumentsService {
     });
 
     if (!versionToRestore) {
-      throw new NotFoundException(`Version ${versionNumber} not found for document ${documentId}`);
+      throw new NotFoundException(
+        `Version ${versionNumber} not found for document ${documentId}`,
+      );
     }
 
     let restoredFileHash: string | null = null;
     try {
-      const localPath = await this.storageService.getLocalPath(versionToRestore.fileUrl);
+      const localPath = await this.storageService.getLocalPath(
+        versionToRestore.fileUrl,
+      );
       if (localPath) {
         const buffer = await fs.readFile(localPath);
         restoredFileHash = this.computeFileHash(buffer);
@@ -895,12 +1018,14 @@ export class DocumentsService {
               },
             },
           },
-          orderBy: { versionNumber: 'desc' },
+          orderBy: { versionNumber: "desc" },
         },
       },
     });
 
-    this.logger.log(`Version ${versionNumber} restored for document ${documentId} by user ${userId}`);
+    this.logger.log(
+      `Version ${versionNumber} restored for document ${documentId} by user ${userId}`,
+    );
 
     return restoredDocument;
   }

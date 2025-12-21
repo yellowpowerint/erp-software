@@ -3,25 +3,26 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { StorageService } from './storage.service';
-import { DocumentPermissionsService } from './document-permissions.service';
-import { SecurityService } from './security.service';
-import { PdfManipulatorService } from './pdf-manipulator.service';
-import { createHash } from 'crypto';
-import * as fs from 'fs/promises';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { StorageService } from "./storage.service";
+import { DocumentPermissionsService } from "./document-permissions.service";
+import { SecurityService } from "./security.service";
+import { PdfManipulatorService } from "./pdf-manipulator.service";
+import { createHash } from "crypto";
+import * as fs from "fs/promises";
 
 const DocumentFinalizeStatus = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-  CANCELLED: 'CANCELLED',
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
 } as const;
 
-type DocumentFinalizeStatus = (typeof DocumentFinalizeStatus)[keyof typeof DocumentFinalizeStatus];
+type DocumentFinalizeStatus =
+  (typeof DocumentFinalizeStatus)[keyof typeof DocumentFinalizeStatus];
 
 export type FinalizeJobOptions = {
   fileName?: string;
@@ -33,7 +34,13 @@ export type FinalizeJobOptions = {
     sharpen?: boolean;
     normalize?: boolean;
   };
-  redactions?: Array<{ page: number; x: number; y: number; width: number; height: number }>;
+  redactions?: Array<{
+    page: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
   security?: {
     hasWatermark?: boolean;
     watermarkText?: string;
@@ -58,23 +65,33 @@ export class DocumentFinalizeService {
   ) {}
 
   private computeFileHash(buffer: Buffer): string {
-    return createHash('sha256').update(buffer).digest('hex');
+    return createHash("sha256").update(buffer).digest("hex");
   }
 
   private sanitizeFilename(name: string) {
-    return (name || '').replace(/[^\w.-]/g, '_');
+    return (name || "").replace(/[^\w.-]/g, "_");
   }
 
-  async startFinalize(documentId: string, userId: string, options: FinalizeJobOptions) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'edit');
+  async startFinalize(
+    documentId: string,
+    userId: string,
+    options: FinalizeJobOptions,
+  ) {
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "edit",
+    );
 
-    const doc = await this.prisma.document.findUnique({ where: { id: documentId } });
+    const doc = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
     if (!doc) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
-    if (doc.mimeType !== 'application/pdf') {
-      throw new BadRequestException('Only PDF documents can be finalized');
+    if (doc.mimeType !== "application/pdf") {
+      throw new BadRequestException("Only PDF documents can be finalized");
     }
 
     const job = await (this.prisma as any).documentFinalizeJob.create({
@@ -90,35 +107,56 @@ export class DocumentFinalizeService {
   }
 
   async getJob(jobId: string, userId: string) {
-    const job = await (this.prisma as any).documentFinalizeJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).documentFinalizeJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
-      throw new NotFoundException('Finalize job not found');
+      throw new NotFoundException("Finalize job not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(job.documentId, userId, 'view');
+    await this.documentPermissionsService.assertHasPermission(
+      job.documentId,
+      userId,
+      "view",
+    );
     return job;
   }
 
   async listDocumentJobs(documentId: string, userId: string) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'view');
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "view",
+    );
 
     return (this.prisma as any).documentFinalizeJob.findMany({
       where: { documentId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
   }
 
   async cancelJob(jobId: string, userId: string) {
-    const job = await (this.prisma as any).documentFinalizeJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).documentFinalizeJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
-      throw new NotFoundException('Finalize job not found');
+      throw new NotFoundException("Finalize job not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(job.documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      job.documentId,
+      userId,
+      "edit",
+    );
 
-    if (job.status !== DocumentFinalizeStatus.PENDING && job.status !== DocumentFinalizeStatus.PROCESSING) {
-      throw new BadRequestException('Only pending or processing jobs can be cancelled');
+    if (
+      job.status !== DocumentFinalizeStatus.PENDING &&
+      job.status !== DocumentFinalizeStatus.PROCESSING
+    ) {
+      throw new BadRequestException(
+        "Only pending or processing jobs can be cancelled",
+      );
     }
 
     await (this.prisma as any).documentFinalizeJob.update({
@@ -137,24 +175,26 @@ export class DocumentFinalizeService {
       where: {
         status: DocumentFinalizeStatus.PENDING,
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       take: 10,
     });
 
     for (const c of candidates) {
-      const updated = await (this.prisma as any).documentFinalizeJob.updateMany({
-        where: {
-          id: c.id,
-          status: DocumentFinalizeStatus.PENDING,
-          attempts: { lt: c.maxAttempts },
+      const updated = await (this.prisma as any).documentFinalizeJob.updateMany(
+        {
+          where: {
+            id: c.id,
+            status: DocumentFinalizeStatus.PENDING,
+            attempts: { lt: c.maxAttempts },
+          },
+          data: {
+            status: DocumentFinalizeStatus.PROCESSING,
+            startedAt: new Date(),
+            attempts: { increment: 1 },
+            errorMessage: null,
+          },
         },
-        data: {
-          status: DocumentFinalizeStatus.PROCESSING,
-          startedAt: new Date(),
-          attempts: { increment: 1 },
-          errorMessage: null,
-        },
-      });
+      );
 
       if (updated?.count === 1) {
         return { id: c.id };
@@ -182,7 +222,9 @@ export class DocumentFinalizeService {
   async processJob(jobId: string): Promise<void> {
     const startTime = Date.now();
 
-    const job = await (this.prisma as any).documentFinalizeJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).documentFinalizeJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
       return;
     }
@@ -191,25 +233,27 @@ export class DocumentFinalizeService {
       return;
     }
 
-    const document = await this.prisma.document.findUnique({ where: { id: job.documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: job.documentId },
+    });
     if (!document) {
       await (this.prisma as any).documentFinalizeJob.update({
         where: { id: jobId },
         data: {
           status: DocumentFinalizeStatus.FAILED,
-          errorMessage: 'Document not found',
+          errorMessage: "Document not found",
           completedAt: new Date(),
         },
       });
       return;
     }
 
-    if (document.mimeType !== 'application/pdf') {
+    if (document.mimeType !== "application/pdf") {
       await (this.prisma as any).documentFinalizeJob.update({
         where: { id: jobId },
         data: {
           status: DocumentFinalizeStatus.FAILED,
-          errorMessage: 'Only PDF documents can be finalized',
+          errorMessage: "Only PDF documents can be finalized",
           completedAt: new Date(),
         },
       });
@@ -224,7 +268,7 @@ export class DocumentFinalizeService {
         where: { id: jobId },
         data: {
           status: DocumentFinalizeStatus.FAILED,
-          errorMessage: 'Document file not accessible',
+          errorMessage: "Document file not accessible",
           completedAt: new Date(),
         },
       });
@@ -239,10 +283,16 @@ export class DocumentFinalizeService {
       let outputBuffer = inputBuffer;
 
       const cleanup = options.cleanup || {};
-      const redactions = Array.isArray(options.redactions) ? options.redactions : [];
+      const redactions = Array.isArray(options.redactions)
+        ? options.redactions
+        : [];
 
-      const density = Number.isFinite(cleanup.density) ? (cleanup.density as number) : 200;
-      const jpegQuality = Number.isFinite(cleanup.jpegQuality) ? (cleanup.jpegQuality as number) : 75;
+      const density = Number.isFinite(cleanup.density)
+        ? (cleanup.density as number)
+        : 200;
+      const jpegQuality = Number.isFinite(cleanup.jpegQuality)
+        ? (cleanup.jpegQuality as number)
+        : 75;
 
       if (redactions.length > 0) {
         outputBuffer = Buffer.from(
@@ -270,7 +320,8 @@ export class DocumentFinalizeService {
       }
 
       const security = options.security || {};
-      const watermarkText = (security.hasWatermark ? security.watermarkText : '') || '';
+      const watermarkText =
+        (security.hasWatermark ? security.watermarkText : "") || "";
 
       if (watermarkText.trim()) {
         outputBuffer = Buffer.from(
@@ -286,7 +337,7 @@ export class DocumentFinalizeService {
       const upload = await this.storageService.uploadBuffer(
         outputBuffer,
         outputFileName,
-        'application/pdf',
+        "application/pdf",
         document.module,
       );
 
@@ -300,7 +351,7 @@ export class DocumentFinalizeService {
           fileUrl: document.fileUrl,
           fileSize: document.fileSize,
           uploadedById: document.uploadedById,
-          changeNotes: 'Previous version archived',
+          changeNotes: "Previous version archived",
         },
       });
 
@@ -312,7 +363,7 @@ export class DocumentFinalizeService {
           fileName: upload.key,
           originalName: outputFileName,
           fileSize: outputBuffer.length,
-          mimeType: 'application/pdf',
+          mimeType: "application/pdf",
           fileUrl: upload.url,
           fileHash: outputFileHash,
           version: newVersion,
@@ -320,16 +371,18 @@ export class DocumentFinalizeService {
         },
       });
 
-      const latestSeal = await (this.prisma as any).documentIntegritySeal.findFirst({
+      const latestSeal = await (
+        this.prisma as any
+      ).documentIntegritySeal.findFirst({
         where: { documentId: document.id },
-        orderBy: { versionNumber: 'desc' },
+        orderBy: { versionNumber: "desc" },
       });
 
       const seal = await (this.prisma as any).documentIntegritySeal.create({
         data: {
           documentId: document.id,
           versionNumber: newVersion,
-          algorithm: 'sha256',
+          algorithm: "sha256",
           hash: outputFileHash,
           previousHash: latestSeal?.hash || null,
           metadata: {
@@ -344,14 +397,18 @@ export class DocumentFinalizeService {
         },
       });
 
-      await this.securityService.setDocumentSecurity(document.id, job.createdById, {
-        hasWatermark: !!security.hasWatermark,
-        watermarkText: security.watermarkText,
-        allowPrint: security.allowPrint,
-        allowCopy: security.allowCopy,
-        isPasswordProtected: security.isPasswordProtected,
-        password: security.password,
-      });
+      await this.securityService.setDocumentSecurity(
+        document.id,
+        job.createdById,
+        {
+          hasWatermark: !!security.hasWatermark,
+          watermarkText: security.watermarkText,
+          allowPrint: security.allowPrint,
+          allowCopy: security.allowCopy,
+          isPasswordProtected: security.isPasswordProtected,
+          password: security.password,
+        },
+      );
 
       await (this.prisma as any).documentFinalizeJob.update({
         where: { id: jobId },
@@ -367,9 +424,13 @@ export class DocumentFinalizeService {
         },
       });
 
-      this.logger.log(`Finalize completed for document ${document.id} (job ${jobId})`);
+      this.logger.log(
+        `Finalize completed for document ${document.id} (job ${jobId})`,
+      );
     } catch (error: any) {
-      const latestJob = await (this.prisma as any).documentFinalizeJob.findUnique({ where: { id: jobId } });
+      const latestJob = await (
+        this.prisma as any
+      ).documentFinalizeJob.findUnique({ where: { id: jobId } });
       const attempts = latestJob?.attempts ?? job.attempts ?? 0;
       const maxAttempts = latestJob?.maxAttempts ?? job.maxAttempts ?? 3;
       const shouldRetry = attempts < maxAttempts;
@@ -377,14 +438,18 @@ export class DocumentFinalizeService {
       await (this.prisma as any).documentFinalizeJob.update({
         where: { id: jobId },
         data: {
-          status: shouldRetry ? DocumentFinalizeStatus.PENDING : DocumentFinalizeStatus.FAILED,
-          errorMessage: error?.message || 'Finalize failed',
+          status: shouldRetry
+            ? DocumentFinalizeStatus.PENDING
+            : DocumentFinalizeStatus.FAILED,
+          errorMessage: error?.message || "Finalize failed",
           completedAt: shouldRetry ? null : new Date(),
         },
       });
 
       if (!shouldRetry) {
-        this.logger.error(`Finalize failed for job ${jobId}: ${error?.message || error}`);
+        this.logger.error(
+          `Finalize failed for job ${jobId}: ${error?.message || error}`,
+        );
       }
 
       throw error;

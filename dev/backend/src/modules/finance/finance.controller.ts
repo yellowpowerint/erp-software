@@ -322,9 +322,17 @@ export class FinanceController {
       throw new BadRequestException("file is required");
     }
 
-    const mappings = body.mappings ? this.csvService.parseJson(body.mappings, "mappings") : undefined;
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
     const context = { duplicateStrategy: body.duplicateStrategy };
-    const job = await this.csvService.createImportJob("suppliers", file, req.user.userId, mappings, context);
+    const job = await this.csvService.createImportJob(
+      "suppliers",
+      file,
+      req.user.userId,
+      mappings,
+      context,
+    );
     return { success: true, data: job };
   }
 
@@ -333,7 +341,10 @@ export class FinanceController {
   async downloadSuppliersSample(@Res({ passthrough: true }) res: Response) {
     const template = await this.csvService.getSampleTemplate("suppliers");
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=suppliers-sample.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=suppliers-sample.csv`,
+    );
     return template;
   }
 
@@ -370,7 +381,13 @@ export class FinanceController {
     }
     if (category) filters.category = category;
 
-    const job = await this.csvService.createExportJob("suppliers", filters, cols, req.user.userId, undefined);
+    const job = await this.csvService.createExportJob(
+      "suppliers",
+      filters,
+      cols,
+      req.user.userId,
+      undefined,
+    );
     return { success: true, data: job };
   }
 
@@ -396,7 +413,10 @@ export class FinanceController {
       if (endDate) where.paymentDate.lte = new Date(endDate);
     }
 
-    const rows = await this.prisma.financePayment.findMany({ where, orderBy: { paymentDate: "desc" } });
+    const rows = await this.prisma.financePayment.findMany({
+      where,
+      orderBy: { paymentDate: "desc" },
+    });
     const fields = [
       "paymentNumber",
       "supplierId",
@@ -416,7 +436,10 @@ export class FinanceController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=payments-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=payments-export.csv`,
+    );
     return csv;
   }
 
@@ -435,7 +458,10 @@ export class FinanceController {
     if (projectId) where.projectId = projectId;
     if (submittedById) where.submittedById = submittedById;
 
-    const rows = await this.prisma.expense.findMany({ where, orderBy: { expenseDate: "desc" } });
+    const rows = await this.prisma.expense.findMany({
+      where,
+      orderBy: { expenseDate: "desc" },
+    });
     const fields = [
       "expenseNumber",
       "category",
@@ -454,7 +480,10 @@ export class FinanceController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=expenses-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=expenses-export.csv`,
+    );
     return csv;
   }
 
@@ -474,7 +503,10 @@ export class FinanceController {
       if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    const rows = await this.prisma.invoice.findMany({ where, orderBy: { createdAt: "desc" } });
+    const rows = await this.prisma.invoice.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
     const fields = [
       "invoiceNumber",
       "supplierName",
@@ -492,7 +524,10 @@ export class FinanceController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=invoices-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=invoices-export.csv`,
+    );
     return csv;
   }
 }

@@ -3,22 +3,23 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { StorageService } from './storage.service';
-import { DocumentPermissionsService } from './document-permissions.service';
-import { SignatureService } from './signature.service';
-import { createHash } from 'crypto';
-import * as fs from 'fs/promises';
-import { PDFDocument } from 'pdf-lib';
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { StorageService } from "./storage.service";
+import { DocumentPermissionsService } from "./document-permissions.service";
+import { SignatureService } from "./signature.service";
+import { createHash } from "crypto";
+import * as fs from "fs/promises";
+import { PDFDocument } from "pdf-lib";
 
 const DocumentFormDraftStatus = {
-  DRAFT: 'DRAFT',
-  FINALIZED: 'FINALIZED',
-  CANCELLED: 'CANCELLED',
+  DRAFT: "DRAFT",
+  FINALIZED: "FINALIZED",
+  CANCELLED: "CANCELLED",
 } as const;
 
-type DocumentFormDraftStatus = (typeof DocumentFormDraftStatus)[keyof typeof DocumentFormDraftStatus];
+type DocumentFormDraftStatus =
+  (typeof DocumentFormDraftStatus)[keyof typeof DocumentFormDraftStatus];
 
 type FormFieldSchema = {
   name: string;
@@ -47,13 +48,15 @@ export class DocumentFormsService {
   ) {}
 
   private computeFileHash(buffer: Buffer): string {
-    return createHash('sha256').update(buffer).digest('hex');
+    return createHash("sha256").update(buffer).digest("hex");
   }
 
-  private async readDocumentPdfBuffer(document: any): Promise<{ buffer: Buffer; tempPath?: string }> {
+  private async readDocumentPdfBuffer(
+    document: any,
+  ): Promise<{ buffer: Buffer; tempPath?: string }> {
     const tempPath = await this.storageService.getLocalPath(document.fileUrl);
     if (!tempPath) {
-      throw new BadRequestException('Document file not accessible');
+      throw new BadRequestException("Document file not accessible");
     }
 
     const isTemp = /[\\/]temp[\\/]/.test(tempPath);
@@ -69,8 +72,10 @@ export class DocumentFormsService {
   }
 
   private ensurePdf(document: any) {
-    if (document.mimeType !== 'application/pdf') {
-      throw new BadRequestException('This feature is only available for PDF documents');
+    if (document.mimeType !== "application/pdf") {
+      throw new BadRequestException(
+        "This feature is only available for PDF documents",
+      );
     }
   }
 
@@ -80,15 +85,15 @@ export class DocumentFormsService {
 
     const schema: FormFieldSchema[] = fields
       .map((f) => {
-        const type = (f as any).constructor?.name || 'Unknown';
+        const type = (f as any).constructor?.name || "Unknown";
         const name = f.getName();
 
-        if (type === 'PDFDropdown' || type === 'PDFOptionList') {
+        if (type === "PDFDropdown" || type === "PDFOptionList") {
           const options = (f as any).getOptions ? (f as any).getOptions() : [];
           return { name, type, options };
         }
 
-        if (type === 'PDFRadioGroup') {
+        if (type === "PDFRadioGroup") {
           const options = (f as any).getOptions ? (f as any).getOptions() : [];
           return { name, type, options };
         }
@@ -101,23 +106,31 @@ export class DocumentFormsService {
   }
 
   async createOrGetTemplate(documentId: string, userId: string) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'view');
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "view",
+    );
 
-    const document = await this.prisma.document.findUnique({ where: { id: documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     this.ensurePdf(document);
 
-    const existing = await (this.prisma as any).documentFormTemplate.findUnique({
-      where: {
-        documentId_documentVersion: {
-          documentId,
-          documentVersion: document.version,
+    const existing = await (this.prisma as any).documentFormTemplate.findUnique(
+      {
+        where: {
+          documentId_documentVersion: {
+            documentId,
+            documentVersion: document.version,
+          },
         },
       },
-    });
+    );
 
     if (existing) {
       return existing;
@@ -149,7 +162,7 @@ export class DocumentFormsService {
 
   async listTemplates(userId: string) {
     const templates = await (this.prisma as any).documentFormTemplate.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 200,
       include: {
         document: {
@@ -165,7 +178,11 @@ export class DocumentFormsService {
     const filtered = await Promise.all(
       templates.map(async (t: any) => {
         try {
-          await this.documentPermissionsService.assertHasPermission(t.documentId, userId, 'view');
+          await this.documentPermissionsService.assertHasPermission(
+            t.documentId,
+            userId,
+            "view",
+          );
           return t;
         } catch {
           return null;
@@ -177,43 +194,69 @@ export class DocumentFormsService {
   }
 
   async getTemplate(templateId: string, userId: string) {
-    const template = await (this.prisma as any).documentFormTemplate.findUnique({ where: { id: templateId } });
+    const template = await (this.prisma as any).documentFormTemplate.findUnique(
+      { where: { id: templateId } },
+    );
     if (!template) {
-      throw new NotFoundException('Template not found');
+      throw new NotFoundException("Template not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(template.documentId, userId, 'view');
+    await this.documentPermissionsService.assertHasPermission(
+      template.documentId,
+      userId,
+      "view",
+    );
     return template;
   }
 
   async deleteTemplate(templateId: string, userId: string) {
-    const template = await (this.prisma as any).documentFormTemplate.findUnique({ where: { id: templateId } });
+    const template = await (this.prisma as any).documentFormTemplate.findUnique(
+      { where: { id: templateId } },
+    );
     if (!template) {
-      throw new NotFoundException('Template not found');
+      throw new NotFoundException("Template not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(template.documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      template.documentId,
+      userId,
+      "edit",
+    );
 
-    await (this.prisma as any).documentFormTemplate.delete({ where: { id: templateId } });
+    await (this.prisma as any).documentFormTemplate.delete({
+      where: { id: templateId },
+    });
     return { success: true };
   }
 
-  async createDraft(documentId: string, userId: string, params: { templateId?: string }) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'edit');
+  async createDraft(
+    documentId: string,
+    userId: string,
+    params: { templateId?: string },
+  ) {
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "edit",
+    );
 
-    const document = await this.prisma.document.findUnique({ where: { id: documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     this.ensurePdf(document);
 
-    let templateId: string | undefined = params.templateId;
+    const templateId: string | undefined = params.templateId;
 
     if (templateId) {
-      const template = await (this.prisma as any).documentFormTemplate.findUnique({ where: { id: templateId } });
+      const template = await (
+        this.prisma as any
+      ).documentFormTemplate.findUnique({ where: { id: templateId } });
       if (!template || template.documentId !== documentId) {
-        throw new BadRequestException('Invalid template');
+        throw new BadRequestException("Invalid template");
       }
     }
 
@@ -231,22 +274,32 @@ export class DocumentFormsService {
   }
 
   async listDrafts(documentId: string, userId: string) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "edit",
+    );
 
     return (this.prisma as any).documentFormDraft.findMany({
       where: { documentId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
   }
 
   async getDraft(draftId: string, userId: string) {
-    const draft = await (this.prisma as any).documentFormDraft.findUnique({ where: { id: draftId } });
+    const draft = await (this.prisma as any).documentFormDraft.findUnique({
+      where: { id: draftId },
+    });
     if (!draft) {
-      throw new NotFoundException('Draft not found');
+      throw new NotFoundException("Draft not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(draft.documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      draft.documentId,
+      userId,
+      "edit",
+    );
     return draft;
   }
 
@@ -261,24 +314,39 @@ export class DocumentFormsService {
       signatureMetadata?: any;
     },
   ) {
-    const draft = await (this.prisma as any).documentFormDraft.findUnique({ where: { id: draftId } });
+    const draft = await (this.prisma as any).documentFormDraft.findUnique({
+      where: { id: draftId },
+    });
     if (!draft) {
-      throw new NotFoundException('Draft not found');
+      throw new NotFoundException("Draft not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(draft.documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      draft.documentId,
+      userId,
+      "edit",
+    );
 
     if (draft.status !== DocumentFormDraftStatus.DRAFT) {
-      throw new BadRequestException('Only DRAFT drafts can be updated');
+      throw new BadRequestException("Only DRAFT drafts can be updated");
     }
 
     const updated = await (this.prisma as any).documentFormDraft.update({
       where: { id: draftId },
       data: {
         values: payload.values ?? undefined,
-        signatureData: payload.signatureData === undefined ? undefined : payload.signatureData,
-        signatureType: payload.signatureType === undefined ? undefined : payload.signatureType,
-        signatureReason: payload.signatureReason === undefined ? undefined : payload.signatureReason,
+        signatureData:
+          payload.signatureData === undefined
+            ? undefined
+            : payload.signatureData,
+        signatureType:
+          payload.signatureType === undefined
+            ? undefined
+            : payload.signatureType,
+        signatureReason:
+          payload.signatureReason === undefined
+            ? undefined
+            : payload.signatureReason,
         signatureMetadata: payload.signatureMetadata ?? undefined,
       },
     });
@@ -287,15 +355,21 @@ export class DocumentFormsService {
   }
 
   async cancelDraft(draftId: string, userId: string) {
-    const draft = await (this.prisma as any).documentFormDraft.findUnique({ where: { id: draftId } });
+    const draft = await (this.prisma as any).documentFormDraft.findUnique({
+      where: { id: draftId },
+    });
     if (!draft) {
-      throw new NotFoundException('Draft not found');
+      throw new NotFoundException("Draft not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(draft.documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      draft.documentId,
+      userId,
+      "edit",
+    );
 
     if (draft.status !== DocumentFormDraftStatus.DRAFT) {
-      throw new BadRequestException('Only DRAFT drafts can be cancelled');
+      throw new BadRequestException("Only DRAFT drafts can be cancelled");
     }
 
     await (this.prisma as any).documentFormDraft.update({
@@ -339,19 +413,19 @@ export class DocumentFormsService {
 
           const type = (field as any).constructor?.name;
 
-          if (type === 'PDFTextField') {
-            (field as any).setText(String(raw ?? ''));
-          } else if (type === 'PDFCheckBox') {
+          if (type === "PDFTextField") {
+            (field as any).setText(String(raw ?? ""));
+          } else if (type === "PDFCheckBox") {
             if (raw) {
               (field as any).check();
             } else {
               (field as any).uncheck();
             }
-          } else if (type === 'PDFDropdown' || type === 'PDFOptionList') {
+          } else if (type === "PDFDropdown" || type === "PDFOptionList") {
             if (raw !== null && raw !== undefined) {
               (field as any).select(String(raw));
             }
-          } else if (type === 'PDFRadioGroup') {
+          } else if (type === "PDFRadioGroup") {
             if (raw !== null && raw !== undefined) {
               (field as any).select(String(raw));
             }
@@ -362,13 +436,20 @@ export class DocumentFormsService {
       }
 
       if (options.embedSignature && draft.signatureData) {
-        const placement: SignaturePlacement = (draft.signatureMetadata || {}).placement || {};
+        const placement: SignaturePlacement =
+          (draft.signatureMetadata || {}).placement || {};
         const pages = pdfDoc.getPages();
-        const pageIndex = Math.max(0, Math.min(pages.length - 1, (placement.page || 1) - 1));
+        const pageIndex = Math.max(
+          0,
+          Math.min(pages.length - 1, (placement.page || 1) - 1),
+        );
         const page = pages[pageIndex];
         const { width: pageW } = page.getSize();
 
-        const imgBytes = Buffer.from(String(draft.signatureData).split(',').pop() || '', 'base64');
+        const imgBytes = Buffer.from(
+          String(draft.signatureData).split(",").pop() || "",
+          "base64",
+        );
         const png = await pdfDoc.embedPng(imgBytes);
 
         const w = placement.width || 150;
@@ -391,21 +472,32 @@ export class DocumentFormsService {
   }
 
   async renderDraftPdf(draftId: string, userId: string): Promise<Buffer> {
-    const draft = await (this.prisma as any).documentFormDraft.findUnique({ where: { id: draftId } });
+    const draft = await (this.prisma as any).documentFormDraft.findUnique({
+      where: { id: draftId },
+    });
     if (!draft) {
-      throw new NotFoundException('Draft not found');
+      throw new NotFoundException("Draft not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(draft.documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      draft.documentId,
+      userId,
+      "edit",
+    );
 
-    const document = await this.prisma.document.findUnique({ where: { id: draft.documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: draft.documentId },
+    });
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     this.ensurePdf(document);
 
-    return this.applyDraftToPdfBuffer(document, draft, { flatten: false, embedSignature: true });
+    return this.applyDraftToPdfBuffer(document, draft, {
+      flatten: false,
+      embedSignature: true,
+    });
   }
 
   async finalizeDraft(
@@ -414,37 +506,55 @@ export class DocumentFormsService {
     ipAddress: string,
     userAgent: string,
   ) {
-    const draft = await (this.prisma as any).documentFormDraft.findUnique({ where: { id: draftId } });
+    const draft = await (this.prisma as any).documentFormDraft.findUnique({
+      where: { id: draftId },
+    });
     if (!draft) {
-      throw new NotFoundException('Draft not found');
+      throw new NotFoundException("Draft not found");
     }
 
-    await this.documentPermissionsService.assertHasPermission(draft.documentId, userId, 'edit');
+    await this.documentPermissionsService.assertHasPermission(
+      draft.documentId,
+      userId,
+      "edit",
+    );
 
     if (draft.status !== DocumentFormDraftStatus.DRAFT) {
-      throw new BadRequestException('Only DRAFT drafts can be finalized');
+      throw new BadRequestException("Only DRAFT drafts can be finalized");
     }
 
-    const document = await this.prisma.document.findUnique({ where: { id: draft.documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: draft.documentId },
+    });
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     this.ensurePdf(document);
 
     if (draft.signatureData) {
-      await this.documentPermissionsService.assertHasPermission(draft.documentId, userId, 'sign');
+      await this.documentPermissionsService.assertHasPermission(
+        draft.documentId,
+        userId,
+        "sign",
+      );
     }
 
-    const outputBuffer = await this.applyDraftToPdfBuffer(document, draft, { flatten: true, embedSignature: true });
+    const outputBuffer = await this.applyDraftToPdfBuffer(document, draft, {
+      flatten: true,
+      embedSignature: true,
+    });
 
-    const baseName = (document.originalName || 'document').replace(/\.[^.]+$/, '');
+    const baseName = (document.originalName || "document").replace(
+      /\.[^.]+$/,
+      "",
+    );
     const outputFilename = `${baseName}-filled.pdf`;
 
     const upload = await this.storageService.uploadBuffer(
       outputBuffer,
       outputFilename,
-      'application/pdf',
+      "application/pdf",
       document.module,
     );
 
@@ -458,7 +568,7 @@ export class DocumentFormsService {
         fileUrl: document.fileUrl,
         fileSize: document.fileSize,
         uploadedById: userId,
-        changeNotes: 'Previous version archived',
+        changeNotes: "Previous version archived",
       },
     });
 
@@ -468,7 +578,7 @@ export class DocumentFormsService {
         fileName: upload.key,
         originalName: outputFilename,
         fileSize: outputBuffer.length,
-        mimeType: 'application/pdf',
+        mimeType: "application/pdf",
         fileUrl: upload.url,
         fileHash,
         version: document.version + 1,
@@ -483,11 +593,11 @@ export class DocumentFormsService {
         userId,
         {
           signatureData: draft.signatureData,
-          signatureType: (draft.signatureType as any) || 'DRAWN',
+          signatureType: (draft.signatureType as any) || "DRAWN",
           reason: draft.signatureReason || undefined,
           metadata: {
             ...(draft.signatureMetadata || {}),
-            source: 'FORM_DRAFT_FINALIZE',
+            source: "FORM_DRAFT_FINALIZE",
             draftId,
           },
         },

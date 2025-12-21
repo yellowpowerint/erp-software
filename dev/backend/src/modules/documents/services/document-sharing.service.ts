@@ -1,9 +1,14 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { DocumentsService } from '../documents.service';
-import { DocumentPermissionsService } from './document-permissions.service';
-import { UserRole } from '@prisma/client';
-import * as crypto from 'crypto';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { DocumentsService } from "../documents.service";
+import { DocumentPermissionsService } from "./document-permissions.service";
+import { UserRole } from "@prisma/client";
+import * as crypto from "crypto";
 
 @Injectable()
 export class DocumentSharingService {
@@ -24,20 +29,28 @@ export class DocumentSharingService {
     },
     user: { userId: string; role: UserRole },
   ) {
-    const document = await this.documentsService.findOne(documentId, user.userId, user.role);
+    const document = await this.documentsService.findOne(
+      documentId,
+      user.userId,
+      user.role,
+    );
 
     await this.assertCanShare(documentId, user.userId, user.role);
 
     if (!data.sharedWithId && !data.generatePublicLink) {
-      throw new BadRequestException('sharedWithId or generatePublicLink is required');
+      throw new BadRequestException(
+        "sharedWithId or generatePublicLink is required",
+      );
     }
 
     const expiresAt = data.expiresAt ? new Date(data.expiresAt) : undefined;
     if (expiresAt && Number.isNaN(expiresAt.getTime())) {
-      throw new BadRequestException('Invalid expiresAt date');
+      throw new BadRequestException("Invalid expiresAt date");
     }
 
-    const shareLink = data.generatePublicLink ? crypto.randomBytes(16).toString('hex') : undefined;
+    const shareLink = data.generatePublicLink
+      ? crypto.randomBytes(16).toString("hex")
+      : undefined;
 
     const share = await this.prisma.documentShare.create({
       data: {
@@ -51,8 +64,12 @@ export class DocumentSharingService {
       },
       include: {
         document: true,
-        sharedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-        sharedWith: { select: { id: true, firstName: true, lastName: true, email: true } },
+        sharedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        sharedWith: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 
@@ -73,13 +90,22 @@ export class DocumentSharingService {
       include: {
         document: {
           include: {
-            uploadedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+            uploadedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
             metadata: true,
           },
         },
-        sharedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        sharedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -89,13 +115,22 @@ export class DocumentSharingService {
       include: {
         document: {
           include: {
-            uploadedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+            uploadedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
             metadata: true,
           },
         },
-        sharedWith: { select: { id: true, firstName: true, lastName: true, email: true } },
+        sharedWith: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -106,11 +141,14 @@ export class DocumentSharingService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Share not found');
+      throw new NotFoundException("Share not found");
     }
 
-    if (user.role !== UserRole.SUPER_ADMIN && existing.sharedById !== user.userId) {
-      throw new ForbiddenException('You can only revoke shares you created');
+    if (
+      user.role !== UserRole.SUPER_ADMIN &&
+      existing.sharedById !== user.userId
+    ) {
+      throw new ForbiddenException("You can only revoke shares you created");
     }
 
     await this.prisma.documentShare.delete({ where: { id: shareId } });
@@ -127,12 +165,14 @@ export class DocumentSharingService {
       },
       include: {
         document: true,
-        sharedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        sharedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 
     if (!share) {
-      throw new NotFoundException('Share link not found or expired');
+      throw new NotFoundException("Share link not found or expired");
     }
 
     await this.prisma.documentShare.update({
@@ -143,7 +183,15 @@ export class DocumentSharingService {
     return share;
   }
 
-  private async assertCanShare(documentId: string, userId: string, userRole: UserRole) {
-    await this.documentPermissionsService.assertHasPermission(documentId, userId, 'share');
+  private async assertCanShare(
+    documentId: string,
+    userId: string,
+    _userRole: UserRole,
+  ) {
+    await this.documentPermissionsService.assertHasPermission(
+      documentId,
+      userId,
+      "share",
+    );
   }
 }

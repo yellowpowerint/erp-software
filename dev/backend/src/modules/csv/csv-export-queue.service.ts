@@ -1,6 +1,11 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { CsvService } from './csv.service';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { CsvService } from "./csv.service";
 
 @Injectable()
 export class CsvExportQueueService implements OnModuleInit, OnModuleDestroy {
@@ -15,12 +20,14 @@ export class CsvExportQueueService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    const enabled = this.configService.get<string>('CSV_EXPORT_WORKER_ENABLED', 'true') === 'true';
+    const enabled =
+      this.configService.get<string>("CSV_EXPORT_WORKER_ENABLED", "true") ===
+      "true";
     if (!enabled) {
       return;
     }
 
-    this.logger.log('CSV Export Queue Service initialized');
+    this.logger.log("CSV Export Queue Service initialized");
     await this.recoverStuckJobs();
     this.startProcessing();
   }
@@ -47,7 +54,10 @@ export class CsvExportQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   private getMaxConcurrent(): number {
-    const v = this.configService.get<string>('CSV_EXPORT_WORKER_CONCURRENCY', '1');
+    const v = this.configService.get<string>(
+      "CSV_EXPORT_WORKER_CONCURRENCY",
+      "1",
+    );
     const n = Number(v);
     if (!Number.isFinite(n) || n <= 0) {
       return 1;
@@ -89,10 +99,12 @@ export class CsvExportQueueService implements OnModuleInit, OnModuleDestroy {
 
   private async recoverStuckJobs() {
     try {
-      const minutes = Number(this.configService.get<string>('CSV_EXPORT_WORKER_STUCK_MINUTES', '30'));
+      const minutes = Number(
+        this.configService.get<string>("CSV_EXPORT_WORKER_STUCK_MINUTES", "30"),
+      );
       await this.csvService.recoverStuckExportJobs(minutes);
     } catch (error) {
-      this.logger.error('Failed to recover stuck export jobs', error as any);
+      this.logger.error("Failed to recover stuck export jobs", error as any);
     }
   }
 }

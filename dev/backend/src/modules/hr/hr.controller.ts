@@ -135,9 +135,17 @@ export class HrController {
       throw new BadRequestException("file is required");
     }
 
-    const mappings = body.mappings ? this.csvService.parseJson(body.mappings, "mappings") : undefined;
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
     const context = { duplicateStrategy: body.duplicateStrategy };
-    const job = await this.csvService.createImportJob("employees", file, req.user.userId, mappings, context);
+    const job = await this.csvService.createImportJob(
+      "employees",
+      file,
+      req.user.userId,
+      mappings,
+      context,
+    );
     return { success: true, data: job };
   }
 
@@ -146,7 +154,10 @@ export class HrController {
   async downloadEmployeesSample(@Res({ passthrough: true }) res: Response) {
     const template = await this.csvService.getSampleTemplate("employees");
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=employees-sample.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=employees-sample.csv`,
+    );
     return template;
   }
 
@@ -184,7 +195,13 @@ export class HrController {
     if (status) filters.status = status;
     if (employmentType) filters.employmentType = employmentType;
 
-    const job = await this.csvService.createExportJob("employees", filters, cols, req.user.userId, undefined);
+    const job = await this.csvService.createExportJob(
+      "employees",
+      filters,
+      cols,
+      req.user.userId,
+      undefined,
+    );
     return { success: true, data: job };
   }
 

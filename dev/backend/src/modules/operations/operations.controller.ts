@@ -234,7 +234,10 @@ export class OperationsController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=production-logs-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=production-logs-export.csv`,
+    );
     return csv;
   }
 
@@ -267,7 +270,10 @@ export class OperationsController {
 
     const csv = json2csv(rows as any, { fields });
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=shifts-export.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=shifts-export.csv`,
+    );
     return csv;
   }
 }

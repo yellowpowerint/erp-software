@@ -1,8 +1,13 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { OCRService } from './ocr.service';
-import { StorageService } from './storage.service';
-import { OCRStatus } from '@prisma/client';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { OCRService } from "./ocr.service";
+import { StorageService } from "./storage.service";
+import { OCRStatus } from "@prisma/client";
 
 interface QueuedJob {
   id: string;
@@ -30,7 +35,7 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    this.logger.log('OCR Queue Service initialized');
+    this.logger.log("OCR Queue Service initialized");
     this.startProcessing();
     await this.recoverPendingJobs();
   }
@@ -53,12 +58,12 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!document) {
-      throw new Error('Document not found');
+      throw new Error("Document not found");
     }
 
     const filePath = await this.storageService.getLocalPath(document.fileUrl);
     if (!filePath) {
-      throw new Error('Document file not accessible');
+      throw new Error("Document file not accessible");
     }
 
     this.queue.push({
@@ -86,7 +91,7 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
       this.processQueue();
     }, 2000); // Check queue every 2 seconds
 
-    this.logger.log('Queue processing started');
+    this.logger.log("Queue processing started");
   }
 
   /**
@@ -96,7 +101,7 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
     if (this.processingInterval) {
       clearInterval(this.processingInterval);
       this.processingInterval = null;
-      this.logger.log('Queue processing stopped');
+      this.logger.log("Queue processing stopped");
     }
   }
 
@@ -104,7 +109,11 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
    * Process queued jobs
    */
   private async processQueue() {
-    if (this.processing || this.queue.length === 0 || this.activeJobs >= this.maxConcurrent) {
+    if (
+      this.processing ||
+      this.queue.length === 0 ||
+      this.activeJobs >= this.maxConcurrent
+    ) {
       return;
     }
 
@@ -112,7 +121,10 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const config = await this.ocrService.getOCRConfiguration();
-      const maxJobs = Math.min(config.maxConcurrentJobs || this.maxConcurrent, this.maxConcurrent);
+      const maxJobs = Math.min(
+        config.maxConcurrentJobs || this.maxConcurrent,
+        this.maxConcurrent,
+      );
 
       while (this.queue.length > 0 && this.activeJobs < maxJobs) {
         const job = this.queue.shift();
@@ -135,9 +147,16 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
     const isTempFile = /[\\/]temp[\\/]/.test(job.filePath);
 
     try {
-      this.logger.log(`Processing job ${job.id} for document ${job.documentId}`);
+      this.logger.log(
+        `Processing job ${job.id} for document ${job.documentId}`,
+      );
 
-      await this.ocrService.processOCRJob(job.id, job.filePath, job.userId, job.options);
+      await this.ocrService.processOCRJob(
+        job.id,
+        job.filePath,
+        job.userId,
+        job.options,
+      );
 
       this.logger.log(`Job ${job.id} completed successfully`);
     } catch (error) {
@@ -147,9 +166,13 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
       if (job.retries < this.maxRetries) {
         job.retries++;
         this.queue.push(job);
-        this.logger.log(`Job ${job.id} requeued (retry ${job.retries}/${this.maxRetries})`);
+        this.logger.log(
+          `Job ${job.id} requeued (retry ${job.retries}/${this.maxRetries})`,
+        );
       } else {
-        this.logger.error(`Job ${job.id} failed after ${this.maxRetries} retries`);
+        this.logger.error(
+          `Job ${job.id} failed after ${this.maxRetries} retries`,
+        );
       }
     } finally {
       // Cleanup temp file
@@ -179,7 +202,9 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
         });
         if (!document) continue;
 
-        const filePath = await this.storageService.getLocalPath(document.fileUrl);
+        const filePath = await this.storageService.getLocalPath(
+          document.fileUrl,
+        );
         if (filePath) {
           this.queue.push({
             id: job.id,
@@ -201,7 +226,7 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`Recovered ${pendingJobs.length} pending jobs`);
       }
     } catch (error) {
-      this.logger.error('Failed to recover pending jobs', error);
+      this.logger.error("Failed to recover pending jobs", error);
     }
   }
 

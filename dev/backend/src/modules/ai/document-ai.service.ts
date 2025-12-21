@@ -1,11 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { DocumentsService } from '../documents/documents.service';
-import { OCRService } from '../documents/services/ocr.service';
-import { DocumentCategory, UserRole } from '@prisma/client';
-import { createHash } from 'crypto';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { DocumentsService } from "../documents/documents.service";
+import { OCRService } from "../documents/services/ocr.service";
+import { DocumentCategory, UserRole } from "@prisma/client";
+import { createHash } from "crypto";
 
-type AiProvider = 'OPENAI' | 'CLAUDE';
+type AiProvider = "OPENAI" | "CLAUDE";
 
 interface AiRuntimeConfig {
   enabled: boolean;
@@ -15,7 +19,7 @@ interface AiRuntimeConfig {
 }
 
 function normalizeText(text: string): string {
-  return (text || '').replace(/\s+/g, ' ').trim();
+  return (text || "").replace(/\s+/g, " ").trim();
 }
 
 @Injectable()
@@ -27,25 +31,33 @@ export class DocumentAiService {
   ) {}
 
   private async getSetting(key: string): Promise<string | null> {
-    const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key },
+    });
     const value = setting?.value?.trim();
     return value && value.length > 0 ? value : null;
   }
 
   private async getAiRuntimeConfig(): Promise<AiRuntimeConfig> {
-    const [enabledRaw, defaultProviderRaw, openaiKey, openaiModel, claudeKey, claudeModel] =
-      await Promise.all([
-        this.getSetting('AI_ENABLED'),
-        this.getSetting('AI_DEFAULT_PROVIDER'),
-        this.getSetting('AI_OPENAI_API_KEY'),
-        this.getSetting('AI_OPENAI_MODEL'),
-        this.getSetting('AI_CLAUDE_API_KEY'),
-        this.getSetting('AI_CLAUDE_MODEL'),
-      ]);
+    const [
+      enabledRaw,
+      defaultProviderRaw,
+      openaiKey,
+      openaiModel,
+      claudeKey,
+      claudeModel,
+    ] = await Promise.all([
+      this.getSetting("AI_ENABLED"),
+      this.getSetting("AI_DEFAULT_PROVIDER"),
+      this.getSetting("AI_OPENAI_API_KEY"),
+      this.getSetting("AI_OPENAI_MODEL"),
+      this.getSetting("AI_CLAUDE_API_KEY"),
+      this.getSetting("AI_CLAUDE_MODEL"),
+    ]);
 
-    const enabled = enabledRaw === 'true';
+    const enabled = enabledRaw === "true";
     const defaultProvider =
-      defaultProviderRaw === 'OPENAI' || defaultProviderRaw === 'CLAUDE'
+      defaultProviderRaw === "OPENAI" || defaultProviderRaw === "CLAUDE"
         ? (defaultProviderRaw as AiProvider)
         : null;
 
@@ -61,9 +73,12 @@ export class DocumentAiService {
     const vec = new Array<number>(dims).fill(0);
     const cleaned = normalizeText(text).toLowerCase();
     if (!cleaned) return vec;
-    const toks = cleaned.split(' ').filter((t) => t.length >= 3).slice(0, 2000);
+    const toks = cleaned
+      .split(" ")
+      .filter((t) => t.length >= 3)
+      .slice(0, 2000);
     for (const tok of toks) {
-      const h = createHash('sha256').update(tok).digest();
+      const h = createHash("sha256").update(tok).digest();
       const idx = ((h[0] << 8) + h[1]) % dims;
       vec[idx] += 1;
     }
@@ -87,20 +102,28 @@ export class DocumentAiService {
 
   private suggestCategory(text: string): DocumentCategory {
     const t = normalizeText(text).toLowerCase();
-    if (/(invoice|inv\b|vat|tax\s+invoice)/.test(t)) return DocumentCategory.INVOICE;
+    if (/(invoice|inv\b|vat|tax\s+invoice)/.test(t))
+      return DocumentCategory.INVOICE;
     if (/(receipt|cash\s+sale|pos\b)/.test(t)) return DocumentCategory.RECEIPT;
-    if (/(purchase\s+order|\bpo\b)/.test(t)) return DocumentCategory.PURCHASE_ORDER;
-    if (/(quotation|quote|pro\s*forma)/.test(t)) return DocumentCategory.QUOTATION;
-    if (/(contract|agreement|terms\s+and\s+conditions)/.test(t)) return DocumentCategory.CONTRACT;
-    if (/(incident\s+report|near\s+miss)/.test(t)) return DocumentCategory.INCIDENT_REPORT;
-    if (/(safety\s+report|hazard|ppe)/.test(t)) return DocumentCategory.SAFETY_REPORT;
+    if (/(purchase\s+order|\bpo\b)/.test(t))
+      return DocumentCategory.PURCHASE_ORDER;
+    if (/(quotation|quote|pro\s*forma)/.test(t))
+      return DocumentCategory.QUOTATION;
+    if (/(contract|agreement|terms\s+and\s+conditions)/.test(t))
+      return DocumentCategory.CONTRACT;
+    if (/(incident\s+report|near\s+miss)/.test(t))
+      return DocumentCategory.INCIDENT_REPORT;
+    if (/(safety\s+report|hazard|ppe)/.test(t))
+      return DocumentCategory.SAFETY_REPORT;
     return DocumentCategory.OTHER;
   }
 
   private extractEntities(text: string) {
     const t = normalizeText(text);
     const dates = Array.from(
-      t.matchAll(/(\b\d{4}-\d{1,2}-\d{1,2}\b|\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b)/g),
+      t.matchAll(
+        /(\b\d{4}-\d{1,2}-\d{1,2}\b|\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b)/g,
+      ),
     )
       .map((m) => m[0])
       .slice(0, 25);
@@ -110,7 +133,7 @@ export class DocumentAiService {
         /(?:GHS|GH₵|₵|USD|\$|EUR|€)\s?([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?|[0-9]+(?:\.[0-9]{2})?)/g,
       ),
     )
-      .map((m) => Number(String(m[1]).replace(/,/g, '')))
+      .map((m) => Number(String(m[1]).replace(/,/g, "")))
       .filter((n) => Number.isFinite(n))
       .slice(0, 25);
 
@@ -122,13 +145,19 @@ export class DocumentAiService {
     return cleaned.length <= 600 ? cleaned : `${cleaned.slice(0, 600)}…`;
   }
 
-  private anomalyWarnings(category: DocumentCategory, entities: { amounts?: number[] }) {
-    if (category !== DocumentCategory.INVOICE && category !== DocumentCategory.RECEIPT) {
+  private anomalyWarnings(
+    category: DocumentCategory,
+    entities: { amounts?: number[] },
+  ) {
+    if (
+      category !== DocumentCategory.INVOICE &&
+      category !== DocumentCategory.RECEIPT
+    ) {
       return [] as string[];
     }
 
     const amounts = Array.isArray(entities.amounts) ? entities.amounts : [];
-    if (amounts.length === 0) return ['No amounts detected'];
+    if (amounts.length === 0) return ["No amounts detected"];
 
     const sorted = [...amounts].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)];
@@ -140,26 +169,41 @@ export class DocumentAiService {
   }
 
   private async getDocumentText(documentId: string): Promise<string | null> {
-    const meta = await this.prisma.documentMetadata.findUnique({ where: { documentId } });
-    if (meta?.extractedText && meta.extractedText.trim().length > 0) return meta.extractedText;
+    const meta = await this.prisma.documentMetadata.findUnique({
+      where: { documentId },
+    });
+    if (meta?.extractedText && meta.extractedText.trim().length > 0)
+      return meta.extractedText;
     return this.ocrService.getExtractedText(documentId);
   }
 
-  async analyzeDocument(documentId: string, userId: string, userRole: UserRole, force = false) {
+  async analyzeDocument(
+    documentId: string,
+    userId: string,
+    userRole: UserRole,
+    force = false,
+  ) {
     await this.documentsService.assertCanView(documentId, userId, userRole);
 
-    const existing = await this.prisma.documentAiInsight.findUnique({ where: { documentId } });
+    const existing = await this.prisma.documentAiInsight.findUnique({
+      where: { documentId },
+    });
     if (existing && !force) return existing;
 
     const doc = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { metadata: true },
     });
-    if (!doc) throw new NotFoundException('Document not found');
+    if (!doc) throw new NotFoundException("Document not found");
 
-    const text = (doc.metadata?.extractedText || (await this.getDocumentText(documentId))) ?? '';
+    const text =
+      (doc.metadata?.extractedText ||
+        (await this.getDocumentText(documentId))) ??
+      "";
     if (!text || text.trim().length === 0) {
-      throw new BadRequestException('No extracted text available. Run OCR first.');
+      throw new BadRequestException(
+        "No extracted text available. Run OCR first.",
+      );
     }
 
     const entities = this.extractEntities(text);
@@ -175,39 +219,78 @@ export class DocumentAiService {
       create: {
         documentId,
         provider: cfg.defaultProvider,
-        model: cfg.defaultProvider === 'OPENAI' ? cfg.openai.model : cfg.claude.model,
+        model:
+          cfg.defaultProvider === "OPENAI"
+            ? cfg.openai.model
+            : cfg.claude.model,
         summary,
         entities,
         suggestedCategory,
         suggestedTags: [],
-        anomalies: { warnings, mode: cfg.enabled ? 'ai-or-heuristic' : 'heuristic' },
+        anomalies: {
+          warnings,
+          mode: cfg.enabled ? "ai-or-heuristic" : "heuristic",
+        },
         linkedRecords: {},
         embedding,
       },
       update: {
         provider: cfg.defaultProvider,
-        model: cfg.defaultProvider === 'OPENAI' ? cfg.openai.model : cfg.claude.model,
+        model:
+          cfg.defaultProvider === "OPENAI"
+            ? cfg.openai.model
+            : cfg.claude.model,
         summary,
         entities,
         suggestedCategory,
-        anomalies: { warnings, mode: cfg.enabled ? 'ai-or-heuristic' : 'heuristic' },
+        anomalies: {
+          warnings,
+          mode: cfg.enabled ? "ai-or-heuristic" : "heuristic",
+        },
         embedding,
       },
     });
   }
 
-  async categorizeDocument(documentId: string, userId: string, userRole: UserRole) {
-    const insight = await this.analyzeDocument(documentId, userId, userRole, false);
+  async categorizeDocument(
+    documentId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    const insight = await this.analyzeDocument(
+      documentId,
+      userId,
+      userRole,
+      false,
+    );
     return { suggestedCategory: insight.suggestedCategory };
   }
 
-  async summarizeDocument(documentId: string, userId: string, userRole: UserRole) {
-    const insight = await this.analyzeDocument(documentId, userId, userRole, false);
+  async summarizeDocument(
+    documentId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    const insight = await this.analyzeDocument(
+      documentId,
+      userId,
+      userRole,
+      false,
+    );
     return { summary: insight.summary };
   }
 
-  async extractDocumentEntities(documentId: string, userId: string, userRole: UserRole) {
-    const insight = await this.analyzeDocument(documentId, userId, userRole, false);
+  async extractDocumentEntities(
+    documentId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    const insight = await this.analyzeDocument(
+      documentId,
+      userId,
+      userRole,
+      false,
+    );
     return { entities: insight.entities };
   }
 
@@ -221,9 +304,15 @@ export class DocumentAiService {
     };
   }
 
-  async smartSearch(query: string, userId: string, userRole: UserRole, limit = 10, category?: DocumentCategory) {
+  async smartSearch(
+    query: string,
+    userId: string,
+    userRole: UserRole,
+    limit = 10,
+    category?: DocumentCategory,
+  ) {
     const q = normalizeText(query);
-    if (!q) throw new BadRequestException('Query is required');
+    if (!q) throw new BadRequestException("Query is required");
 
     const where: any = {
       ...this.buildPermissionWhere(userId, userRole),
@@ -233,20 +322,26 @@ export class DocumentAiService {
     const docs = await this.prisma.document.findMany({
       where,
       include: { metadata: true, aiInsight: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: Math.max(limit * 5, 50),
     });
 
     const qVec = this.pseudoEmbedding(q);
-    const qTokens = q.toLowerCase().split(' ').filter(Boolean);
+    const qTokens = q.toLowerCase().split(" ").filter(Boolean);
 
     const scored = docs
       .map((d) => {
-        const text = d.metadata?.extractedText || '';
-        const vec = (d.aiInsight?.embedding as unknown as number[]) || this.pseudoEmbedding(text);
+        const text = d.metadata?.extractedText || "";
+        const vec =
+          (d.aiInsight?.embedding as unknown as number[]) ||
+          this.pseudoEmbedding(text);
         const cosine = this.cosine(qVec, vec);
-        const hay = `${d.originalName} ${d.description ?? ''} ${text}`.toLowerCase();
-        const hits = qTokens.reduce((acc, t) => (hay.includes(t) ? acc + 1 : acc), 0);
+        const hay =
+          `${d.originalName} ${d.description ?? ""} ${text}`.toLowerCase();
+        const hits = qTokens.reduce(
+          (acc, t) => (hay.includes(t) ? acc + 1 : acc),
+          0,
+        );
         const lexical = qTokens.length ? hits / qTokens.length : 0;
         const score = 0.7 * cosine + 0.3 * lexical;
         return { d, score };
@@ -268,17 +363,23 @@ export class DocumentAiService {
     }));
   }
 
-  async similarDocuments(documentId: string, userId: string, userRole: UserRole, limit = 5) {
+  async similarDocuments(
+    documentId: string,
+    userId: string,
+    userRole: UserRole,
+    limit = 5,
+  ) {
     await this.documentsService.assertCanView(documentId, userId, userRole);
 
     const base = await this.prisma.document.findUnique({
       where: { id: documentId },
       include: { metadata: true, aiInsight: true },
     });
-    if (!base) throw new NotFoundException('Document not found');
+    if (!base) throw new NotFoundException("Document not found");
 
-    const baseVec = (base.aiInsight?.embedding as unknown as number[]) ||
-      this.pseudoEmbedding(base.metadata?.extractedText || '');
+    const baseVec =
+      (base.aiInsight?.embedding as unknown as number[]) ||
+      this.pseudoEmbedding(base.metadata?.extractedText || "");
 
     const where: any = {
       ...this.buildPermissionWhere(userId, userRole),
@@ -289,13 +390,14 @@ export class DocumentAiService {
       where,
       include: { metadata: true, aiInsight: true },
       take: 200,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     const scored = candidates
       .map((d) => {
-        const vec = (d.aiInsight?.embedding as unknown as number[]) ||
-          this.pseudoEmbedding(d.metadata?.extractedText || '');
+        const vec =
+          (d.aiInsight?.embedding as unknown as number[]) ||
+          this.pseudoEmbedding(d.metadata?.extractedText || "");
         const score = this.cosine(baseVec, vec);
         return { d, score };
       })
@@ -326,12 +428,15 @@ export class DocumentAiService {
 
     if (docId) {
       await this.documentsService.assertCanView(docId, userId, userRole);
-      const doc = await this.prisma.document.findUnique({ where: { id: docId } });
-      if (!doc) throw new NotFoundException('Document not found');
+      const doc = await this.prisma.document.findUnique({
+        where: { id: docId },
+      });
+      if (!doc) throw new NotFoundException("Document not found");
       fileHash = doc.fileHash ?? null;
     }
 
-    if (!fileHash) throw new BadRequestException('fileHash or documentId is required');
+    if (!fileHash)
+      throw new BadRequestException("fileHash or documentId is required");
 
     const where: any = {
       ...this.buildPermissionWhere(userId, userRole),
@@ -341,7 +446,7 @@ export class DocumentAiService {
 
     const duplicates = await this.prisma.document.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
 
@@ -355,20 +460,27 @@ export class DocumentAiService {
     }));
   }
 
-  async askQuestion(documentId: string, question: string, userId: string, userRole: UserRole) {
+  async askQuestion(
+    documentId: string,
+    question: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
     await this.documentsService.assertCanView(documentId, userId, userRole);
     const q = normalizeText(question);
-    if (!q) throw new BadRequestException('Question is required');
+    if (!q) throw new BadRequestException("Question is required");
 
-    const text = (await this.getDocumentText(documentId)) ?? '';
+    const text = (await this.getDocumentText(documentId)) ?? "";
     if (!text || text.trim().length === 0) {
-      throw new BadRequestException('No extracted text available. Run OCR first.');
+      throw new BadRequestException(
+        "No extracted text available. Run OCR first.",
+      );
     }
 
     const tokens = q
       .toLowerCase()
       .split(/\s+/)
-      .map((t) => t.replace(/[^a-z0-9]/g, ''))
+      .map((t) => t.replace(/[^a-z0-9]/g, ""))
       .filter((t) => t.length >= 3)
       .slice(0, 10);
 
@@ -376,7 +488,10 @@ export class DocumentAiService {
     const ranked = sentences
       .map((s) => {
         const hay = s.toLowerCase();
-        const hits = tokens.reduce((acc, t) => (hay.includes(t) ? acc + 1 : acc), 0);
+        const hits = tokens.reduce(
+          (acc, t) => (hay.includes(t) ? acc + 1 : acc),
+          0,
+        );
         return { s, hits };
       })
       .sort((a, b) => b.hits - a.hits);
@@ -385,7 +500,9 @@ export class DocumentAiService {
     const snippet = best?.hits ? best.s.trim() : sentences[0]?.trim();
 
     return {
-      answer: snippet ? `Based on the document text: ${snippet}` : 'No relevant content found in the document.',
+      answer: snippet
+        ? `Based on the document text: ${snippet}`
+        : "No relevant content found in the document.",
       confidence: best?.hits ? Math.min(0.9, 0.4 + best.hits * 0.1) : 0.2,
       sources: snippet ? [{ documentId, snippet }] : [],
     };

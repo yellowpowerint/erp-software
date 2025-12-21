@@ -117,10 +117,18 @@ export class InventoryController {
   @UseInterceptors(FileInterceptor("file"))
   async importInventory(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: { mappings?: string; duplicateStrategy?: string; warehouseId?: string; warehouseCode?: string },
+    @Body()
+    body: {
+      mappings?: string;
+      duplicateStrategy?: string;
+      warehouseId?: string;
+      warehouseCode?: string;
+    },
     @CurrentUser() user: any,
   ) {
-    const mappings = body.mappings ? this.csvService.parseJson(body.mappings, "mappings") : undefined;
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
 
     const context = {
       duplicateStrategy: body.duplicateStrategy,
@@ -128,7 +136,13 @@ export class InventoryController {
       warehouseCode: body.warehouseCode,
     };
 
-    const job = await this.csvService.createImportJob("inventory", file, user.userId, mappings, context);
+    const job = await this.csvService.createImportJob(
+      "inventory",
+      file,
+      user.userId,
+      mappings,
+      context,
+    );
     return { success: true, data: job };
   }
 
@@ -136,7 +150,10 @@ export class InventoryController {
   async downloadInventorySample(@Res({ passthrough: true }) res: Response) {
     const template = await this.csvService.getSampleTemplate("inventory");
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=inventory-sample.csv`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=inventory-sample.csv`,
+    );
     return template;
   }
 
@@ -172,7 +189,13 @@ export class InventoryController {
     if (warehouseId) filters.warehouseId = warehouseId;
     if (category) filters.category = category;
 
-    const job = await this.csvService.createExportJob("inventory", filters, cols, user.userId, undefined);
+    const job = await this.csvService.createExportJob(
+      "inventory",
+      filters,
+      cols,
+      user.userId,
+      undefined,
+    );
     return { success: true, data: job };
   }
 
@@ -184,8 +207,15 @@ export class InventoryController {
     @Body() body: { mappings?: string },
     @CurrentUser() user: any,
   ) {
-    const mappings = body.mappings ? this.csvService.parseJson(body.mappings, "mappings") : undefined;
-    const job = await this.csvService.createImportJob("inventory_movements", file, user.userId, mappings);
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
+    const job = await this.csvService.createImportJob(
+      "inventory_movements",
+      file,
+      user.userId,
+      mappings,
+    );
     return { success: true, data: job };
   }
 
@@ -222,7 +252,13 @@ export class InventoryController {
     if (warehouseId) filters.warehouseId = warehouseId;
     if (movementType) filters.movementType = movementType;
 
-    const job = await this.csvService.createExportJob("inventory_movements", filters, cols, user.userId, undefined);
+    const job = await this.csvService.createExportJob(
+      "inventory_movements",
+      filters,
+      cols,
+      user.userId,
+      undefined,
+    );
     return { success: true, data: job };
   }
 }

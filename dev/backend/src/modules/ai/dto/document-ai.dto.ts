@@ -1,5 +1,14 @@
-import { IsArray, IsEnum, IsInt, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
-import { DocumentCategory } from '@prisma/client';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from "class-validator";
+import { DocumentCategory } from "@prisma/client";
 
 export class SmartSearchDto {
   @IsString()

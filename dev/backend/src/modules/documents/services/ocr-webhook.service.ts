@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { OCRStatus } from '@prisma/client';
-import * as crypto from 'crypto';
-import axios from 'axios';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { OCRStatus } from "@prisma/client";
+import * as crypto from "crypto";
+import axios from "axios";
 
 interface WebhookPayload {
-  event: 'ocr.completed' | 'ocr.failed';
+  event: "ocr.completed" | "ocr.failed";
   jobId: string;
   documentId: string;
   status: OCRStatus;
@@ -50,12 +50,13 @@ export class OCRWebhookService {
       }
 
       const payload: WebhookPayload = {
-        event: status === OCRStatus.COMPLETED ? 'ocr.completed' : 'ocr.failed',
+        event: status === OCRStatus.COMPLETED ? "ocr.completed" : "ocr.failed",
         jobId,
         documentId,
         status,
         confidence,
-        extractedText: status === OCRStatus.COMPLETED ? extractedText : undefined,
+        extractedText:
+          status === OCRStatus.COMPLETED ? extractedText : undefined,
         errorMessage: status === OCRStatus.FAILED ? errorMessage : undefined,
         timestamp: new Date().toISOString(),
       };
@@ -67,7 +68,7 @@ export class OCRWebhookService {
         });
       }
     } catch (error) {
-      this.logger.error('Failed to send webhook notification', error);
+      this.logger.error("Failed to send webhook notification", error);
     }
   }
 
@@ -81,14 +82,14 @@ export class OCRWebhookService {
   ): Promise<void> {
     try {
       const headers: any = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mining-ERP-OCR-Webhook/1.0',
+        "Content-Type": "application/json",
+        "User-Agent": "Mining-ERP-OCR-Webhook/1.0",
       };
 
       // Add signature if secret is configured
       if (secret) {
         const signature = this.generateSignature(payload, secret);
-        headers['X-OCR-Signature'] = signature;
+        headers["X-OCR-Signature"] = signature;
       }
 
       const response = await axios.post(url, payload, {
@@ -108,9 +109,9 @@ export class OCRWebhookService {
    */
   private generateSignature(payload: WebhookPayload, secret: string): string {
     const payloadString = JSON.stringify(payload);
-    const hmac = crypto.createHmac('sha256', secret);
+    const hmac = crypto.createHmac("sha256", secret);
     hmac.update(payloadString);
-    return `sha256=${hmac.digest('hex')}`;
+    return `sha256=${hmac.digest("hex")}`;
   }
 
   /**
@@ -118,12 +119,12 @@ export class OCRWebhookService {
    */
   private async getOCRConfiguration() {
     const config = await this.prisma.oCRConfiguration.findFirst({
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
     });
 
-    const envUrlsRaw = process.env.OCR_WEBHOOK_URLS || '';
+    const envUrlsRaw = process.env.OCR_WEBHOOK_URLS || "";
     const envUrls = envUrlsRaw
-      .split(',')
+      .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
 

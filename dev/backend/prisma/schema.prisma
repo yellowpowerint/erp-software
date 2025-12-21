@@ -112,6 +112,9 @@ model User {
   importJobs            ImportJob[]        @relation("ImportCreator")
   exportJobs            ExportJob[]        @relation("ExportCreator")
   importTemplates       ImportTemplate[]   @relation("ImportTemplateCreator")
+  csvAuditLogs          CsvAuditLog[]      @relation("CsvAuditCreator")
+  csvBatches            CsvBatch[]         @relation("CsvBatchCreator")
+  scheduledExports      ScheduledExport[]  @relation("ScheduledExportCreator")
   validatedData         ExtractedDocumentData[] @relation("DataValidator")
   ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
 
@@ -2267,6 +2270,9 @@ model ImportJob {
   warnings      Json?
   mappings      Json?
   context       Json?
+  rollback      ImportRollback?
+  scheduledAt   DateTime?
+  batchId       String?
   createdById   String
   createdBy     User         @relation("ImportCreator", fields: [createdById], references: [id])
   startedAt     DateTime?
@@ -2276,6 +2282,8 @@ model ImportJob {
   @@index([module])
   @@index([createdById])
   @@index([status])
+  @@index([scheduledAt])
+  @@index([batchId])
   @@map("import_jobs")
 }
 
@@ -2315,6 +2323,106 @@ model ImportTemplate {
 
   @@unique([name, module])
   @@map("import_templates")
+}
+
+model CsvAuditLog {
+  id          String   @id @default(uuid())
+  jobType     String
+  jobId       String?
+  action      String
+  details     Json?
+  createdById String?
+  createdBy   User?    @relation("CsvAuditCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([jobType, jobId])
+  @@index([createdAt])
+  @@map("csv_audit_logs")
+}
+
+model ImportRollback {
+  id          String   @id @default(uuid())
+  importJobId String   @unique
+  importJob   ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  status      String   @default("AVAILABLE")
+  rolledBackAt DateTime?
+  createdAt   DateTime @default(now())
+
+  changes     ImportChange[]
+
+  @@index([importJobId])
+  @@map("import_rollbacks")
+}
+
+model ImportChange {
+  id         String   @id @default(uuid())
+  rollbackId String
+  rollback   ImportRollback @relation(fields: [rollbackId], references: [id], onDelete: Cascade)
+  model      String
+  recordId   String
+  operation  String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([rollbackId])
+  @@index([model, recordId])
+  @@map("import_changes")
+}
+
+model CsvBatch {
+  id            String   @id @default(uuid())
+  status        String   @default("PENDING")
+  totalJobs     Int      @default(0)
+  completedJobs Int      @default(0)
+  failedJobs    Int      @default(0)
+  createdById   String
+  createdBy     User     @relation("CsvBatchCreator", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([createdById])
+  @@index([status])
+  @@map("csv_batches")
+}
+
+model ScheduledExport {
+  id          String   @id @default(uuid())
+  name        String
+  module      String
+  filters     Json?
+  columns     String[]
+  context     Json?
+  schedule    String
+  recipients  String[]
+  format      String   @default("csv")
+  isActive    Boolean  @default(true)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  createdById String
+  createdBy   User     @relation("ScheduledExportCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  runs        ScheduledExportRun[]
+
+  @@index([isActive, nextRunAt])
+  @@index([module])
+  @@map("scheduled_exports")
+}
+
+model ScheduledExportRun {
+  id                String   @id @default(uuid())
+  scheduledExportId String
+  scheduledExport   ScheduledExport @relation(fields: [scheduledExportId], references: [id], onDelete: Cascade)
+  exportJobId       String?
+  status            String   @default("PENDING")
+  errorMessage      String?
+  sentAt            DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([scheduledExportId])
+  @@index([status])
+  @@map("scheduled_export_runs")
 }
 
 // Phase 16.1: OCR & Text Extraction

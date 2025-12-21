@@ -1,5 +1,5 @@
-declare module 'csv-parser' {
-  import type { Transform } from 'stream';
+declare module "csv-parser" {
+  import type { Transform } from "stream";
 
   type CsvParserOptions = {
     headers?: boolean | string[];
@@ -19,7 +19,7 @@ declare module 'csv-parser' {
   export default csvParser;
 }
 
-declare module 'json2csv' {
+declare module "json2csv" {
   export type Json2CsvOptions = {
     fields?: string[];
     delimiter?: string;

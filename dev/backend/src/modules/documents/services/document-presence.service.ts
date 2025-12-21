@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { DocumentsService } from '../documents.service';
-import { UserRole } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { DocumentsService } from "../documents.service";
+import { UserRole } from "@prisma/client";
 
 @Injectable()
 export class DocumentPresenceService {
@@ -37,9 +37,17 @@ export class DocumentPresenceService {
         lastSeenAt: { gt: threshold },
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
-      orderBy: { lastSeenAt: 'desc' },
+      orderBy: { lastSeenAt: "desc" },
       take: 25,
     });
 

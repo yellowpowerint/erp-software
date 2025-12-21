@@ -7,19 +7,19 @@ import {
   Post,
   Request,
   UseGuards,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
-import { AuditPackagesService } from '../services/audit-packages.service';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../../auth/guards/roles.guard";
+import { Roles } from "../../auth/decorators/roles.decorator";
+import { UserRole } from "@prisma/client";
+import { AuditPackagesService } from "../services/audit-packages.service";
 
-@Controller('documents/audit-packages')
+@Controller("documents/audit-packages")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AuditPackagesController {
   constructor(private readonly auditPackagesService: AuditPackagesService) {}
 
-  @Post('jobs')
+  @Post("jobs")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -47,7 +47,7 @@ export class AuditPackagesController {
     return { success: true, data: job };
   }
 
-  @Get('jobs')
+  @Get("jobs")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -67,7 +67,7 @@ export class AuditPackagesController {
     return { success: true, data: jobs };
   }
 
-  @Get('jobs/:jobId')
+  @Get("jobs/:jobId")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -82,12 +82,12 @@ export class AuditPackagesController {
     UserRole.WAREHOUSE_MANAGER,
     UserRole.EMPLOYEE,
   )
-  async getJob(@Param('jobId') jobId: string, @Request() req: any) {
+  async getJob(@Param("jobId") jobId: string, @Request() req: any) {
     const job = await this.auditPackagesService.getJob(jobId, req.user.userId);
     return { success: true, data: job };
   }
 
-  @Delete('jobs/:jobId')
+  @Delete("jobs/:jobId")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -102,8 +102,11 @@ export class AuditPackagesController {
     UserRole.WAREHOUSE_MANAGER,
     UserRole.EMPLOYEE,
   )
-  async cancelJob(@Param('jobId') jobId: string, @Request() req: any) {
-    const result = await this.auditPackagesService.cancelJob(jobId, req.user.userId);
+  async cancelJob(@Param("jobId") jobId: string, @Request() req: any) {
+    const result = await this.auditPackagesService.cancelJob(
+      jobId,
+      req.user.userId,
+    );
     return { success: true, data: result };
   }
 }

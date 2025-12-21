@@ -6,23 +6,32 @@ import {
   Delete,
   Body,
   Param,
-} from '@nestjs/common';
-import { DocumentAnnotationsService } from '../services/document-annotations.service';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { AnnotationType } from '@prisma/client';
+} from "@nestjs/common";
+import { DocumentAnnotationsService } from "../services/document-annotations.service";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { AnnotationType } from "@prisma/client";
 
-@Controller('documents')
+@Controller("documents")
 export class DocumentAnnotationsController {
-  constructor(private readonly annotationsService: DocumentAnnotationsService) {}
+  constructor(
+    private readonly annotationsService: DocumentAnnotationsService,
+  ) {}
 
-  @Get(':id/annotations')
-  async listAnnotations(@Param('id') documentId: string, @CurrentUser() user: any) {
-    return this.annotationsService.listAnnotations(documentId, user.userId, user.role);
+  @Get(":id/annotations")
+  async listAnnotations(
+    @Param("id") documentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.annotationsService.listAnnotations(
+      documentId,
+      user.userId,
+      user.role,
+    );
   }
 
-  @Post(':id/annotations')
+  @Post(":id/annotations")
   async addAnnotation(
-    @Param('id') documentId: string,
+    @Param("id") documentId: string,
     @Body()
     body: {
       type: AnnotationType;
@@ -36,17 +45,20 @@ export class DocumentAnnotationsController {
     return this.annotationsService.addAnnotation(documentId, body, user);
   }
 
-  @Put('annotations/:id')
+  @Put("annotations/:id")
   async updateAnnotation(
-    @Param('id') annotationId: string,
+    @Param("id") annotationId: string,
     @Body() body: { coordinates?: any; content?: string; color?: string },
     @CurrentUser() user: any,
   ) {
     return this.annotationsService.updateAnnotation(annotationId, body, user);
   }
 
-  @Delete('annotations/:id')
-  async deleteAnnotation(@Param('id') annotationId: string, @CurrentUser() user: any) {
+  @Delete("annotations/:id")
+  async deleteAnnotation(
+    @Param("id") annotationId: string,
+    @CurrentUser() user: any,
+  ) {
     return this.annotationsService.deleteAnnotation(annotationId, user);
   }
 }

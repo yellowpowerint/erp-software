@@ -1,6 +1,6 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as mime from 'mime-types';
+import { Injectable, BadRequestException, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as mime from "mime-types";
 
 export interface FileValidationOptions {
   maxSizeBytes?: number;
@@ -15,24 +15,27 @@ export class FileUploadService {
   private readonly defaultAllowedMimeTypes: string[];
 
   constructor(private configService: ConfigService) {
-    this.defaultMaxSize = this.configService.get<number>('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB
+    this.defaultMaxSize = this.configService.get<number>(
+      "MAX_FILE_SIZE",
+      10 * 1024 * 1024,
+    ); // 10MB
     this.defaultAllowedMimeTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
-      'text/plain',
-      'text/csv',
-      'application/zip',
-      'application/x-zip-compressed',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/svg+xml",
+      "text/plain",
+      "text/csv",
+      "application/zip",
+      "application/x-zip-compressed",
     ];
   }
 
@@ -41,7 +44,8 @@ export class FileUploadService {
     options: FileValidationOptions = {},
   ): void {
     const maxSize = options.maxSizeBytes || this.defaultMaxSize;
-    const allowedMimeTypes = options.allowedMimeTypes || this.defaultAllowedMimeTypes;
+    const allowedMimeTypes =
+      options.allowedMimeTypes || this.defaultAllowedMimeTypes;
     const allowedExtensions = options.allowedExtensions;
 
     // Validate file size
@@ -55,7 +59,7 @@ export class FileUploadService {
     // Validate MIME type
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
-        `File type ${file.mimetype} is not allowed. Allowed types: ${allowedMimeTypes.join(', ')}`,
+        `File type ${file.mimetype} is not allowed. Allowed types: ${allowedMimeTypes.join(", ")}`,
       );
     }
 
@@ -64,7 +68,7 @@ export class FileUploadService {
       const extension = this.getFileExtension(file.originalname);
       if (!allowedExtensions.includes(extension)) {
         throw new BadRequestException(
-          `File extension .${extension} is not allowed. Allowed extensions: ${allowedExtensions.map(ext => `.${ext}`).join(', ')}`,
+          `File extension .${extension} is not allowed. Allowed extensions: ${allowedExtensions.map((ext) => `.${ext}`).join(", ")}`,
         );
       }
     }
@@ -88,10 +92,10 @@ export class FileUploadService {
     options: FileValidationOptions = {},
   ): void {
     if (!files || files.length === 0) {
-      throw new BadRequestException('No files provided');
+      throw new BadRequestException("No files provided");
     }
 
-    const maxFiles = this.configService.get<number>('MAX_FILES_PER_UPLOAD', 10);
+    const maxFiles = this.configService.get<number>("MAX_FILES_PER_UPLOAD", 10);
     if (files.length > maxFiles) {
       throw new BadRequestException(
         `Too many files. Maximum ${maxFiles} files allowed per upload`,
@@ -111,19 +115,19 @@ export class FileUploadService {
 
   sanitizeFilename(filename: string): string {
     // Remove path traversal attempts
-    const basename = filename.replace(/^.*[\\\/]/, '');
-    
+    const basename = filename.replace(/^.*[\\\/]/, "");
+
     // Remove or replace dangerous characters
     return basename
-      .replace(/[<>:"|?*]/g, '')
-      .replace(/\s+/g, '_')
-      .replace(/_{2,}/g, '_')
+      .replace(/[<>:"|?*]/g, "")
+      .replace(/\s+/g, "_")
+      .replace(/_{2,}/g, "_")
       .trim();
   }
 
   getFileExtension(filename: string): string {
-    const parts = filename.split('.');
-    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+    const parts = filename.split(".");
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
   }
 
   getMimeType(filename: string): string | false {
@@ -131,10 +135,10 @@ export class FileUploadService {
   }
 
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
 
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
@@ -145,24 +149,24 @@ export class FileUploadService {
   }
 
   isImageFile(mimetype: string): boolean {
-    return mimetype.startsWith('image/');
+    return mimetype.startsWith("image/");
   }
 
   isPdfFile(mimetype: string): boolean {
-    return mimetype === 'application/pdf';
+    return mimetype === "application/pdf";
   }
 
   isDocumentFile(mimetype: string): boolean {
     const documentMimeTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'text/csv',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "text/plain",
+      "text/csv",
     ];
     return documentMimeTypes.includes(mimetype);
   }

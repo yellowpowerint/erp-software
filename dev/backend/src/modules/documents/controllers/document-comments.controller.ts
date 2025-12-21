@@ -6,57 +6,77 @@ import {
   Delete,
   Body,
   Param,
-} from '@nestjs/common';
-import { DocumentCommentsService } from '../services/document-comments.service';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+} from "@nestjs/common";
+import { DocumentCommentsService } from "../services/document-comments.service";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 
-@Controller('documents')
+@Controller("documents")
 export class DocumentCommentsController {
   constructor(private readonly commentsService: DocumentCommentsService) {}
 
-  @Get(':id/comments')
-  async listComments(@Param('id') documentId: string, @CurrentUser() user: any) {
-    return this.commentsService.listComments(documentId, user.userId, user.role);
+  @Get(":id/comments")
+  async listComments(
+    @Param("id") documentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.commentsService.listComments(
+      documentId,
+      user.userId,
+      user.role,
+    );
   }
 
-  @Post(':id/comments')
+  @Post(":id/comments")
   async addComment(
-    @Param('id') documentId: string,
+    @Param("id") documentId: string,
     @Body()
-    body: { content: string; pageNumber?: number; positionX?: number; positionY?: number },
+    body: {
+      content: string;
+      pageNumber?: number;
+      positionX?: number;
+      positionY?: number;
+    },
     @CurrentUser() user: any,
   ) {
     return this.commentsService.addComment(documentId, body, user);
   }
 
-  @Put('comments/:id')
+  @Put("comments/:id")
   async updateComment(
-    @Param('id') commentId: string,
+    @Param("id") commentId: string,
     @Body() body: { content: string },
     @CurrentUser() user: any,
   ) {
     return this.commentsService.updateComment(commentId, body, user);
   }
 
-  @Delete('comments/:id')
-  async deleteComment(@Param('id') commentId: string, @CurrentUser() user: any) {
+  @Delete("comments/:id")
+  async deleteComment(
+    @Param("id") commentId: string,
+    @CurrentUser() user: any,
+  ) {
     return this.commentsService.deleteComment(commentId, user);
   }
 
-  @Post('comments/:id/resolve')
+  @Post("comments/:id/resolve")
   async resolveComment(
-    @Param('id') commentId: string,
+    @Param("id") commentId: string,
     @Body() body: { resolved?: boolean },
     @CurrentUser() user: any,
   ) {
     return this.commentsService.resolveComment(commentId, body, user);
   }
 
-  @Post('comments/:id/reply')
+  @Post("comments/:id/reply")
   async replyToComment(
-    @Param('id') commentId: string,
+    @Param("id") commentId: string,
     @Body()
-    body: { content: string; pageNumber?: number; positionX?: number; positionY?: number },
+    body: {
+      content: string;
+      pageNumber?: number;
+      positionX?: number;
+      positionY?: number;
+    },
     @CurrentUser() user: any,
   ) {
     return this.commentsService.replyToComment(commentId, body, user);

@@ -1,25 +1,34 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ExportStatus, ImportStatus, UserRole } from '@prisma/client';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { StorageProvider, StorageService } from '../documents/services/storage.service';
-import * as fs from 'fs/promises';
-import * as mime from 'mime-types';
-import { parse as json2csv } from 'json2csv';
-import csvParser from 'csv-parser';
-import { Readable } from 'stream';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { ExportStatus, ImportStatus, UserRole } from "@prisma/client";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import {
+  StorageProvider,
+  StorageService,
+} from "../documents/services/storage.service";
+import * as fs from "fs/promises";
+import * as fssync from "fs";
+import * as mime from "mime-types";
+import { parse as json2csv } from "json2csv";
+import csvParser from "csv-parser";
+import { Readable } from "stream";
 
 type ModuleKey =
-  | 'inventory'
-  | 'inventory_movements'
-  | 'suppliers'
-  | 'employees'
-  | 'warehouses'
-  | 'projects'
-  | 'project_tasks'
-  | 'assets';
+  | "inventory"
+  | "inventory_movements"
+  | "suppliers"
+  | "employees"
+  | "warehouses"
+  | "projects"
+  | "project_tasks"
+  | "assets";
 
-type DuplicateStrategy = 'skip' | 'update' | 'error';
+type DuplicateStrategy = "skip" | "update" | "error";
 
 interface UploadPreviewRow {
   rowNumber: number;
@@ -37,7 +46,7 @@ interface ImportColumnDef {
   key: string;
   header: string;
   required?: boolean;
-  type?: 'string' | 'number' | 'int' | 'boolean' | 'date' | 'enum';
+  type?: "string" | "number" | "int" | "boolean" | "date" | "enum";
   enumValues?: string[];
 }
 
@@ -48,13 +57,181 @@ interface ImportTemplateColumns {
 @Injectable()
 export class CsvService {
   private readonly logger = new Logger(CsvService.name);
-  private readonly adminRoles: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.IT_MANAGER];
+  private readonly adminRoles: UserRole[] = [
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.IT_MANAGER,
+  ];
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly storageService: StorageService,
   ) {}
+
+  private async audit(
+    action: string,
+    opts: {
+      jobType: "IMPORT" | "EXPORT";
+      jobId?: string;
+      createdById?: string;
+      details?: any;
+    },
+  ) {
+    try {
+      await (this.prisma as any).csvAuditLog.create({
+        data: {
+          jobType: opts.jobType,
+          jobId: opts.jobId ?? undefined,
+          action,
+          details: opts.details ?? undefined,
+          createdById: opts.createdById ?? undefined,
+        },
+      });
+    } catch {
+      // do not fail core flow due to audit log
+    }
+  }
+
+  async previewExport(
+    module: string,
+    opts: { filters?: any; columns: string[]; limit?: number; context?: any },
+  ) {
+    const mod = this.normalizeModule(module);
+    const limit = Math.min(100, Math.max(1, Number(opts.limit || 20)));
+    const columns = Array.isArray(opts.columns) ? opts.columns : [];
+    if (!columns.length) {
+      throw new BadRequestException("columns is required");
+    }
+
+    const where = this.coerceFilters(mod, opts.filters || {});
+
+    if (mod === "inventory") {
+      const [totalRows, items] = await Promise.all([
+        this.prisma.stockItem.count({ where }),
+        this.prisma.stockItem.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+      ]);
+      return this.buildPreviewResult(items, columns, totalRows);
+    }
+
+    if (mod === "inventory_movements") {
+      const [totalRows, movements] = await Promise.all([
+        this.prisma.stockMovement.count({ where }),
+        this.prisma.stockMovement.findMany({
+          where,
+          include: {
+            item: { select: { itemCode: true, name: true } },
+            warehouse: { select: { code: true, name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+      ]);
+      const mapped = movements.map((m) => ({
+        ...m,
+        itemCode: m.item?.itemCode,
+        itemName: m.item?.name,
+        warehouseCode: m.warehouse?.code,
+        warehouseName: m.warehouse?.name,
+      }));
+      return this.buildPreviewResult(mapped, columns, totalRows);
+    }
+
+    if (mod === "warehouses") {
+      const [totalRows, items] = await Promise.all([
+        this.prisma.warehouse.count({ where }),
+        this.prisma.warehouse.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+      ]);
+      return this.buildPreviewResult(items, columns, totalRows);
+    }
+
+    if (mod === "suppliers") {
+      const [totalRows, items] = await Promise.all([
+        this.prisma.supplier.count({ where }),
+        this.prisma.supplier.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+      ]);
+      return this.buildPreviewResult(items, columns, totalRows);
+    }
+
+    if (mod === "employees") {
+      const [totalRows, items] = await Promise.all([
+        this.prisma.employee.count({ where }),
+        this.prisma.employee.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+      ]);
+      return this.buildPreviewResult(items, columns, totalRows);
+    }
+
+    if (mod === "projects") {
+      const [totalRows, items] = await Promise.all([
+        this.prisma.project.count({ where }),
+        this.prisma.project.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+      ]);
+      return this.buildPreviewResult(items, columns, totalRows);
+    }
+
+    if (mod === "project_tasks") {
+      const projectId = String(opts?.context?.projectId || "").trim();
+      if (!projectId) {
+        throw new BadRequestException("Missing required context: projectId");
+      }
+
+      const whereTasks = { ...where, projectId };
+      const [totalRows, items] = await Promise.all([
+        this.prisma.task.count({ where: whereTasks }),
+        this.prisma.task.findMany({
+          where: whereTasks,
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+      ]);
+      return this.buildPreviewResult(items, columns, totalRows);
+    }
+
+    const [totalRows, items] = await Promise.all([
+      this.prisma.asset.count({ where }),
+      this.prisma.asset.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      }),
+    ]);
+    return this.buildPreviewResult(items, columns, totalRows);
+  }
+
+  private buildPreviewResult(
+    rows: any[],
+    columns: string[],
+    totalRows: number,
+  ) {
+    const previewRows = (rows || []).map((x) =>
+      this.pickColumns(x as any, columns),
+    );
+    const csv = json2csv(previewRows, { fields: columns });
+    const previewBytes = Buffer.byteLength(csv, "utf8");
+    const perRow = previewRows.length ? previewBytes / previewRows.length : 0;
+    const estimatedSizeBytes = Math.round(perRow * totalRows);
+    return { totalRows, previewRows, estimatedSizeBytes };
+  }
 
   parseJson(value: string, fieldName: string) {
     try {
@@ -65,7 +242,7 @@ export class CsvService {
   }
 
   private maxPreviewRows(): number {
-    const v = this.configService.get<string>('CSV_PREVIEW_ROWS', '20');
+    const v = this.configService.get<string>("CSV_PREVIEW_ROWS", "20");
     const n = Number(v);
     if (!Number.isFinite(n) || n <= 0) {
       return 20;
@@ -74,16 +251,16 @@ export class CsvService {
   }
 
   private normalizeModule(module: string): ModuleKey {
-    const m = (module || '').toLowerCase().trim();
+    const m = (module || "").toLowerCase().trim();
     const allowed: ModuleKey[] = [
-      'inventory',
-      'inventory_movements',
-      'suppliers',
-      'employees',
-      'warehouses',
-      'projects',
-      'project_tasks',
-      'assets',
+      "inventory",
+      "inventory_movements",
+      "suppliers",
+      "employees",
+      "warehouses",
+      "projects",
+      "project_tasks",
+      "assets",
     ];
     if (!allowed.includes(m as ModuleKey)) {
       throw new BadRequestException(`Unsupported module: ${module}`);
@@ -91,190 +268,516 @@ export class CsvService {
     return m as ModuleKey;
   }
 
-  private getDefaultTemplateForModule(module: ModuleKey): ImportTemplateColumns {
-    if (module === 'inventory') {
+  private getDefaultTemplateForModule(
+    module: ModuleKey,
+  ): ImportTemplateColumns {
+    if (module === "inventory") {
       return {
         columns: [
-          { key: 'itemCode', header: 'itemCode', required: true, type: 'string' },
-          { key: 'name', header: 'name', required: true, type: 'string' },
-          { key: 'description', header: 'description', required: false, type: 'string' },
           {
-            key: 'category',
-            header: 'category',
+            key: "itemCode",
+            header: "itemCode",
             required: true,
-            type: 'enum',
+            type: "string",
+          },
+          { key: "name", header: "name", required: true, type: "string" },
+          {
+            key: "description",
+            header: "description",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "category",
+            header: "category",
+            required: true,
+            type: "enum",
             enumValues: [
-              'CONSUMABLES',
-              'EQUIPMENT',
-              'SPARE_PARTS',
-              'TOOLS',
-              'FUEL',
-              'CHEMICALS',
-              'SAFETY_GEAR',
-              'OFFICE_SUPPLIES',
-              'OTHER',
+              "CONSUMABLES",
+              "EQUIPMENT",
+              "SPARE_PARTS",
+              "TOOLS",
+              "FUEL",
+              "CHEMICALS",
+              "SAFETY_GEAR",
+              "OFFICE_SUPPLIES",
+              "OTHER",
             ],
           },
           {
-            key: 'unit',
-            header: 'unit',
+            key: "unit",
+            header: "unit",
             required: true,
-            type: 'enum',
-            enumValues: ['PIECES', 'KILOGRAMS', 'LITERS', 'METERS', 'BOXES', 'PALLETS', 'TONS', 'GALLONS', 'UNITS'],
+            type: "enum",
+            enumValues: [
+              "PIECES",
+              "KILOGRAMS",
+              "LITERS",
+              "METERS",
+              "BOXES",
+              "PALLETS",
+              "TONS",
+              "GALLONS",
+              "UNITS",
+            ],
           },
-          { key: 'unitPrice', header: 'unitPrice', required: false, type: 'number' },
-          { key: 'reorderLevel', header: 'reorderLevel', required: false, type: 'int' },
-          { key: 'maxStockLevel', header: 'maxStockLevel', required: false, type: 'int' },
-          { key: 'warehouseId', header: 'warehouseId', required: false, type: 'string' },
-          { key: 'warehouseCode', header: 'warehouseCode', required: false, type: 'string' },
-          { key: 'barcode', header: 'barcode', required: false, type: 'string' },
-          { key: 'supplier', header: 'supplier', required: false, type: 'string' },
-          { key: 'notes', header: 'notes', required: false, type: 'string' },
-          { key: 'initialQuantity', header: 'initialQuantity', required: false, type: 'int' },
-        ],
-      };
-    }
-
-    if (module === 'inventory_movements') {
-      return {
-        columns: [
-          { key: 'itemCode', header: 'itemCode', required: true, type: 'string' },
-          { key: 'warehouseId', header: 'warehouseId', required: false, type: 'string' },
-          { key: 'warehouseCode', header: 'warehouseCode', required: false, type: 'string' },
           {
-            key: 'movementType',
-            header: 'movementType',
-            required: true,
-            type: 'enum',
-            enumValues: ['STOCK_IN', 'STOCK_OUT', 'RETURN', 'DAMAGED', 'EXPIRED', 'ADJUSTMENT'],
+            key: "unitPrice",
+            header: "unitPrice",
+            required: false,
+            type: "number",
           },
-          { key: 'quantity', header: 'quantity', required: true, type: 'int' },
-          { key: 'unitPrice', header: 'unitPrice', required: false, type: 'number' },
-          { key: 'reference', header: 'reference', required: false, type: 'string' },
-          { key: 'notes', header: 'notes', required: false, type: 'string' },
+          {
+            key: "reorderLevel",
+            header: "reorderLevel",
+            required: false,
+            type: "int",
+          },
+          {
+            key: "maxStockLevel",
+            header: "maxStockLevel",
+            required: false,
+            type: "int",
+          },
+          {
+            key: "warehouseId",
+            header: "warehouseId",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "warehouseCode",
+            header: "warehouseCode",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "barcode",
+            header: "barcode",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "supplier",
+            header: "supplier",
+            required: false,
+            type: "string",
+          },
+          { key: "notes", header: "notes", required: false, type: "string" },
+          {
+            key: "initialQuantity",
+            header: "initialQuantity",
+            required: false,
+            type: "int",
+          },
         ],
       };
     }
 
-    if (module === 'warehouses') {
+    if (module === "inventory_movements") {
       return {
         columns: [
-          { key: 'code', header: 'code', required: true, type: 'string' },
-          { key: 'name', header: 'name', required: true, type: 'string' },
-          { key: 'location', header: 'location', required: true, type: 'string' },
-          { key: 'description', header: 'description', required: false, type: 'string' },
-          { key: 'isActive', header: 'isActive', required: false, type: 'boolean' },
+          {
+            key: "itemCode",
+            header: "itemCode",
+            required: true,
+            type: "string",
+          },
+          {
+            key: "warehouseId",
+            header: "warehouseId",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "warehouseCode",
+            header: "warehouseCode",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "movementType",
+            header: "movementType",
+            required: true,
+            type: "enum",
+            enumValues: [
+              "STOCK_IN",
+              "STOCK_OUT",
+              "RETURN",
+              "DAMAGED",
+              "EXPIRED",
+              "ADJUSTMENT",
+            ],
+          },
+          { key: "quantity", header: "quantity", required: true, type: "int" },
+          {
+            key: "unitPrice",
+            header: "unitPrice",
+            required: false,
+            type: "number",
+          },
+          {
+            key: "reference",
+            header: "reference",
+            required: false,
+            type: "string",
+          },
+          { key: "notes", header: "notes", required: false, type: "string" },
         ],
       };
     }
 
-    if (module === 'suppliers') {
+    if (module === "warehouses") {
       return {
         columns: [
-          { key: 'name', header: 'name', required: true, type: 'string' },
-          { key: 'contactPerson', header: 'contactPerson', required: false, type: 'string' },
-          { key: 'email', header: 'email', required: false, type: 'string' },
-          { key: 'phone', header: 'phone', required: false, type: 'string' },
-          { key: 'address', header: 'address', required: false, type: 'string' },
-          { key: 'city', header: 'city', required: false, type: 'string' },
-          { key: 'country', header: 'country', required: false, type: 'string' },
-          { key: 'taxId', header: 'taxId', required: false, type: 'string' },
-          { key: 'bankAccount', header: 'bankAccount', required: false, type: 'string' },
-          { key: 'paymentTerms', header: 'paymentTerms', required: false, type: 'string' },
-          { key: 'category', header: 'category', required: false, type: 'string' },
-          { key: 'rating', header: 'rating', required: false, type: 'int' },
-          { key: 'isActive', header: 'isActive', required: false, type: 'boolean' },
-          { key: 'notes', header: 'notes', required: false, type: 'string' },
+          { key: "code", header: "code", required: true, type: "string" },
+          { key: "name", header: "name", required: true, type: "string" },
+          {
+            key: "location",
+            header: "location",
+            required: true,
+            type: "string",
+          },
+          {
+            key: "description",
+            header: "description",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "isActive",
+            header: "isActive",
+            required: false,
+            type: "boolean",
+          },
         ],
       };
     }
 
-    if (module === 'employees') {
+    if (module === "suppliers") {
       return {
         columns: [
-          { key: 'employeeId', header: 'employeeId', required: false, type: 'string' },
-          { key: 'firstName', header: 'firstName', required: true, type: 'string' },
-          { key: 'lastName', header: 'lastName', required: true, type: 'string' },
-          { key: 'email', header: 'email', required: true, type: 'string' },
-          { key: 'phone', header: 'phone', required: false, type: 'string' },
-          { key: 'dateOfBirth', header: 'dateOfBirth', required: false, type: 'date' },
-          { key: 'gender', header: 'gender', required: false, type: 'string' },
-          { key: 'address', header: 'address', required: false, type: 'string' },
-          { key: 'city', header: 'city', required: false, type: 'string' },
-          { key: 'country', header: 'country', required: false, type: 'string' },
-          { key: 'department', header: 'department', required: true, type: 'string' },
-          { key: 'position', header: 'position', required: true, type: 'string' },
-          { key: 'employmentType', header: 'employmentType', required: false, type: 'string' },
-          { key: 'status', header: 'status', required: false, type: 'string' },
-          { key: 'hireDate', header: 'hireDate', required: true, type: 'date' },
-          { key: 'terminationDate', header: 'terminationDate', required: false, type: 'date' },
-          { key: 'salary', header: 'salary', required: false, type: 'number' },
-          { key: 'supervisorId', header: 'supervisorId', required: false, type: 'string' },
-          { key: 'emergencyContact', header: 'emergencyContact', required: false, type: 'string' },
-          { key: 'emergencyPhone', header: 'emergencyPhone', required: false, type: 'string' },
-          { key: 'notes', header: 'notes', required: false, type: 'string' },
+          { key: "name", header: "name", required: true, type: "string" },
+          {
+            key: "contactPerson",
+            header: "contactPerson",
+            required: false,
+            type: "string",
+          },
+          { key: "email", header: "email", required: false, type: "string" },
+          { key: "phone", header: "phone", required: false, type: "string" },
+          {
+            key: "address",
+            header: "address",
+            required: false,
+            type: "string",
+          },
+          { key: "city", header: "city", required: false, type: "string" },
+          {
+            key: "country",
+            header: "country",
+            required: false,
+            type: "string",
+          },
+          { key: "taxId", header: "taxId", required: false, type: "string" },
+          {
+            key: "bankAccount",
+            header: "bankAccount",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "paymentTerms",
+            header: "paymentTerms",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "category",
+            header: "category",
+            required: false,
+            type: "string",
+          },
+          { key: "rating", header: "rating", required: false, type: "int" },
+          {
+            key: "isActive",
+            header: "isActive",
+            required: false,
+            type: "boolean",
+          },
+          { key: "notes", header: "notes", required: false, type: "string" },
         ],
       };
     }
 
-    if (module === 'projects') {
+    if (module === "employees") {
       return {
         columns: [
-          { key: 'projectCode', header: 'projectCode', required: true, type: 'string' },
-          { key: 'name', header: 'name', required: true, type: 'string' },
-          { key: 'description', header: 'description', required: false, type: 'string' },
-          { key: 'status', header: 'status', required: false, type: 'string' },
-          { key: 'priority', header: 'priority', required: false, type: 'string' },
-          { key: 'location', header: 'location', required: false, type: 'string' },
-          { key: 'startDate', header: 'startDate', required: true, type: 'date' },
-          { key: 'endDate', header: 'endDate', required: false, type: 'date' },
-          { key: 'estimatedBudget', header: 'estimatedBudget', required: false, type: 'number' },
-          { key: 'progress', header: 'progress', required: false, type: 'int' },
-          { key: 'managerId', header: 'managerId', required: false, type: 'string' },
-          { key: 'notes', header: 'notes', required: false, type: 'string' },
+          {
+            key: "employeeId",
+            header: "employeeId",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "firstName",
+            header: "firstName",
+            required: true,
+            type: "string",
+          },
+          {
+            key: "lastName",
+            header: "lastName",
+            required: true,
+            type: "string",
+          },
+          { key: "email", header: "email", required: true, type: "string" },
+          { key: "phone", header: "phone", required: false, type: "string" },
+          {
+            key: "dateOfBirth",
+            header: "dateOfBirth",
+            required: false,
+            type: "date",
+          },
+          { key: "gender", header: "gender", required: false, type: "string" },
+          {
+            key: "address",
+            header: "address",
+            required: false,
+            type: "string",
+          },
+          { key: "city", header: "city", required: false, type: "string" },
+          {
+            key: "country",
+            header: "country",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "department",
+            header: "department",
+            required: true,
+            type: "string",
+          },
+          {
+            key: "position",
+            header: "position",
+            required: true,
+            type: "string",
+          },
+          {
+            key: "employmentType",
+            header: "employmentType",
+            required: false,
+            type: "string",
+          },
+          { key: "status", header: "status", required: false, type: "string" },
+          { key: "hireDate", header: "hireDate", required: true, type: "date" },
+          {
+            key: "terminationDate",
+            header: "terminationDate",
+            required: false,
+            type: "date",
+          },
+          { key: "salary", header: "salary", required: false, type: "number" },
+          {
+            key: "supervisorId",
+            header: "supervisorId",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "emergencyContact",
+            header: "emergencyContact",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "emergencyPhone",
+            header: "emergencyPhone",
+            required: false,
+            type: "string",
+          },
+          { key: "notes", header: "notes", required: false, type: "string" },
         ],
       };
     }
 
-    if (module === 'project_tasks') {
+    if (module === "projects") {
       return {
         columns: [
-          { key: 'title', header: 'title', required: true, type: 'string' },
-          { key: 'description', header: 'description', required: false, type: 'string' },
-          { key: 'status', header: 'status', required: false, type: 'string' },
-          { key: 'assignedTo', header: 'assignedTo', required: false, type: 'string' },
-          { key: 'dueDate', header: 'dueDate', required: false, type: 'date' },
-          { key: 'order', header: 'order', required: false, type: 'int' },
+          {
+            key: "projectCode",
+            header: "projectCode",
+            required: true,
+            type: "string",
+          },
+          { key: "name", header: "name", required: true, type: "string" },
+          {
+            key: "description",
+            header: "description",
+            required: false,
+            type: "string",
+          },
+          { key: "status", header: "status", required: false, type: "string" },
+          {
+            key: "priority",
+            header: "priority",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "location",
+            header: "location",
+            required: false,
+            type: "string",
+          },
+          {
+            key: "startDate",
+            header: "startDate",
+            required: true,
+            type: "date",
+          },
+          { key: "endDate", header: "endDate", required: false, type: "date" },
+          {
+            key: "estimatedBudget",
+            header: "estimatedBudget",
+            required: false,
+            type: "number",
+          },
+          { key: "progress", header: "progress", required: false, type: "int" },
+          {
+            key: "managerId",
+            header: "managerId",
+            required: false,
+            type: "string",
+          },
+          { key: "notes", header: "notes", required: false, type: "string" },
+        ],
+      };
+    }
+
+    if (module === "project_tasks") {
+      return {
+        columns: [
+          { key: "title", header: "title", required: true, type: "string" },
+          {
+            key: "description",
+            header: "description",
+            required: false,
+            type: "string",
+          },
+          { key: "status", header: "status", required: false, type: "string" },
+          {
+            key: "assignedTo",
+            header: "assignedTo",
+            required: false,
+            type: "string",
+          },
+          { key: "dueDate", header: "dueDate", required: false, type: "date" },
+          { key: "order", header: "order", required: false, type: "int" },
         ],
       };
     }
 
     return {
       columns: [
-        { key: 'assetCode', header: 'assetCode', required: true, type: 'string' },
-        { key: 'name', header: 'name', required: true, type: 'string' },
-        { key: 'description', header: 'description', required: false, type: 'string' },
-        { key: 'category', header: 'category', required: true, type: 'string' },
-        { key: 'manufacturer', header: 'manufacturer', required: false, type: 'string' },
-        { key: 'model', header: 'model', required: false, type: 'string' },
-        { key: 'serialNumber', header: 'serialNumber', required: false, type: 'string' },
-        { key: 'purchaseDate', header: 'purchaseDate', required: true, type: 'date' },
-        { key: 'purchasePrice', header: 'purchasePrice', required: true, type: 'number' },
-        { key: 'currentValue', header: 'currentValue', required: false, type: 'number' },
-        { key: 'depreciationRate', header: 'depreciationRate', required: false, type: 'number' },
-        { key: 'location', header: 'location', required: false, type: 'string' },
-        { key: 'status', header: 'status', required: false, type: 'string' },
-        { key: 'condition', header: 'condition', required: false, type: 'string' },
-        { key: 'assignedTo', header: 'assignedTo', required: false, type: 'string' },
-        { key: 'notes', header: 'notes', required: false, type: 'string' },
-        { key: 'warrantyExpiry', header: 'warrantyExpiry', required: false, type: 'date' },
-        { key: 'lastMaintenanceAt', header: 'lastMaintenanceAt', required: false, type: 'date' },
-        { key: 'nextMaintenanceAt', header: 'nextMaintenanceAt', required: false, type: 'date' },
+        {
+          key: "assetCode",
+          header: "assetCode",
+          required: true,
+          type: "string",
+        },
+        { key: "name", header: "name", required: true, type: "string" },
+        {
+          key: "description",
+          header: "description",
+          required: false,
+          type: "string",
+        },
+        { key: "category", header: "category", required: true, type: "string" },
+        {
+          key: "manufacturer",
+          header: "manufacturer",
+          required: false,
+          type: "string",
+        },
+        { key: "model", header: "model", required: false, type: "string" },
+        {
+          key: "serialNumber",
+          header: "serialNumber",
+          required: false,
+          type: "string",
+        },
+        {
+          key: "purchaseDate",
+          header: "purchaseDate",
+          required: true,
+          type: "date",
+        },
+        {
+          key: "purchasePrice",
+          header: "purchasePrice",
+          required: true,
+          type: "number",
+        },
+        {
+          key: "currentValue",
+          header: "currentValue",
+          required: false,
+          type: "number",
+        },
+        {
+          key: "depreciationRate",
+          header: "depreciationRate",
+          required: false,
+          type: "number",
+        },
+        {
+          key: "location",
+          header: "location",
+          required: false,
+          type: "string",
+        },
+        { key: "status", header: "status", required: false, type: "string" },
+        {
+          key: "condition",
+          header: "condition",
+          required: false,
+          type: "string",
+        },
+        {
+          key: "assignedTo",
+          header: "assignedTo",
+          required: false,
+          type: "string",
+        },
+        { key: "notes", header: "notes", required: false, type: "string" },
+        {
+          key: "warrantyExpiry",
+          header: "warrantyExpiry",
+          required: false,
+          type: "date",
+        },
+        {
+          key: "lastMaintenanceAt",
+          header: "lastMaintenanceAt",
+          required: false,
+          type: "date",
+        },
+        {
+          key: "nextMaintenanceAt",
+          header: "nextMaintenanceAt",
+          required: false,
+          type: "date",
+        },
       ],
     };
   }
 
-  private async parseCsvFromBuffer(buffer: Buffer): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
+  private async parseCsvFromBuffer(
+    buffer: Buffer,
+  ): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
     const rows: Record<string, string>[] = [];
 
     return new Promise((resolve, reject) => {
@@ -283,40 +786,44 @@ export class CsvService {
       Readable.from([buffer])
         .pipe(
           csvParser({
-            mapHeaders: ({ header }) => String(header ?? '').trim(),
-            mapValues: ({ value }) => (typeof value === 'string' ? value.trim() : value),
+            mapHeaders: ({ header }) => String(header ?? "").trim(),
+            mapValues: ({ value }) =>
+              typeof value === "string" ? value.trim() : value,
             strict: false,
           }),
         )
-        .on('headers', (h: string[]) => {
-          headers = (h || []).map((x) => String(x || '').trim());
+        .on("headers", (h: string[]) => {
+          headers = (h || []).map((x) => String(x || "").trim());
         })
-        .on('data', (row: Record<string, any>) => {
+        .on("data", (row: Record<string, any>) => {
           const record: Record<string, string> = {};
           for (const [k, v] of Object.entries(row || {})) {
-            record[String(k)] = v == null ? '' : String(v);
+            record[String(k)] = v == null ? "" : String(v);
           }
           rows.push(record);
         })
-        .on('error', reject)
-        .on('end', () => {
+        .on("error", reject)
+        .on("end", () => {
           resolve({ headers, rows });
         });
     });
   }
 
-  async uploadForValidation(file: Express.Multer.File, module?: string): Promise<{ success: true; data: UploadForValidationResult }> {
+  async uploadForValidation(
+    file: Express.Multer.File,
+    module?: string,
+  ): Promise<{ success: true; data: UploadForValidationResult }> {
     if (!file?.buffer?.length) {
-      throw new BadRequestException('Empty file');
+      throw new BadRequestException("Empty file");
     }
-
-    const mimeType = file.mimetype || (mime.lookup(file.originalname) as string) || 'text/csv';
     const parsed = await this.parseCsvFromBuffer(file.buffer);
 
-    const previewRows: UploadPreviewRow[] = parsed.rows.slice(0, this.maxPreviewRows()).map((r, i) => ({
-      rowNumber: i + 1,
-      data: r,
-    }));
+    const previewRows: UploadPreviewRow[] = parsed.rows
+      .slice(0, this.maxPreviewRows())
+      .map((r, i) => ({
+        rowNumber: i + 1,
+        data: r,
+      }));
 
     return {
       success: true,
@@ -330,15 +837,17 @@ export class CsvService {
   }
 
   private toBool(v: any): boolean {
-    const s = String(v ?? '').trim().toLowerCase();
-    if (['true', '1', 'yes', 'y'].includes(s)) return true;
-    if (['false', '0', 'no', 'n', ''].includes(s)) return false;
+    const s = String(v ?? "")
+      .trim()
+      .toLowerCase();
+    if (["true", "1", "yes", "y"].includes(s)) return true;
+    if (["false", "0", "no", "n", ""].includes(s)) return false;
     throw new BadRequestException(`Invalid boolean: ${v}`);
   }
 
   private toNumber(v: any): number {
-    if (v === '' || v == null) {
-      throw new BadRequestException('Missing number');
+    if (v === "" || v == null) {
+      throw new BadRequestException("Missing number");
     }
     const n = Number(String(v).trim());
     if (!Number.isFinite(n)) {
@@ -356,9 +865,9 @@ export class CsvService {
   }
 
   private toDate(v: any): Date {
-    const s = String(v ?? '').trim();
+    const s = String(v ?? "").trim();
     if (!s) {
-      throw new BadRequestException('Missing date');
+      throw new BadRequestException("Missing date");
     }
     const d = new Date(s);
     if (Number.isNaN(d.getTime())) {
@@ -368,30 +877,30 @@ export class CsvService {
   }
 
   private coerceValue(raw: any, def: ImportColumnDef): any {
-    const v = raw == null ? '' : String(raw).trim();
+    const v = raw == null ? "" : String(raw).trim();
 
-    if (!def.type || def.type === 'string') {
-      return v === '' ? null : v;
+    if (!def.type || def.type === "string") {
+      return v === "" ? null : v;
     }
 
-    if (def.type === 'number') {
-      return v === '' ? null : this.toNumber(v);
+    if (def.type === "number") {
+      return v === "" ? null : this.toNumber(v);
     }
 
-    if (def.type === 'int') {
-      return v === '' ? null : this.toInt(v);
+    if (def.type === "int") {
+      return v === "" ? null : this.toInt(v);
     }
 
-    if (def.type === 'boolean') {
-      return v === '' ? null : this.toBool(v);
+    if (def.type === "boolean") {
+      return v === "" ? null : this.toBool(v);
     }
 
-    if (def.type === 'date') {
-      return v === '' ? null : this.toDate(v);
+    if (def.type === "date") {
+      return v === "" ? null : this.toDate(v);
     }
 
-    if (def.type === 'enum') {
-      if (v === '') {
+    if (def.type === "enum") {
+      if (v === "") {
         return null;
       }
       if (!def.enumValues?.includes(v)) {
@@ -400,10 +909,13 @@ export class CsvService {
       return v;
     }
 
-    return v === '' ? null : v;
+    return v === "" ? null : v;
   }
 
-  private buildDefaultMappings(headers: string[], template: ImportTemplateColumns) {
+  private buildDefaultMappings(
+    headers: string[],
+    template: ImportTemplateColumns,
+  ) {
     const lowerHeaders = headers.map((h) => h.toLowerCase());
 
     return template.columns.map((c) => {
@@ -429,11 +941,17 @@ export class CsvService {
     const mod = this.normalizeModule(module);
 
     if (!file?.buffer?.length) {
-      throw new BadRequestException('Empty file');
+      throw new BadRequestException("Empty file");
     }
 
-    const mimeType = file.mimetype || (mime.lookup(file.originalname) as string) || 'text/csv';
-    const upload = await this.storageService.uploadBuffer(file.buffer, file.originalname, mimeType, 'csv');
+    const mimeType =
+      file.mimetype || (mime.lookup(file.originalname) as string) || "text/csv";
+    const upload = await this.storageService.uploadBuffer(
+      file.buffer,
+      file.originalname,
+      mimeType,
+      "csv",
+    );
 
     const parsed = await this.parseCsvFromBuffer(file.buffer);
 
@@ -452,24 +970,43 @@ export class CsvService {
       .map((m) => m.key);
 
     if (missingRequired.length > 0) {
-      throw new BadRequestException(`Missing required mappings: ${missingRequired.join(', ')}`);
+      throw new BadRequestException(
+        `Missing required mappings: ${missingRequired.join(", ")}`,
+      );
     }
 
-    if (mod === 'inventory') {
-      const hasWarehouseId = (usedMappings || []).some((m: any) => m?.key === 'warehouseId' && m?.sourceColumn);
-      const hasWarehouseCode = (usedMappings || []).some((m: any) => m?.key === 'warehouseCode' && m?.sourceColumn);
-      const hasWarehouseIdCtx = !!(context?.warehouseId && String(context.warehouseId).trim());
-      const hasWarehouseCodeCtx = !!(context?.warehouseCode && String(context.warehouseCode).trim());
+    if (mod === "inventory") {
+      const hasWarehouseId = (usedMappings || []).some(
+        (m: any) => m?.key === "warehouseId" && m?.sourceColumn,
+      );
+      const hasWarehouseCode = (usedMappings || []).some(
+        (m: any) => m?.key === "warehouseCode" && m?.sourceColumn,
+      );
+      const hasWarehouseIdCtx = !!(
+        context?.warehouseId && String(context.warehouseId).trim()
+      );
+      const hasWarehouseCodeCtx = !!(
+        context?.warehouseCode && String(context.warehouseCode).trim()
+      );
 
-      if (!hasWarehouseId && !hasWarehouseCode && !hasWarehouseIdCtx && !hasWarehouseCodeCtx) {
-        throw new BadRequestException('Missing required mappings: warehouseId or warehouseCode');
+      if (
+        !hasWarehouseId &&
+        !hasWarehouseCode &&
+        !hasWarehouseIdCtx &&
+        !hasWarehouseCodeCtx
+      ) {
+        throw new BadRequestException(
+          "Missing required mappings: warehouseId or warehouseCode",
+        );
       }
     }
 
-    if (mod === 'project_tasks') {
-      const projectId = context?.projectId ? String(context.projectId).trim() : '';
+    if (mod === "project_tasks") {
+      const projectId = context?.projectId
+        ? String(context.projectId).trim()
+        : "";
       if (!projectId) {
-        throw new BadRequestException('Missing required context: projectId');
+        throw new BadRequestException("Missing required context: projectId");
       }
     }
 
@@ -488,20 +1025,32 @@ export class CsvService {
       },
     });
 
+    await this.audit("IMPORT_JOB_CREATED", {
+      jobType: "IMPORT",
+      jobId: job.id,
+      createdById: userId,
+      details: { module: mod, totalRows: parsed.rows.length },
+    });
+
     return job;
   }
 
   async getImportJob(jobId: string, userId: string) {
-    const job = await (this.prisma as any).importJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).importJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
-      throw new NotFoundException('Import job not found');
+      throw new NotFoundException("Import job not found");
     }
 
     if (job.createdById !== userId) {
       // Allow admins to view
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
       if (!user || !this.adminRoles.includes(user.role)) {
-        throw new NotFoundException('Import job not found');
+        throw new NotFoundException("Import job not found");
       }
     }
 
@@ -515,7 +1064,10 @@ export class CsvService {
 
   async cancelImportJob(jobId: string, userId: string) {
     const job = await this.getImportJob(jobId, userId);
-    if (job.status === ImportStatus.COMPLETED || job.status === ImportStatus.FAILED) {
+    if (
+      job.status === ImportStatus.COMPLETED ||
+      job.status === ImportStatus.FAILED
+    ) {
       return job;
     }
 
@@ -528,7 +1080,7 @@ export class CsvService {
   async listImportHistory(userId: string) {
     return (this.prisma as any).importJob.findMany({
       where: { createdById: userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
   }
@@ -536,15 +1088,19 @@ export class CsvService {
   async listExportHistory(userId: string) {
     return (this.prisma as any).exportJob.findMany({
       where: { createdById: userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
   }
 
   async claimNextImportJob(): Promise<{ id: string } | null> {
+    const now = new Date();
     const candidates = await (this.prisma as any).importJob.findMany({
-      where: { status: ImportStatus.PENDING },
-      orderBy: { createdAt: 'asc' },
+      where: {
+        status: ImportStatus.PENDING,
+        OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }],
+      },
+      orderBy: { createdAt: "asc" },
       take: 10,
     });
 
@@ -574,7 +1130,9 @@ export class CsvService {
     }
   }
 
-  private async readImportFile(job: any): Promise<{ buffer: Buffer; localPath?: string }> {
+  private async readImportFile(
+    job: any,
+  ): Promise<{ buffer: Buffer; localPath?: string }> {
     if (job.storageProvider === StorageProvider.LOCAL) {
       const local = this.storageService.getLocalFilePath(job.fileName);
       const b = await fs.readFile(local);
@@ -584,14 +1142,16 @@ export class CsvService {
     // S3: download to temp via getLocalPath using the URL
     const localPath = await this.storageService.getLocalPath(job.fileUrl);
     if (!localPath) {
-      throw new BadRequestException('Unable to resolve job file');
+      throw new BadRequestException("Unable to resolve job file");
     }
     const b = await fs.readFile(localPath);
     return { buffer: b, localPath };
   }
 
   async processImportJob(jobId: string) {
-    const job = await (this.prisma as any).importJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).importJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
       return;
     }
@@ -604,11 +1164,39 @@ export class CsvService {
       return;
     }
 
+    const rollback = await (this.prisma as any).importRollback.upsert({
+      where: { importJobId: job.id },
+      update: {},
+      create: { importJobId: job.id },
+    });
+    (job as any)._rollbackId = rollback.id;
+
+    await this.audit("IMPORT_JOB_PROCESSING_STARTED", {
+      jobType: "IMPORT",
+      jobId: job.id,
+      createdById: job.createdById,
+      details: { module: job.module },
+    });
+
     const { buffer, localPath } = await this.readImportFile(job);
 
     try {
+      const largeThreshold = Number(
+        this.configService.get<string>("CSV_LARGE_IMPORT_ROWS", "50000"),
+      );
+      if (
+        Number.isFinite(largeThreshold) &&
+        job.totalRows >= largeThreshold &&
+        localPath
+      ) {
+        await this.processImportJobStreaming(job, localPath);
+        return;
+      }
+
       const parsed = await this.parseCsvFromBuffer(buffer);
-      const template = this.getDefaultTemplateForModule(this.normalizeModule(job.module));
+      const template = this.getDefaultTemplateForModule(
+        this.normalizeModule(job.module),
+      );
 
       const mappings = Array.isArray(job.mappings) ? job.mappings : [];
       const errors: any[] = [];
@@ -616,10 +1204,21 @@ export class CsvService {
       let processed = 0;
       let success = 0;
 
+      const maxErrors = Number(
+        this.configService.get<string>("CSV_MAX_ERROR_ROWS", "2000"),
+      );
+
       for (let i = 0; i < parsed.rows.length; i++) {
         const row = parsed.rows[i];
 
-        if ((await (this.prisma as any).importJob.findUnique({ where: { id: job.id }, select: { status: true } }))?.status === ImportStatus.CANCELLED) {
+        if (
+          (
+            await (this.prisma as any).importJob.findUnique({
+              where: { id: job.id },
+              select: { status: true },
+            })
+          )?.status === ImportStatus.CANCELLED
+        ) {
           await (this.prisma as any).importJob.update({
             where: { id: job.id },
             data: { completedAt: new Date() },
@@ -633,20 +1232,26 @@ export class CsvService {
           for (const c of template.columns) {
             const m = mappings.find((x: any) => x.key === c.key);
             const src = m?.sourceColumn;
-            const raw = src ? row[src] : '';
-            if (c.required && (raw == null || String(raw).trim() === '')) {
+            const raw = src ? row[src] : "";
+            if (c.required && (raw == null || String(raw).trim() === "")) {
               throw new BadRequestException(`Missing required field: ${c.key}`);
             }
-            output[c.key] = raw == null || String(raw).trim() === '' ? null : this.coerceValue(raw, c);
+            output[c.key] =
+              raw == null || String(raw).trim() === ""
+                ? null
+                : this.coerceValue(raw, c);
           }
 
           await this.applyImportRow(job, output);
           success++;
         } catch (e: any) {
-          errors.push({
-            rowNumber: i + 1,
-            message: e?.message || 'Row import failed',
-          });
+          if (!Number.isFinite(maxErrors) || errors.length < maxErrors) {
+            errors.push({
+              rowNumber: i + 1,
+              message: e?.message || "Row import failed",
+              rowData: row,
+            });
+          }
         }
 
         processed++;
@@ -657,7 +1262,7 @@ export class CsvService {
             data: {
               processedRows: processed,
               successRows: success,
-              errorRows: errors.length,
+              errorRows: Math.max(errors.length, job.errorRows || 0),
             },
           });
         }
@@ -670,18 +1275,42 @@ export class CsvService {
           successRows: success,
           errorRows: errors.length,
           errors,
-          status: errors.length > 0 ? ImportStatus.FAILED : ImportStatus.COMPLETED,
+          status:
+            errors.length > 0 ? ImportStatus.FAILED : ImportStatus.COMPLETED,
           completedAt: new Date(),
         },
       });
+
+      await this.audit(
+        errors.length > 0 ? "IMPORT_JOB_FAILED" : "IMPORT_JOB_COMPLETED",
+        {
+          jobType: "IMPORT",
+          jobId: job.id,
+          createdById: job.createdById,
+          details: {
+            processedRows: processed,
+            successRows: success,
+            errorRows: errors.length,
+          },
+        },
+      );
     } catch (error: any) {
       await (this.prisma as any).importJob.update({
         where: { id: job.id },
         data: {
           status: ImportStatus.FAILED,
-          errors: [{ rowNumber: 0, message: error?.message || 'Import failed' }],
+          errors: [
+            { rowNumber: 0, message: error?.message || "Import failed" },
+          ],
           completedAt: new Date(),
         },
+      });
+
+      await this.audit("IMPORT_JOB_FAILED", {
+        jobType: "IMPORT",
+        jobId: job.id,
+        createdById: job.createdById,
+        details: { message: error?.message || "Import failed" },
       });
     } finally {
       if (localPath) {
@@ -690,47 +1319,279 @@ export class CsvService {
     }
   }
 
+  private async processImportJobStreaming(job: any, localPath: string) {
+    const template = this.getDefaultTemplateForModule(
+      this.normalizeModule(job.module),
+    );
+    const mappings = Array.isArray(job.mappings) ? job.mappings : [];
+    const errors: any[] = [];
+
+    const chunkSize = Number(
+      this.configService.get<string>("CSV_IMPORT_CHUNK_SIZE", "1000"),
+    );
+    const maxErrors = Number(
+      this.configService.get<string>("CSV_MAX_ERROR_ROWS", "2000"),
+    );
+
+    let processed = 0;
+    let success = 0;
+
+    const stream = fssync.createReadStream(localPath).pipe(
+      csvParser({
+        mapHeaders: ({ header }) => String(header ?? "").trim(),
+        mapValues: ({ value }) =>
+          typeof value === "string" ? value.trim() : value,
+        strict: false,
+      }),
+    );
+
+    const batch: Record<string, any>[] = [];
+
+    const flush = async () => {
+      if (!batch.length) return;
+      for (let i = 0; i < batch.length; i++) {
+        const row = batch[i];
+        const output: Record<string, any> = {};
+
+        try {
+          for (const c of template.columns) {
+            const m = mappings.find((x: any) => x.key === c.key);
+            const src = m?.sourceColumn;
+            const raw = src ? row[src] : "";
+            if (c.required && (raw == null || String(raw).trim() === "")) {
+              throw new BadRequestException(`Missing required field: ${c.key}`);
+            }
+            output[c.key] =
+              raw == null || String(raw).trim() === ""
+                ? null
+                : this.coerceValue(raw, c);
+          }
+
+          await this.applyImportRow(job, output);
+          success++;
+        } catch (e: any) {
+          if (!Number.isFinite(maxErrors) || errors.length < maxErrors) {
+            errors.push({
+              rowNumber: processed + i + 1,
+              message: e?.message || "Row import failed",
+              rowData: row,
+            });
+          }
+        }
+      }
+
+      processed += batch.length;
+      batch.length = 0;
+
+      await (this.prisma as any).importJob.update({
+        where: { id: job.id },
+        data: {
+          processedRows: processed,
+          successRows: success,
+          errorRows: errors.length,
+        },
+      });
+    };
+
+    for await (const row of stream as any) {
+      const status = (
+        await (this.prisma as any).importJob.findUnique({
+          where: { id: job.id },
+          select: { status: true },
+        })
+      )?.status;
+      if (status === ImportStatus.CANCELLED) {
+        await (this.prisma as any).importJob.update({
+          where: { id: job.id },
+          data: { completedAt: new Date() },
+        });
+        return;
+      }
+
+      batch.push(row);
+      if (
+        batch.length >=
+        (Number.isFinite(chunkSize) && chunkSize > 0 ? chunkSize : 1000)
+      ) {
+        await flush();
+      }
+    }
+
+    await flush();
+
+    await (this.prisma as any).importJob.update({
+      where: { id: job.id },
+      data: {
+        processedRows: processed,
+        successRows: success,
+        errorRows: errors.length,
+        errors,
+        status:
+          errors.length > 0 ? ImportStatus.FAILED : ImportStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  private async recordImportChange(
+    job: any,
+    model: string,
+    recordId: string,
+    operation: string,
+    before?: any,
+    after?: any,
+  ) {
+    const rollbackId = (job as any)?._rollbackId
+      ? String((job as any)._rollbackId)
+      : "";
+    if (!rollbackId) {
+      return;
+    }
+    await (this.prisma as any).importChange.create({
+      data: {
+        rollbackId,
+        model,
+        recordId: String(recordId),
+        operation,
+        before: before ?? undefined,
+        after: after ?? undefined,
+      },
+    });
+  }
+
+  async rollbackImport(jobId: string, userId: string) {
+    const job = await this.getImportJob(jobId, userId);
+    if (
+      job.status !== ImportStatus.COMPLETED &&
+      job.status !== ImportStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        "Only completed/failed imports can be rolled back",
+      );
+    }
+
+    const rollback = await (this.prisma as any).importRollback.findUnique({
+      where: { importJobId: job.id },
+    });
+    if (!rollback) {
+      throw new BadRequestException("No rollback point available");
+    }
+
+    const changes = await (this.prisma as any).importChange.findMany({
+      where: { rollbackId: rollback.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    for (const c of changes) {
+      const model = String(c.model);
+      const recordId = String(c.recordId);
+      const op = String(c.operation);
+      const delegate = (this.prisma as any)[model];
+      if (!delegate) {
+        continue;
+      }
+
+      if (op === "CREATE") {
+        try {
+          await delegate.delete({ where: { id: recordId } });
+        } catch {
+          // ignore
+        }
+        continue;
+      }
+
+      if (op === "UPDATE") {
+        const before = c.before || {};
+        try {
+          await delegate.update({ where: { id: recordId }, data: before });
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    await (this.prisma as any).importRollback.update({
+      where: { id: rollback.id },
+      data: { status: "ROLLED_BACK", rolledBackAt: new Date() },
+    });
+
+    await this.audit("IMPORT_JOB_ROLLED_BACK", {
+      jobType: "IMPORT",
+      jobId: job.id,
+      createdById: userId,
+    });
+
+    return { rolledBack: true };
+  }
+
   private async applyImportRow(job: any, data: Record<string, any>) {
     const module = this.normalizeModule(job.module);
 
-    const duplicateStrategy = String(job?.context?.duplicateStrategy || 'error') as DuplicateStrategy;
+    const duplicateStrategy = String(
+      job?.context?.duplicateStrategy || "error",
+    ) as DuplicateStrategy;
 
-    if (module === 'inventory') {
-      const itemCode = String(data.itemCode || '').trim();
+    if (module === "inventory") {
+      const itemCode = String(data.itemCode || "").trim();
       if (!itemCode) {
-        throw new BadRequestException('Missing required field: itemCode');
+        throw new BadRequestException("Missing required field: itemCode");
       }
 
-      const warehouseIdFromRow = data.warehouseId ? String(data.warehouseId).trim() : '';
-      const warehouseCodeFromRow = data.warehouseCode ? String(data.warehouseCode).trim() : '';
-      const warehouseIdFromContext = job?.context?.warehouseId ? String(job.context.warehouseId).trim() : '';
-      const warehouseCodeFromContext = job?.context?.warehouseCode ? String(job.context.warehouseCode).trim() : '';
+      const warehouseIdFromRow = data.warehouseId
+        ? String(data.warehouseId).trim()
+        : "";
+      const warehouseCodeFromRow = data.warehouseCode
+        ? String(data.warehouseCode).trim()
+        : "";
+      const warehouseIdFromContext = job?.context?.warehouseId
+        ? String(job.context.warehouseId).trim()
+        : "";
+      const warehouseCodeFromContext = job?.context?.warehouseCode
+        ? String(job.context.warehouseCode).trim()
+        : "";
       const warehouse = warehouseIdFromRow
-        ? await this.prisma.warehouse.findUnique({ where: { id: warehouseIdFromRow } })
+        ? await this.prisma.warehouse.findUnique({
+            where: { id: warehouseIdFromRow },
+          })
         : warehouseCodeFromRow
-          ? await this.prisma.warehouse.findUnique({ where: { code: warehouseCodeFromRow } })
+          ? await this.prisma.warehouse.findUnique({
+              where: { code: warehouseCodeFromRow },
+            })
           : warehouseIdFromContext
-            ? await this.prisma.warehouse.findUnique({ where: { id: warehouseIdFromContext } })
+            ? await this.prisma.warehouse.findUnique({
+                where: { id: warehouseIdFromContext },
+              })
             : warehouseCodeFromContext
-              ? await this.prisma.warehouse.findUnique({ where: { code: warehouseCodeFromContext } })
-          : null;
+              ? await this.prisma.warehouse.findUnique({
+                  where: { code: warehouseCodeFromContext },
+                })
+              : null;
 
       if (!warehouse) {
-        throw new BadRequestException('Missing required field: warehouseId/warehouseCode');
+        throw new BadRequestException(
+          "Missing required field: warehouseId/warehouseCode",
+        );
       }
 
-      const existing = await this.prisma.stockItem.findUnique({ where: { itemCode } });
-      const initialQuantity = data.initialQuantity == null ? null : Number(data.initialQuantity);
-      const initialQtyInt = initialQuantity == null ? null : Math.max(0, Math.trunc(initialQuantity));
+      const existing = await this.prisma.stockItem.findUnique({
+        where: { itemCode },
+      });
+      const initialQuantity =
+        data.initialQuantity == null ? null : Number(data.initialQuantity);
+      const initialQtyInt =
+        initialQuantity == null
+          ? null
+          : Math.max(0, Math.trunc(initialQuantity));
 
       if (existing) {
-        if (duplicateStrategy === 'skip') {
+        if (duplicateStrategy === "skip") {
           return { skipped: true };
         }
-        if (duplicateStrategy === 'error') {
+        if (duplicateStrategy === "error") {
           throw new BadRequestException(`Duplicate itemCode: ${itemCode}`);
         }
 
+        const beforeItem = { ...existing };
         const updated = await this.prisma.stockItem.update({
           where: { id: existing.id },
           data: {
@@ -748,32 +1609,56 @@ export class CsvService {
           },
         });
 
+        await this.recordImportChange(
+          job,
+          "stockItem",
+          updated.id,
+          "UPDATE",
+          beforeItem,
+          updated,
+        );
+
         if (initialQtyInt != null) {
           const previousQty = existing.currentQuantity;
           const newQty = initialQtyInt;
           const unitPrice = data.unitPrice ?? existing.unitPrice ?? undefined;
 
-          await this.prisma.$transaction([
-            this.prisma.stockMovement.create({
-              data: {
-                itemId: existing.id,
-                warehouseId: warehouse.id,
-                movementType: 'ADJUSTMENT' as any,
-                quantity: newQty,
-                previousQty,
-                newQty,
-                unitPrice,
-                totalValue: (unitPrice || 0) * newQty,
-                reference: 'CSV_IMPORT_UPDATE',
-                notes: data.notes ?? undefined,
-                performedById: job.createdById,
-              },
-            }),
-            this.prisma.stockItem.update({
-              where: { id: existing.id },
-              data: { currentQuantity: newQty },
-            }),
-          ]);
+          const movement = await this.prisma.stockMovement.create({
+            data: {
+              itemId: existing.id,
+              warehouseId: warehouse.id,
+              movementType: "ADJUSTMENT" as any,
+              quantity: newQty,
+              previousQty,
+              newQty,
+              unitPrice,
+              totalValue: (unitPrice || 0) * newQty,
+              reference: "CSV_IMPORT_UPDATE",
+              notes: data.notes ?? undefined,
+              performedById: job.createdById,
+            },
+          });
+          await this.recordImportChange(
+            job,
+            "stockMovement",
+            movement.id,
+            "CREATE",
+            undefined,
+            movement,
+          );
+
+          const qtyUpdated = await this.prisma.stockItem.update({
+            where: { id: existing.id },
+            data: { currentQuantity: newQty },
+          });
+          await this.recordImportChange(
+            job,
+            "stockItem",
+            qtyUpdated.id,
+            "UPDATE",
+            beforeItem,
+            qtyUpdated,
+          );
         }
 
         return updated;
@@ -797,103 +1682,157 @@ export class CsvService {
         },
       });
 
+      await this.recordImportChange(
+        job,
+        "stockItem",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+
       if (initialQtyInt != null && initialQtyInt > 0) {
         const unitPrice = data.unitPrice ?? 0;
-        await this.prisma.stockMovement.create({
+        const movement = await this.prisma.stockMovement.create({
           data: {
             itemId: created.id,
             warehouseId: warehouse.id,
-            movementType: 'STOCK_IN' as any,
+            movementType: "STOCK_IN" as any,
             quantity: initialQtyInt,
             previousQty: 0,
             newQty: initialQtyInt,
             unitPrice,
             totalValue: unitPrice * initialQtyInt,
-            reference: 'CSV_IMPORT',
+            reference: "CSV_IMPORT",
             notes: data.notes ?? undefined,
             performedById: job.createdById,
           },
         });
+
+        await this.recordImportChange(
+          job,
+          "stockMovement",
+          movement.id,
+          "CREATE",
+          undefined,
+          movement,
+        );
       }
 
       return created;
     }
 
-    if (module === 'inventory_movements') {
-      const itemCode = String(data.itemCode || '').trim();
+    if (module === "inventory_movements") {
+      const itemCode = String(data.itemCode || "").trim();
       if (!itemCode) {
-        throw new BadRequestException('Missing required field: itemCode');
+        throw new BadRequestException("Missing required field: itemCode");
       }
 
-      const item = await this.prisma.stockItem.findUnique({ where: { itemCode } });
+      const item = await this.prisma.stockItem.findUnique({
+        where: { itemCode },
+      });
       if (!item) {
         throw new BadRequestException(`Unknown itemCode: ${itemCode}`);
       }
 
-      const warehouseIdFromRow = data.warehouseId ? String(data.warehouseId).trim() : '';
-      const warehouseCodeFromRow = data.warehouseCode ? String(data.warehouseCode).trim() : '';
+      const warehouseIdFromRow = data.warehouseId
+        ? String(data.warehouseId).trim()
+        : "";
+      const warehouseCodeFromRow = data.warehouseCode
+        ? String(data.warehouseCode).trim()
+        : "";
       const warehouse = warehouseIdFromRow
-        ? await this.prisma.warehouse.findUnique({ where: { id: warehouseIdFromRow } })
+        ? await this.prisma.warehouse.findUnique({
+            where: { id: warehouseIdFromRow },
+          })
         : warehouseCodeFromRow
-          ? await this.prisma.warehouse.findUnique({ where: { code: warehouseCodeFromRow } })
-          : await this.prisma.warehouse.findUnique({ where: { id: item.warehouseId } });
+          ? await this.prisma.warehouse.findUnique({
+              where: { code: warehouseCodeFromRow },
+            })
+          : await this.prisma.warehouse.findUnique({
+              where: { id: item.warehouseId },
+            });
 
       if (!warehouse) {
-        throw new BadRequestException('Missing required field: warehouseId/warehouseCode');
+        throw new BadRequestException(
+          "Missing required field: warehouseId/warehouseCode",
+        );
       }
 
-      const movementType = String(data.movementType || '').trim();
+      const movementType = String(data.movementType || "").trim();
       const qty = Math.max(0, Math.trunc(Number(data.quantity)));
       const previousQty = item.currentQuantity;
       let newQty = previousQty;
 
       switch (movementType) {
-        case 'STOCK_IN':
-        case 'RETURN':
+        case "STOCK_IN":
+        case "RETURN":
           newQty = previousQty + qty;
           break;
-        case 'STOCK_OUT':
-        case 'DAMAGED':
-        case 'EXPIRED':
+        case "STOCK_OUT":
+        case "DAMAGED":
+        case "EXPIRED":
           if (previousQty < qty) {
-            throw new BadRequestException('Insufficient stock');
+            throw new BadRequestException("Insufficient stock");
           }
           newQty = previousQty - qty;
           break;
-        case 'ADJUSTMENT':
+        case "ADJUSTMENT":
           newQty = qty;
           break;
         default:
-          throw new BadRequestException(`Invalid movementType: ${movementType}`);
+          throw new BadRequestException(
+            `Invalid movementType: ${movementType}`,
+          );
       }
 
       const unitPrice = data.unitPrice ?? item.unitPrice ?? undefined;
       const totalValue = (unitPrice || 0) * qty;
 
-      const [movement] = await this.prisma.$transaction([
-        this.prisma.stockMovement.create({
-          data: {
-            itemId: item.id,
-            warehouseId: warehouse.id,
-            movementType: movementType as any,
-            quantity: qty,
-            previousQty,
-            newQty,
-            unitPrice,
-            totalValue,
-            reference: data.reference ?? undefined,
-            notes: data.notes ?? undefined,
-            performedById: job.createdById,
-          },
-        }),
-        this.prisma.stockItem.update({ where: { id: item.id }, data: { currentQuantity: newQty } }),
-      ]);
+      const beforeItem = { ...item };
+      const movement = await this.prisma.stockMovement.create({
+        data: {
+          itemId: item.id,
+          warehouseId: warehouse.id,
+          movementType: movementType as any,
+          quantity: qty,
+          previousQty,
+          newQty,
+          unitPrice,
+          totalValue,
+          reference: data.reference ?? undefined,
+          notes: data.notes ?? undefined,
+          performedById: job.createdById,
+        },
+      });
+
+      const updatedItem = await this.prisma.stockItem.update({
+        where: { id: item.id },
+        data: { currentQuantity: newQty },
+      });
+
+      await this.recordImportChange(
+        job,
+        "stockMovement",
+        movement.id,
+        "CREATE",
+        undefined,
+        movement,
+      );
+      await this.recordImportChange(
+        job,
+        "stockItem",
+        updatedItem.id,
+        "UPDATE",
+        beforeItem,
+        updatedItem,
+      );
 
       return movement;
     }
 
-    if (module === 'warehouses') {
-      return this.prisma.warehouse.create({
+    if (module === "warehouses") {
+      const created = await this.prisma.warehouse.create({
         data: {
           code: data.code,
           name: data.name,
@@ -902,21 +1841,34 @@ export class CsvService {
           isActive: data.isActive ?? true,
         },
       });
+
+      await this.recordImportChange(
+        job,
+        "warehouse",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
     }
 
-    if (module === 'suppliers') {
-      const email = data.email ? String(data.email).trim() : '';
-      const existing = email ? await this.prisma.supplier.findFirst({ where: { email } }) : null;
+    if (module === "suppliers") {
+      const email = data.email ? String(data.email).trim() : "";
+      const existing = email
+        ? await this.prisma.supplier.findFirst({ where: { email } })
+        : null;
 
       if (existing) {
-        if (duplicateStrategy === 'skip') {
+        if (duplicateStrategy === "skip") {
           return { skipped: true };
         }
-        if (duplicateStrategy === 'error') {
+        if (duplicateStrategy === "error") {
           throw new BadRequestException(`Duplicate supplier email: ${email}`);
         }
 
-        return this.prisma.supplier.update({
+        const beforeSupplier = { ...existing };
+        const updated = await this.prisma.supplier.update({
           where: { id: existing.id },
           data: {
             name: data.name ?? undefined,
@@ -934,11 +1886,21 @@ export class CsvService {
             notes: data.notes ?? undefined,
           },
         });
+
+        await this.recordImportChange(
+          job,
+          "supplier",
+          updated.id,
+          "UPDATE",
+          beforeSupplier,
+          updated,
+        );
+        return updated;
       }
 
       const supplierCount = await this.prisma.supplier.count();
       const supplierCode = `SUP-${Date.now()}-${supplierCount + 1}`;
-      return this.prisma.supplier.create({
+      const created = await this.prisma.supplier.create({
         data: {
           supplierCode,
           name: data.name,
@@ -947,7 +1909,7 @@ export class CsvService {
           phone: data.phone ?? undefined,
           address: data.address ?? undefined,
           city: data.city ?? undefined,
-          country: data.country ?? 'Ghana',
+          country: data.country ?? "Ghana",
           taxId: data.taxId ?? undefined,
           bankAccount: data.bankAccount ?? undefined,
           paymentTerms: data.paymentTerms ?? undefined,
@@ -957,21 +1919,38 @@ export class CsvService {
           notes: data.notes ?? undefined,
         },
       });
+
+      await this.recordImportChange(
+        job,
+        "supplier",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
     }
 
-    if (module === 'employees') {
-      const employeeId = data.employeeId ? String(data.employeeId).trim() : '';
-      const generatedEmployeeId = employeeId || `EMP-${Date.now()}-${(await this.prisma.employee.count()) + 1}`;
+    if (module === "employees") {
+      const employeeId = data.employeeId ? String(data.employeeId).trim() : "";
+      const generatedEmployeeId =
+        employeeId ||
+        `EMP-${Date.now()}-${(await this.prisma.employee.count()) + 1}`;
 
-      const existing = await this.prisma.employee.findUnique({ where: { employeeId: generatedEmployeeId } });
+      const existing = await this.prisma.employee.findUnique({
+        where: { employeeId: generatedEmployeeId },
+      });
       if (existing) {
-        if (duplicateStrategy === 'skip') {
+        if (duplicateStrategy === "skip") {
           return { skipped: true };
         }
-        if (duplicateStrategy === 'error') {
-          throw new BadRequestException(`Duplicate employeeId: ${generatedEmployeeId}`);
+        if (duplicateStrategy === "error") {
+          throw new BadRequestException(
+            `Duplicate employeeId: ${generatedEmployeeId}`,
+          );
         }
-        return this.prisma.employee.update({
+        const beforeEmployee = { ...existing };
+        const updated = await this.prisma.employee.update({
           where: { id: existing.id },
           data: {
             firstName: data.firstName ?? undefined,
@@ -996,9 +1975,19 @@ export class CsvService {
             notes: data.notes ?? undefined,
           } as any,
         });
+
+        await this.recordImportChange(
+          job,
+          "employee",
+          updated.id,
+          "UPDATE",
+          beforeEmployee,
+          updated,
+        );
+        return updated;
       }
 
-      return this.prisma.employee.create({
+      const created = await this.prisma.employee.create({
         data: {
           employeeId: generatedEmployeeId,
           firstName: data.firstName,
@@ -1009,7 +1998,7 @@ export class CsvService {
           gender: data.gender ?? undefined,
           address: data.address ?? undefined,
           city: data.city ?? undefined,
-          country: data.country ?? 'Ghana',
+          country: data.country ?? "Ghana",
           department: data.department,
           position: data.position,
           employmentType: data.employmentType ?? undefined,
@@ -1024,23 +2013,39 @@ export class CsvService {
           notes: data.notes ?? undefined,
         } as any,
       });
+
+      await this.recordImportChange(
+        job,
+        "employee",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
     }
 
-    if (module === 'projects') {
-      const projectCode = String(data.projectCode || '').trim();
+    if (module === "projects") {
+      const projectCode = String(data.projectCode || "").trim();
       if (!projectCode) {
-        throw new BadRequestException('Missing required field: projectCode');
+        throw new BadRequestException("Missing required field: projectCode");
       }
 
-      const existing = await this.prisma.project.findUnique({ where: { projectCode } });
+      const existing = await this.prisma.project.findUnique({
+        where: { projectCode },
+      });
       if (existing) {
-        if (duplicateStrategy === 'skip') {
+        if (duplicateStrategy === "skip") {
           return { skipped: true };
         }
-        if (duplicateStrategy === 'error') {
-          throw new BadRequestException(`Duplicate projectCode: ${projectCode}`);
+        if (duplicateStrategy === "error") {
+          throw new BadRequestException(
+            `Duplicate projectCode: ${projectCode}`,
+          );
         }
-        return this.prisma.project.update({
+
+        const beforeProject = { ...existing };
+        const updated = await this.prisma.project.update({
           where: { id: existing.id },
           data: {
             name: data.name ?? undefined,
@@ -1056,9 +2061,19 @@ export class CsvService {
             notes: data.notes ?? undefined,
           } as any,
         });
+
+        await this.recordImportChange(
+          job,
+          "project",
+          updated.id,
+          "UPDATE",
+          beforeProject,
+          updated,
+        );
+        return updated;
       }
 
-      return this.prisma.project.create({
+      const created = await this.prisma.project.create({
         data: {
           projectCode: data.projectCode,
           name: data.name,
@@ -1074,46 +2089,73 @@ export class CsvService {
           notes: data.notes ?? undefined,
         } as any,
       });
+
+      await this.recordImportChange(
+        job,
+        "project",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
     }
 
-    if (module === 'project_tasks') {
-      const projectId = String(job?.context?.projectId || '').trim();
+    if (module === "project_tasks") {
+      const projectId = String(job?.context?.projectId || "").trim();
       if (!projectId) {
-        throw new BadRequestException('Missing required context: projectId');
+        throw new BadRequestException("Missing required context: projectId");
       }
 
-      const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true },
+      });
       if (!project) {
-        throw new BadRequestException('Invalid projectId');
+        throw new BadRequestException("Invalid projectId");
       }
 
-      return this.prisma.task.create({
+      const created = await this.prisma.task.create({
         data: {
           projectId,
           title: data.title,
           description: data.description ?? undefined,
-          status: (data.status as any) ?? 'PENDING',
+          status: (data.status as any) ?? "PENDING",
           assignedTo: data.assignedTo ?? undefined,
           dueDate: data.dueDate ?? undefined,
           order: data.order ?? 0,
         } as any,
       });
+
+      await this.recordImportChange(
+        job,
+        "task",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
     }
 
-    const assetCode = String(data.assetCode || '').trim();
+    const assetCode = String(data.assetCode || "").trim();
     if (!assetCode) {
-      throw new BadRequestException('Missing required field: assetCode');
+      throw new BadRequestException("Missing required field: assetCode");
     }
 
-    const existing = await this.prisma.asset.findUnique({ where: { assetCode } });
+    const existing = await this.prisma.asset.findUnique({
+      where: { assetCode },
+    });
     if (existing) {
-      if (duplicateStrategy === 'skip') {
+      if (duplicateStrategy === "skip") {
         return { skipped: true };
       }
-      if (duplicateStrategy === 'error') {
+      if (duplicateStrategy === "error") {
         throw new BadRequestException(`Duplicate assetCode: ${assetCode}`);
       }
-      return this.prisma.asset.update({
+
+      const beforeAsset = { ...existing };
+      const updated = await this.prisma.asset.update({
         where: { id: existing.id },
         data: {
           name: data.name ?? undefined,
@@ -1136,9 +2178,19 @@ export class CsvService {
           nextMaintenanceAt: data.nextMaintenanceAt ?? undefined,
         } as any,
       });
+
+      await this.recordImportChange(
+        job,
+        "asset",
+        updated.id,
+        "UPDATE",
+        beforeAsset,
+        updated,
+      );
+      return updated;
     }
 
-    return this.prisma.asset.create({
+    const created = await this.prisma.asset.create({
       data: {
         assetCode: data.assetCode,
         name: data.name,
@@ -1161,15 +2213,34 @@ export class CsvService {
         nextMaintenanceAt: data.nextMaintenanceAt ?? undefined,
       } as any,
     });
+
+    await this.recordImportChange(
+      job,
+      "asset",
+      created.id,
+      "CREATE",
+      undefined,
+      created,
+    );
+    return created;
   }
 
-  async createExportJob(module: string, filters: any, columns: string[], userId: string, fileName?: string, context?: any) {
+  async createExportJob(
+    module: string,
+    filters: any,
+    columns: string[],
+    userId: string,
+    fileName?: string,
+    context?: any,
+  ) {
     const mod = this.normalizeModule(module);
     if (!Array.isArray(columns) || columns.length === 0) {
-      throw new BadRequestException('columns is required');
+      throw new BadRequestException("columns is required");
     }
 
-    const safeFileName = (fileName || `${mod}-export-${Date.now()}.csv`).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const safeFileName = (
+      fileName || `${mod}-export-${Date.now()}.csv`
+    ).replace(/[^a-zA-Z0-9._-]/g, "_");
 
     const job = await (this.prisma as any).exportJob.create({
       data: {
@@ -1185,19 +2256,31 @@ export class CsvService {
       },
     });
 
+    await this.audit("EXPORT_JOB_CREATED", {
+      jobType: "EXPORT",
+      jobId: job.id,
+      createdById: userId,
+      details: { module: mod },
+    });
+
     return job;
   }
 
   async getExportJob(jobId: string, userId: string) {
-    const job = await (this.prisma as any).exportJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).exportJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
-      throw new NotFoundException('Export job not found');
+      throw new NotFoundException("Export job not found");
     }
 
     if (job.createdById !== userId) {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
       if (!user || !this.adminRoles.includes(user.role)) {
-        throw new NotFoundException('Export job not found');
+        throw new NotFoundException("Export job not found");
       }
     }
 
@@ -1207,10 +2290,11 @@ export class CsvService {
   async getExportDownloadUrl(jobId: string, userId: string) {
     const job = await this.getExportJob(jobId, userId);
     if (job.status !== ExportStatus.COMPLETED || !job.fileUrl) {
-      throw new BadRequestException('Export is not ready');
+      throw new BadRequestException("Export is not ready");
     }
 
-    const provider = (job.storageProvider || StorageProvider.LOCAL) as StorageProvider;
+    const provider = (job.storageProvider ||
+      StorageProvider.LOCAL) as StorageProvider;
     const key = provider === StorageProvider.S3 ? job.fileName : job.fileName;
 
     if (provider === StorageProvider.S3) {
@@ -1225,7 +2309,7 @@ export class CsvService {
   async claimNextExportJob(): Promise<{ id: string } | null> {
     const candidates = await (this.prisma as any).exportJob.findMany({
       where: { status: ExportStatus.PENDING },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       take: 10,
     });
 
@@ -1257,7 +2341,9 @@ export class CsvService {
   }
 
   async processExportJob(jobId: string) {
-    const job = await (this.prisma as any).exportJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).exportJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
       return;
     }
@@ -1267,12 +2353,21 @@ export class CsvService {
     }
 
     try {
-      const rows = await this.fetchExportRows(job, job.filters || {}, job.columns);
+      const rows = await this.fetchExportRows(
+        job,
+        job.filters || {},
+        job.columns,
+      );
       const csv = json2csv(rows, { fields: job.columns });
-      const buffer = Buffer.from(csv, 'utf8');
+      const buffer = Buffer.from(csv, "utf8");
 
-      const mimeType = 'text/csv';
-      const upload = await this.storageService.uploadBuffer(buffer, job.fileName, mimeType, 'csv');
+      const mimeType = "text/csv";
+      const upload = await this.storageService.uploadBuffer(
+        buffer,
+        job.fileName,
+        mimeType,
+        "csv",
+      );
 
       await (this.prisma as any).exportJob.update({
         where: { id: job.id },
@@ -1285,6 +2380,13 @@ export class CsvService {
           completedAt: new Date(),
         },
       });
+
+      await this.audit("EXPORT_JOB_COMPLETED", {
+        jobType: "EXPORT",
+        jobId: job.id,
+        createdById: job.createdById,
+        details: { totalRows: rows.length },
+      });
     } catch (error: any) {
       await (this.prisma as any).exportJob.update({
         where: { id: job.id },
@@ -1293,6 +2395,13 @@ export class CsvService {
           completedAt: new Date(),
         },
       });
+
+      await this.audit("EXPORT_JOB_FAILED", {
+        jobType: "EXPORT",
+        jobId: job.id,
+        createdById: job.createdById,
+        details: { message: error?.message || "Export failed" },
+      });
     }
   }
 
@@ -1300,16 +2409,22 @@ export class CsvService {
     const module = this.normalizeModule(job.module);
     const where = this.coerceFilters(module, filters);
 
-    if (module === 'inventory') {
-      const items = await this.prisma.stockItem.findMany({ where, orderBy: { createdAt: 'desc' } });
+    if (module === "inventory") {
+      const items = await this.prisma.stockItem.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
       return items.map((x) => this.pickColumns(x as any, columns));
     }
 
-    if (module === 'inventory_movements') {
+    if (module === "inventory_movements") {
       const movements = await this.prisma.stockMovement.findMany({
         where,
-        include: { item: { select: { itemCode: true, name: true } }, warehouse: { select: { code: true, name: true } } },
-        orderBy: { createdAt: 'desc' },
+        include: {
+          item: { select: { itemCode: true, name: true } },
+          warehouse: { select: { code: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
       });
 
       return movements.map((m) =>
@@ -1326,37 +2441,55 @@ export class CsvService {
       );
     }
 
-    if (module === 'warehouses') {
-      const items = await this.prisma.warehouse.findMany({ where, orderBy: { createdAt: 'desc' } });
+    if (module === "warehouses") {
+      const items = await this.prisma.warehouse.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
       return items.map((x) => this.pickColumns(x as any, columns));
     }
 
-    if (module === 'suppliers') {
-      const items = await this.prisma.supplier.findMany({ where, orderBy: { createdAt: 'desc' } });
+    if (module === "suppliers") {
+      const items = await this.prisma.supplier.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
       return items.map((x) => this.pickColumns(x as any, columns));
     }
 
-    if (module === 'employees') {
-      const items = await this.prisma.employee.findMany({ where, orderBy: { createdAt: 'desc' } });
+    if (module === "employees") {
+      const items = await this.prisma.employee.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
       return items.map((x) => this.pickColumns(x as any, columns));
     }
 
-    if (module === 'projects') {
-      const items = await this.prisma.project.findMany({ where, orderBy: { createdAt: 'desc' } });
+    if (module === "projects") {
+      const items = await this.prisma.project.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
       return items.map((x) => this.pickColumns(x as any, columns));
     }
 
-    if (module === 'project_tasks') {
-      const projectId = String(job?.context?.projectId || '').trim();
+    if (module === "project_tasks") {
+      const projectId = String(job?.context?.projectId || "").trim();
       if (!projectId) {
-        throw new BadRequestException('Missing required context: projectId');
+        throw new BadRequestException("Missing required context: projectId");
       }
 
-      const items = await this.prisma.task.findMany({ where: { ...where, projectId }, orderBy: { createdAt: 'desc' } });
+      const items = await this.prisma.task.findMany({
+        where: { ...where, projectId },
+        orderBy: { createdAt: "desc" },
+      });
       return items.map((x) => this.pickColumns(x as any, columns));
     }
 
-    const items = await this.prisma.asset.findMany({ where, orderBy: { createdAt: 'desc' } });
+    const items = await this.prisma.asset.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
     return items.map((x) => this.pickColumns(x as any, columns));
   }
 
@@ -1369,7 +2502,7 @@ export class CsvService {
   }
 
   private coerceFilters(module: ModuleKey, filters: any): any {
-    if (!filters || typeof filters !== 'object') {
+    if (!filters || typeof filters !== "object") {
       return {};
     }
 
@@ -1387,13 +2520,25 @@ export class CsvService {
 
   async getTemplates(module: string) {
     const mod = this.normalizeModule(module);
-    return (this.prisma as any).importTemplate.findMany({ where: { module: mod }, orderBy: { createdAt: 'desc' } });
+    return (this.prisma as any).importTemplate.findMany({
+      where: { module: mod },
+      orderBy: { createdAt: "desc" },
+    });
   }
 
-  async createTemplate(body: { name: string; module: string; description?: string; columns: any; isDefault?: boolean }, userId: string) {
+  async createTemplate(
+    body: {
+      name: string;
+      module: string;
+      description?: string;
+      columns: any;
+      isDefault?: boolean;
+    },
+    userId: string,
+  ) {
     const mod = this.normalizeModule(body.module);
     if (!body.name) {
-      throw new BadRequestException('name is required');
+      throw new BadRequestException("name is required");
     }
 
     return (this.prisma as any).importTemplate.create({
@@ -1408,16 +2553,30 @@ export class CsvService {
     });
   }
 
-  async updateTemplate(id: string, body: { name?: string; description?: string; columns?: any; isDefault?: boolean }, userId: string) {
-    const existing = await (this.prisma as any).importTemplate.findUnique({ where: { id } });
+  async updateTemplate(
+    id: string,
+    body: {
+      name?: string;
+      description?: string;
+      columns?: any;
+      isDefault?: boolean;
+    },
+    userId: string,
+  ) {
+    const existing = await (this.prisma as any).importTemplate.findUnique({
+      where: { id },
+    });
     if (!existing) {
-      throw new NotFoundException('Template not found');
+      throw new NotFoundException("Template not found");
     }
 
     if (existing.createdById !== userId) {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
       if (!user || !this.adminRoles.includes(user.role)) {
-        throw new NotFoundException('Template not found');
+        throw new NotFoundException("Template not found");
       }
     }
 
@@ -1433,15 +2592,20 @@ export class CsvService {
   }
 
   async deleteTemplate(id: string, userId: string) {
-    const existing = await (this.prisma as any).importTemplate.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).importTemplate.findUnique({
+      where: { id },
+    });
     if (!existing) {
-      throw new NotFoundException('Template not found');
+      throw new NotFoundException("Template not found");
     }
 
     if (existing.createdById !== userId) {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
       if (!user || !this.adminRoles.includes(user.role)) {
-        throw new NotFoundException('Template not found');
+        throw new NotFoundException("Template not found");
       }
     }
 
@@ -1460,118 +2624,118 @@ export class CsvService {
   }
 
   private getSampleRowsForModule(module: ModuleKey): Record<string, any>[] {
-    if (module === 'inventory') {
+    if (module === "inventory") {
       return [
         {
-          itemCode: 'SKU-001',
-          name: 'Safety Helmet',
-          description: 'PPE - hard hat',
-          category: 'SAFETY_GEAR',
-          unit: 'PIECES',
+          itemCode: "SKU-001",
+          name: "Safety Helmet",
+          description: "PPE - hard hat",
+          category: "SAFETY_GEAR",
+          unit: "PIECES",
           unitPrice: 120,
           reorderLevel: 10,
           maxStockLevel: 200,
-          warehouseId: '',
-          warehouseCode: 'WH-MAIN',
-          barcode: '1234567890123',
-          supplier: 'SUP-EXAMPLE',
-          notes: 'Sample inventory item',
+          warehouseId: "",
+          warehouseCode: "WH-MAIN",
+          barcode: "1234567890123",
+          supplier: "SUP-EXAMPLE",
+          notes: "Sample inventory item",
           initialQuantity: 50,
         },
       ];
     }
 
-    if (module === 'inventory_movements') {
+    if (module === "inventory_movements") {
       return [
         {
-          itemCode: 'SKU-001',
-          warehouseId: '',
-          warehouseCode: 'WH-MAIN',
-          movementType: 'STOCK_IN',
+          itemCode: "SKU-001",
+          warehouseId: "",
+          warehouseCode: "WH-MAIN",
+          movementType: "STOCK_IN",
           quantity: 20,
           unitPrice: 120,
-          reference: 'PO-1001',
-          notes: 'Initial restock',
+          reference: "PO-1001",
+          notes: "Initial restock",
         },
       ];
     }
 
-    if (module === 'suppliers') {
+    if (module === "suppliers") {
       return [
         {
-          name: 'Goldline Supplies Ltd',
-          contactPerson: 'Ama Mensah',
-          email: 'ama.mensah@goldline.example',
-          phone: '+233200000000',
-          address: 'Accra Industrial Area',
-          city: 'Accra',
-          country: 'Ghana',
-          taxId: 'GHA-TAX-001',
-          bankAccount: 'GCB-000111222',
-          paymentTerms: 'Net 30',
-          category: 'Consumables',
+          name: "Goldline Supplies Ltd",
+          contactPerson: "Ama Mensah",
+          email: "ama.mensah@goldline.example",
+          phone: "+233200000000",
+          address: "Accra Industrial Area",
+          city: "Accra",
+          country: "Ghana",
+          taxId: "GHA-TAX-001",
+          bankAccount: "GCB-000111222",
+          paymentTerms: "Net 30",
+          category: "Consumables",
           rating: 5,
           isActive: true,
-          notes: 'Preferred supplier',
+          notes: "Preferred supplier",
         },
       ];
     }
 
-    if (module === 'employees') {
+    if (module === "employees") {
       return [
         {
-          employeeId: 'EMP-0001',
-          firstName: 'Kwame',
-          lastName: 'Owusu',
-          email: 'kwame.owusu@company.example',
-          phone: '+233201111111',
-          dateOfBirth: '1990-01-15',
-          gender: 'Male',
-          address: 'Tarkwa',
-          city: 'Tarkwa',
-          country: 'Ghana',
-          department: 'Operations',
-          position: 'Supervisor',
-          employmentType: 'FULL_TIME',
-          status: 'ACTIVE',
-          hireDate: '2024-01-01',
-          terminationDate: '',
+          employeeId: "EMP-0001",
+          firstName: "Kwame",
+          lastName: "Owusu",
+          email: "kwame.owusu@company.example",
+          phone: "+233201111111",
+          dateOfBirth: "1990-01-15",
+          gender: "Male",
+          address: "Tarkwa",
+          city: "Tarkwa",
+          country: "Ghana",
+          department: "Operations",
+          position: "Supervisor",
+          employmentType: "FULL_TIME",
+          status: "ACTIVE",
+          hireDate: "2024-01-01",
+          terminationDate: "",
           salary: 5000,
-          supervisorId: '',
-          emergencyContact: 'Akosua Owusu',
-          emergencyPhone: '+233202222222',
-          notes: 'Sample employee',
+          supervisorId: "",
+          emergencyContact: "Akosua Owusu",
+          emergencyPhone: "+233202222222",
+          notes: "Sample employee",
         },
       ];
     }
 
-    if (module === 'projects') {
+    if (module === "projects") {
       return [
         {
-          projectCode: 'PRJ-001',
-          name: 'Tarkwa Pit Expansion',
-          description: 'Phase 1 expansion',
-          status: 'PLANNING',
-          priority: 'HIGH',
-          location: 'Tarkwa',
-          startDate: '2025-01-01',
-          endDate: '2025-06-30',
+          projectCode: "PRJ-001",
+          name: "Tarkwa Pit Expansion",
+          description: "Phase 1 expansion",
+          status: "PLANNING",
+          priority: "HIGH",
+          location: "Tarkwa",
+          startDate: "2025-01-01",
+          endDate: "2025-06-30",
           estimatedBudget: 250000,
           progress: 0,
-          managerId: '',
-          notes: 'Sample project',
+          managerId: "",
+          notes: "Sample project",
         },
       ];
     }
 
-    if (module === 'project_tasks') {
+    if (module === "project_tasks") {
       return [
         {
-          title: 'Mobilize equipment',
-          description: 'Move excavator to site',
-          status: 'PENDING',
-          assignedTo: 'EMP-0001',
-          dueDate: '2025-01-10',
+          title: "Mobilize equipment",
+          description: "Move excavator to site",
+          status: "PENDING",
+          assignedTo: "EMP-0001",
+          dueDate: "2025-01-10",
           order: 1,
         },
       ];
@@ -1579,25 +2743,25 @@ export class CsvService {
 
     return [
       {
-        assetCode: 'AST-001',
-        name: 'CAT 320 Excavator',
-        description: 'Heavy equipment',
-        category: 'HEAVY_EQUIPMENT',
-        manufacturer: 'Caterpillar',
-        model: '320',
-        serialNumber: 'CAT320-XYZ',
-        purchaseDate: '2023-05-01',
+        assetCode: "AST-001",
+        name: "CAT 320 Excavator",
+        description: "Heavy equipment",
+        category: "HEAVY_EQUIPMENT",
+        manufacturer: "Caterpillar",
+        model: "320",
+        serialNumber: "CAT320-XYZ",
+        purchaseDate: "2023-05-01",
         purchasePrice: 750000,
         currentValue: 700000,
         depreciationRate: 0.15,
-        location: 'Tarkwa Site',
-        status: 'ACTIVE',
-        condition: 'GOOD',
-        assignedTo: 'Operations',
-        notes: 'Sample asset',
-        warrantyExpiry: '2026-05-01',
-        lastMaintenanceAt: '',
-        nextMaintenanceAt: '',
+        location: "Tarkwa Site",
+        status: "ACTIVE",
+        condition: "GOOD",
+        assignedTo: "Operations",
+        notes: "Sample asset",
+        warrantyExpiry: "2026-05-01",
+        lastMaintenanceAt: "",
+        nextMaintenanceAt: "",
       },
     ];
   }

@@ -4,9 +4,18 @@ import type {
   ColumnMapping,
   CsvModule,
   CsvUploadValidationResult,
+  CsvAuditLog,
+  CsvBatch,
+  CsvStatsResult,
+  ExportPreviewResult,
   ExportJob,
+  BackupExportResult,
+  BackupImportResult,
+  BackupValidateResult,
   ImportJob,
   ImportTemplate,
+  ScheduledExport,
+  ScheduledExportRun,
 } from '@/types/csv';
 
 export const useCSV = () => {
@@ -36,6 +45,11 @@ export const useCSV = () => {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const previewExport = useCallback(async (module: CsvModule, payload: { columns: string[]; filters?: any; limit?: number; context?: any }): Promise<ExportPreviewResult> => {
+    const res = await api.post(`/csv/export/${module}/preview`, payload);
+    return res.data.data;
   }, []);
 
   const startImport = useCallback(
@@ -176,6 +190,91 @@ export const useCSV = () => {
     return res.data.data;
   }, []);
 
+  const getAuditTrail = useCallback(async (jobId: string): Promise<CsvAuditLog[]> => {
+    const res = await api.get(`/csv/audit/${jobId}`);
+    return res.data.data;
+  }, []);
+
+  const rollbackImport = useCallback(async (jobId: string): Promise<{ rolledBack: boolean }> => {
+    const res = await api.post(`/csv/rollback/${jobId}`);
+    return res.data.data;
+  }, []);
+
+  const getCsvStats = useCallback(async (): Promise<CsvStatsResult> => {
+    const res = await api.get('/csv/stats');
+    return res.data.data;
+  }, []);
+
+  const exportFullBackup = useCallback(async (): Promise<BackupExportResult> => {
+    const res = await api.post('/csv/backup/export');
+    return res.data.data;
+  }, []);
+
+  const validateBackup = useCallback(async (file: File): Promise<BackupValidateResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post('/csv/backup/validate', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return res.data.data;
+  }, []);
+
+  const importBackup = useCallback(async (file: File, overwrite: boolean): Promise<BackupImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('overwrite', overwrite ? 'true' : 'false');
+    const res = await api.post('/csv/backup/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return res.data.data;
+  }, []);
+
+  const createScheduledExport = useCallback(async (payload: {
+    name: string;
+    module: CsvModule;
+    filters?: any;
+    columns: string[];
+    context?: any;
+    schedule: string;
+    recipients: string[];
+    format?: string;
+    isActive?: boolean;
+  }): Promise<ScheduledExport> => {
+    const res = await api.post('/csv/scheduled-exports', payload);
+    return res.data.data;
+  }, []);
+
+  const listScheduledExports = useCallback(async (): Promise<ScheduledExport[]> => {
+    const res = await api.get('/csv/scheduled-exports');
+    return res.data.data;
+  }, []);
+
+  const setScheduledExportActive = useCallback(async (id: string, isActive: boolean): Promise<ScheduledExport> => {
+    const res = await api.post(`/csv/scheduled-exports/${id}/active`, { isActive });
+    return res.data.data;
+  }, []);
+
+  const getScheduledExportRuns = useCallback(async (id: string): Promise<ScheduledExportRun[]> => {
+    const res = await api.get(`/csv/scheduled-exports/${id}/runs`);
+    return res.data.data;
+  }, []);
+
+  const batchImport = useCallback(async (files: File[], entries: Array<{ module: CsvModule; mappings?: any; context?: any }>): Promise<{ batch: CsvBatch; jobs: ImportJob[] }> => {
+    const formData = new FormData();
+    for (const f of files) {
+      formData.append('files', f);
+    }
+    formData.append('entries', JSON.stringify(entries));
+    const res = await api.post('/csv/batch/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return res.data.data;
+  }, []);
+
+  const getBatch = useCallback(async (batchId: string): Promise<CsvBatch> => {
+    const res = await api.get(`/csv/batch/${batchId}`);
+    return res.data.data;
+  }, []);
+
+  const scheduleImport = useCallback(async (jobId: string, scheduledTime: string): Promise<ImportJob> => {
+    const res = await api.post('/csv/schedule', { jobId, scheduledTime });
+    return res.data.data;
+  }, []);
+
   const getSampleTemplateUrl = useCallback((module: CsvModule): string => {
     return `${process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api')}/csv/templates/${module}/sample`;
   }, []);
@@ -189,6 +288,7 @@ export const useCSV = () => {
     getImportErrors,
     cancelImport,
     startExport,
+    previewExport,
     getExportJob,
     getExportDownloadUrl,
     downloadExport,
@@ -198,6 +298,19 @@ export const useCSV = () => {
     deleteTemplate,
     listImportHistory,
     listExportHistory,
+    getAuditTrail,
+    rollbackImport,
+    getCsvStats,
+    exportFullBackup,
+    validateBackup,
+    importBackup,
+    createScheduledExport,
+    listScheduledExports,
+    setScheduledExportActive,
+    getScheduledExportRuns,
+    batchImport,
+    getBatch,
+    scheduleImport,
     getSampleTemplateUrl,
   };
 };

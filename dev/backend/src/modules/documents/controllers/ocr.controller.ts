@@ -11,18 +11,18 @@ import {
   Request,
   BadRequestException,
   NotFoundException,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole, OCRProvider, ExtractedDataType } from '@prisma/client';
-import { OCRService } from '../services/ocr.service';
-import { DataExtractionService } from '../services/data-extraction.service';
-import { OCRQueueService } from '../services/ocr-queue.service';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { StorageService } from '../services/storage.service';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../../auth/guards/roles.guard";
+import { Roles } from "../../auth/decorators/roles.decorator";
+import { UserRole, OCRProvider, ExtractedDataType } from "@prisma/client";
+import { OCRService } from "../services/ocr.service";
+import { DataExtractionService } from "../services/data-extraction.service";
+import { OCRQueueService } from "../services/ocr-queue.service";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { StorageService } from "../services/storage.service";
 
-@Controller('documents/ocr')
+@Controller("documents/ocr")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OCRController {
   constructor(
@@ -37,7 +37,7 @@ export class OCRController {
    * Extract text from document
    * POST /api/documents/:id/extract-text
    */
-  @Post(':id/extract-text')
+  @Post(":id/extract-text")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -48,8 +48,9 @@ export class OCRController {
     UserRole.IT_MANAGER,
   )
   async extractText(
-    @Param('id') documentId: string,
-    @Body() body: {
+    @Param("id") documentId: string,
+    @Body()
+    body: {
       language?: string;
       provider?: OCRProvider;
       autoRotate?: boolean;
@@ -63,14 +64,14 @@ export class OCRController {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     // Get file path from storage
     const filePath = await this.storageService.getLocalPath(document.fileUrl);
 
     if (!filePath) {
-      throw new BadRequestException('Document file not accessible');
+      throw new BadRequestException("Document file not accessible");
     }
 
     const isTempFile = /[\\/]temp[\\/]/.test(filePath);
@@ -106,7 +107,7 @@ export class OCRController {
    * Parse invoice data from document
    * POST /api/documents/:id/parse-invoice
    */
-  @Post(':id/parse-invoice')
+  @Post(":id/parse-invoice")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -114,18 +115,21 @@ export class OCRController {
     UserRole.ACCOUNTANT,
     UserRole.PROCUREMENT_OFFICER,
   )
-  async parseInvoice(@Param('id') documentId: string, @Request() req: any) {
+  async parseInvoice(@Param("id") documentId: string, @Request() req: any) {
     // First, get or perform OCR
-    const extractedText = await this.getOrExtractText(documentId, req.user.userId);
+    const extractedText = await this.getOrExtractText(
+      documentId,
+      req.user.userId,
+    );
 
     if (!extractedText) {
-      throw new BadRequestException('Failed to extract text from document');
+      throw new BadRequestException("Failed to extract text from document");
     }
 
     // Get the latest OCR job
     const ocrJobs = await this.ocrService.getDocumentOCRJobs(documentId);
     if (ocrJobs.length === 0) {
-      throw new BadRequestException('No OCR job found for document');
+      throw new BadRequestException("No OCR job found for document");
     }
 
     const latestJob = ocrJobs[0];
@@ -147,7 +151,7 @@ export class OCRController {
    * Parse receipt data from document
    * POST /api/documents/:id/parse-receipt
    */
-  @Post(':id/parse-receipt')
+  @Post(":id/parse-receipt")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -155,16 +159,19 @@ export class OCRController {
     UserRole.ACCOUNTANT,
     UserRole.PROCUREMENT_OFFICER,
   )
-  async parseReceipt(@Param('id') documentId: string, @Request() req: any) {
-    const extractedText = await this.getOrExtractText(documentId, req.user.userId);
+  async parseReceipt(@Param("id") documentId: string, @Request() req: any) {
+    const extractedText = await this.getOrExtractText(
+      documentId,
+      req.user.userId,
+    );
 
     if (!extractedText) {
-      throw new BadRequestException('Failed to extract text from document');
+      throw new BadRequestException("Failed to extract text from document");
     }
 
     const ocrJobs = await this.ocrService.getDocumentOCRJobs(documentId);
     if (ocrJobs.length === 0) {
-      throw new BadRequestException('No OCR job found for document');
+      throw new BadRequestException("No OCR job found for document");
     }
 
     const latestJob = ocrJobs[0];
@@ -185,18 +192,21 @@ export class OCRController {
    * Parse contract data from document
    * POST /api/documents/:id/parse-contract
    */
-  @Post(':id/parse-contract')
+  @Post(":id/parse-contract")
   @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO)
-  async parseContract(@Param('id') documentId: string, @Request() req: any) {
-    const extractedText = await this.getOrExtractText(documentId, req.user.userId);
+  async parseContract(@Param("id") documentId: string, @Request() req: any) {
+    const extractedText = await this.getOrExtractText(
+      documentId,
+      req.user.userId,
+    );
 
     if (!extractedText) {
-      throw new BadRequestException('Failed to extract text from document');
+      throw new BadRequestException("Failed to extract text from document");
     }
 
     const ocrJobs = await this.ocrService.getDocumentOCRJobs(documentId);
     if (ocrJobs.length === 0) {
-      throw new BadRequestException('No OCR job found for document');
+      throw new BadRequestException("No OCR job found for document");
     }
 
     const latestJob = ocrJobs[0];
@@ -217,12 +227,12 @@ export class OCRController {
    * Get extracted text for document
    * GET /api/documents/:id/extracted-text
    */
-  @Get(':id/extracted-text')
-  async getExtractedText(@Param('id') documentId: string) {
+  @Get(":id/extracted-text")
+  async getExtractedText(@Param("id") documentId: string) {
     const text = await this.ocrService.getExtractedText(documentId);
 
     if (!text) {
-      throw new NotFoundException('No extracted text found for this document');
+      throw new NotFoundException("No extracted text found for this document");
     }
 
     return {
@@ -235,7 +245,7 @@ export class OCRController {
    * Batch OCR processing
    * POST /api/documents/batch-ocr
    */
-  @Post('batch-ocr')
+  @Post("batch-ocr")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -253,7 +263,7 @@ export class OCRController {
     @Request() req: any,
   ) {
     if (!body.documentIds || body.documentIds.length === 0) {
-      throw new BadRequestException('No document IDs provided');
+      throw new BadRequestException("No document IDs provided");
     }
 
     const jobs = await this.ocrService.batchExtractText(
@@ -266,10 +276,15 @@ export class OCRController {
     );
 
     for (const job of jobs) {
-      await this.ocrQueueService.enqueueJob(job.jobId, job.documentId, req.user.userId, {
-        language: body.language,
-        provider: body.provider,
-      });
+      await this.ocrQueueService.enqueueJob(
+        job.jobId,
+        job.documentId,
+        req.user.userId,
+        {
+          language: body.language,
+          provider: body.provider,
+        },
+      );
     }
 
     return {
@@ -285,12 +300,12 @@ export class OCRController {
    * Get OCR job status
    * GET /api/documents/ocr/jobs/:jobId
    */
-  @Get('jobs/:jobId')
-  async getJobStatus(@Param('jobId') jobId: string) {
+  @Get("jobs/:jobId")
+  async getJobStatus(@Param("jobId") jobId: string) {
     const job = await this.ocrService.getOCRJobStatus(jobId);
 
     if (!job) {
-      throw new NotFoundException('OCR job not found');
+      throw new NotFoundException("OCR job not found");
     }
 
     return {
@@ -303,8 +318,8 @@ export class OCRController {
    * Get OCR jobs for document
    * GET /api/documents/:id/ocr-jobs
    */
-  @Get(':id/ocr-jobs')
-  async getDocumentOCRJobs(@Param('id') documentId: string) {
+  @Get(":id/ocr-jobs")
+  async getDocumentOCRJobs(@Param("id") documentId: string) {
     const jobs = await this.ocrService.getDocumentOCRJobs(documentId);
 
     return {
@@ -317,14 +332,14 @@ export class OCRController {
    * Cancel OCR job
    * DELETE /api/documents/ocr/jobs/:jobId
    */
-  @Delete('jobs/:jobId')
+  @Delete("jobs/:jobId")
   @Roles(UserRole.SUPER_ADMIN, UserRole.IT_MANAGER)
-  async cancelJob(@Param('jobId') jobId: string, @Request() req: any) {
+  async cancelJob(@Param("jobId") jobId: string, @Request() req: any) {
     await this.ocrService.cancelOCRJob(jobId, req.user.userId);
 
     return {
       success: true,
-      message: 'OCR job cancelled',
+      message: "OCR job cancelled",
     };
   }
 
@@ -332,12 +347,15 @@ export class OCRController {
    * Get extracted data for document
    * GET /api/documents/:id/extracted-data
    */
-  @Get(':id/extracted-data')
+  @Get(":id/extracted-data")
   async getExtractedData(
-    @Param('id') documentId: string,
-    @Query('type') type?: ExtractedDataType,
+    @Param("id") documentId: string,
+    @Query("type") type?: ExtractedDataType,
   ) {
-    const data = await this.dataExtractionService.getExtractedData(documentId, type);
+    const data = await this.dataExtractionService.getExtractedData(
+      documentId,
+      type,
+    );
 
     return {
       success: true,
@@ -349,7 +367,7 @@ export class OCRController {
    * Validate extracted data
    * PATCH /api/documents/ocr/extracted-data/:id/validate
    */
-  @Patch('extracted-data/:id/validate')
+  @Patch("extracted-data/:id/validate")
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.CEO,
@@ -358,7 +376,7 @@ export class OCRController {
     UserRole.PROCUREMENT_OFFICER,
   )
   async validateExtractedData(
-    @Param('id') extractedDataId: string,
+    @Param("id") extractedDataId: string,
     @Body()
     body: {
       correctedFields?: any;
@@ -383,7 +401,7 @@ export class OCRController {
    * Get OCR configuration
    * GET /api/documents/ocr/configuration
    */
-  @Get('configuration')
+  @Get("configuration")
   @Roles(UserRole.SUPER_ADMIN, UserRole.IT_MANAGER)
   async getConfiguration() {
     const config = await this.ocrService.getOCRConfiguration();
@@ -394,7 +412,7 @@ export class OCRController {
     };
   }
 
-  @Get('capabilities')
+  @Get("capabilities")
   @Roles(UserRole.SUPER_ADMIN, UserRole.IT_MANAGER)
   async getCapabilities() {
     const capabilities = await this.ocrService.getOCREnvironmentCapabilities();
@@ -409,10 +427,13 @@ export class OCRController {
    * Update OCR configuration
    * PATCH /api/documents/ocr/configuration
    */
-  @Patch('configuration')
+  @Patch("configuration")
   @Roles(UserRole.SUPER_ADMIN, UserRole.IT_MANAGER)
   async updateConfiguration(@Body() body: any, @Request() req: any) {
-    const config = await this.ocrService.updateOCRConfiguration(req.user.userId, body);
+    const config = await this.ocrService.updateOCRConfiguration(
+      req.user.userId,
+      body,
+    );
 
     return {
       success: true,
@@ -423,7 +444,10 @@ export class OCRController {
   /**
    * Helper: Get or extract text from document
    */
-  private async getOrExtractText(documentId: string, userId: string): Promise<string | null> {
+  private async getOrExtractText(
+    documentId: string,
+    userId: string,
+  ): Promise<string | null> {
     // Try to get existing extracted text
     let text = await this.ocrService.getExtractedText(documentId);
 
@@ -434,16 +458,20 @@ export class OCRController {
       });
 
       if (!document) {
-        throw new NotFoundException('Document not found');
+        throw new NotFoundException("Document not found");
       }
 
       const filePath = await this.storageService.getLocalPath(document.fileUrl);
 
       if (!filePath) {
-        throw new BadRequestException('Document file not accessible');
+        throw new BadRequestException("Document file not accessible");
       }
 
-      const result = await this.ocrService.extractText(documentId, filePath, userId);
+      const result = await this.ocrService.extractText(
+        documentId,
+        filePath,
+        userId,
+      );
       text = result.text;
     }
 

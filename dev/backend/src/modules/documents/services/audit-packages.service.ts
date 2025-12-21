@@ -4,21 +4,21 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { StorageService } from './storage.service';
-import { DocumentPermissionsService } from './document-permissions.service';
-import { createHash } from 'crypto';
-import * as fs from 'fs/promises';
-import { PDFDocument, PDFName, PDFNumber, PDFString } from 'pdf-lib';
-import * as PDFKit from 'pdfkit';
+} from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { StorageService } from "./storage.service";
+import { DocumentPermissionsService } from "./document-permissions.service";
+import { createHash } from "crypto";
+import * as fs from "fs/promises";
+import { PDFDocument, PDFName, PDFNumber, PDFString } from "pdf-lib";
+import * as PDFKit from "pdfkit";
 
 const DocumentAuditPackageStatus = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-  CANCELLED: 'CANCELLED',
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
 } as const;
 
 type DocumentAuditPackageStatus =
@@ -42,28 +42,44 @@ export class AuditPackagesService {
   ) {}
 
   private computeFileHash(buffer: Buffer): string {
-    return createHash('sha256').update(buffer).digest('hex');
+    return createHash("sha256").update(buffer).digest("hex");
   }
 
-  private async getPdfBufferForDocument(documentId: string): Promise<{ buffer: Buffer; fileName: string; mimeType: string; module: string; tempPath?: string }> {
-    const doc = await this.prisma.document.findUnique({ where: { id: documentId } });
+  private async getPdfBufferForDocument(documentId: string): Promise<{
+    buffer: Buffer;
+    fileName: string;
+    mimeType: string;
+    module: string;
+    tempPath?: string;
+  }> {
+    const doc = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
     if (!doc) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
-    if (doc.mimeType !== 'application/pdf') {
-      throw new BadRequestException('Only PDF documents can be included in an audit package');
+    if (doc.mimeType !== "application/pdf") {
+      throw new BadRequestException(
+        "Only PDF documents can be included in an audit package",
+      );
     }
 
     const tempPath = await this.storageService.getLocalPath(doc.fileUrl);
     if (!tempPath) {
-      throw new BadRequestException('Document file not accessible');
+      throw new BadRequestException("Document file not accessible");
     }
 
     const isTemp = /[\\/]temp[\\/]/.test(tempPath);
     const buffer = await fs.readFile(tempPath);
 
-    return { buffer, fileName: doc.originalName, mimeType: doc.mimeType, module: doc.module, tempPath: isTemp ? tempPath : undefined };
+    return {
+      buffer,
+      fileName: doc.originalName,
+      mimeType: doc.mimeType,
+      module: doc.module,
+      tempPath: isTemp ? tempPath : undefined,
+    };
   }
 
   private async cleanupTemp(tempPath?: string) {
@@ -73,35 +89,42 @@ export class AuditPackagesService {
   }
 
   private normalizeSpec(spec: any): AuditPackageSpec {
-    if (!spec || typeof spec !== 'object') {
-      throw new BadRequestException('spec is required');
+    if (!spec || typeof spec !== "object") {
+      throw new BadRequestException("spec is required");
     }
 
     const sections = Array.isArray(spec.sections) ? spec.sections : [];
     if (sections.length === 0) {
-      throw new BadRequestException('spec.sections must contain at least one section');
+      throw new BadRequestException(
+        "spec.sections must contain at least one section",
+      );
     }
 
     const normalized: AuditPackageSpec = {
       sections: sections.map((s: any) => {
-        const title = String(s?.title || '').trim();
+        const title = String(s?.title || "").trim();
         if (!title) {
-          throw new BadRequestException('Each section must have a title');
+          throw new BadRequestException("Each section must have a title");
         }
 
         const docs = Array.isArray(s?.documents) ? s.documents : [];
         if (docs.length === 0) {
-          throw new BadRequestException(`Section "${title}" must contain at least one document`);
+          throw new BadRequestException(
+            `Section "${title}" must contain at least one document`,
+          );
         }
 
         return {
           title,
           documents: docs.map((d: any) => {
-            const documentId = String(d?.documentId || '').trim();
+            const documentId = String(d?.documentId || "").trim();
             if (!documentId) {
-              throw new BadRequestException(`Section "${title}" contains an invalid documentId`);
+              throw new BadRequestException(
+                `Section "${title}" contains an invalid documentId`,
+              );
             }
-            const label = typeof d?.label === 'string' ? d.label.trim() : undefined;
+            const label =
+              typeof d?.label === "string" ? d.label.trim() : undefined;
             return { documentId, label: label || undefined };
           }),
         };
@@ -112,18 +135,24 @@ export class AuditPackagesService {
   }
 
   async startJob(params: { title: string; spec: any; createdById: string }) {
-    const title = String(params.title || '').trim();
+    const title = String(params.title || "").trim();
     if (!title) {
-      throw new BadRequestException('title is required');
+      throw new BadRequestException("title is required");
     }
 
     const normalizedSpec = this.normalizeSpec(params.spec);
 
-    const allDocIds = normalizedSpec.sections.flatMap((s) => s.documents.map((d) => d.documentId));
+    const allDocIds = normalizedSpec.sections.flatMap((s) =>
+      s.documents.map((d) => d.documentId),
+    );
     const uniqueDocIds = Array.from(new Set(allDocIds));
 
     for (const id of uniqueDocIds) {
-      await this.documentPermissionsService.assertHasPermission(id, params.createdById, 'view');
+      await this.documentPermissionsService.assertHasPermission(
+        id,
+        params.createdById,
+        "view",
+      );
     }
 
     const job = await (this.prisma as any).documentAuditPackageJob.create({
@@ -141,36 +170,47 @@ export class AuditPackagesService {
   async listJobs(userId: string) {
     return (this.prisma as any).documentAuditPackageJob.findMany({
       where: { createdById: userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
   }
 
   async getJob(jobId: string, userId: string) {
-    const job = await (this.prisma as any).documentAuditPackageJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).documentAuditPackageJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
-      throw new NotFoundException('Audit package job not found');
+      throw new NotFoundException("Audit package job not found");
     }
 
     if (job.createdById !== userId) {
-      throw new ForbiddenException('You do not have access to this job');
+      throw new ForbiddenException("You do not have access to this job");
     }
 
     return job;
   }
 
   async cancelJob(jobId: string, userId: string) {
-    const job = await (this.prisma as any).documentAuditPackageJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).documentAuditPackageJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
-      throw new NotFoundException('Audit package job not found');
+      throw new NotFoundException("Audit package job not found");
     }
 
     if (job.createdById !== userId) {
-      throw new ForbiddenException('You do not have permission to cancel this job');
+      throw new ForbiddenException(
+        "You do not have permission to cancel this job",
+      );
     }
 
-    if (job.status === DocumentAuditPackageStatus.COMPLETED || job.status === DocumentAuditPackageStatus.FAILED) {
-      throw new BadRequestException('Job cannot be cancelled in its current state');
+    if (
+      job.status === DocumentAuditPackageStatus.COMPLETED ||
+      job.status === DocumentAuditPackageStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        "Job cannot be cancelled in its current state",
+      );
     }
 
     await (this.prisma as any).documentAuditPackageJob.update({
@@ -185,14 +225,14 @@ export class AuditPackagesService {
   }
 
   private async renderPdfKitDoc(render: (doc: any) => void): Promise<Buffer> {
-    const doc = new (PDFKit as any)({ size: 'A4', margin: 54 });
+    const doc = new (PDFKit as any)({ size: "A4", margin: 54 });
     const chunks: Buffer[] = [];
 
-    doc.on('data', (c: Buffer) => chunks.push(c));
+    doc.on("data", (c: Buffer) => chunks.push(c));
 
     const done = new Promise<Buffer>((resolve, reject) => {
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
     });
 
     render(doc);
@@ -201,26 +241,36 @@ export class AuditPackagesService {
     return done;
   }
 
-  private async createCoverPage(title: string, preparedBy: string): Promise<Buffer> {
+  private async createCoverPage(
+    title: string,
+    preparedBy: string,
+  ): Promise<Buffer> {
     return this.renderPdfKitDoc((doc) => {
-      doc.font('Helvetica-Bold').fontSize(24).text(title, { align: 'center' });
+      doc.font("Helvetica-Bold").fontSize(24).text(title, { align: "center" });
       doc.moveDown(2);
-      doc.font('Helvetica').fontSize(12);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, { align: 'center' });
+      doc.font("Helvetica").fontSize(12);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, {
+        align: "center",
+      });
       doc.moveDown(1);
-      doc.text(`Prepared by: ${preparedBy}`, { align: 'center' });
+      doc.text(`Prepared by: ${preparedBy}`, { align: "center" });
     });
   }
 
   private async createSectionDivider(title: string): Promise<Buffer> {
     return this.renderPdfKitDoc((doc) => {
-      doc.font('Helvetica-Bold').fontSize(22).text(title, { align: 'center' });
+      doc.font("Helvetica-Bold").fontSize(22).text(title, { align: "center" });
       doc.moveDown(1);
-      doc.font('Helvetica').fontSize(12).text('Section Divider', { align: 'center' });
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text("Section Divider", { align: "center" });
     });
   }
 
-  private estimateTocLines(spec: AuditPackageSpec): Array<{ label: string; page: number }> {
+  private estimateTocLines(
+    spec: AuditPackageSpec,
+  ): Array<{ label: string; page: number }> {
     const lines: Array<{ label: string; page: number }> = [];
     for (const section of spec.sections) {
       lines.push({ label: section.title, page: 0 });
@@ -231,27 +281,41 @@ export class AuditPackagesService {
     return lines;
   }
 
-  private async createTocPage(title: string, tocLines: Array<{ label: string; page: number }>): Promise<Buffer> {
+  private async createTocPage(
+    title: string,
+    tocLines: Array<{ label: string; page: number }>,
+  ): Promise<Buffer> {
     return this.renderPdfKitDoc((doc) => {
-      doc.font('Helvetica-Bold').fontSize(18).text('Table of Contents', { align: 'center' });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(18)
+        .text("Table of Contents", { align: "center" });
       doc.moveDown(1);
-      doc.font('Helvetica').fontSize(11);
+      doc.font("Helvetica").fontSize(11);
 
-      const usableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const usableWidth =
+        doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
       for (const line of tocLines) {
         const label = line.label;
         const page = line.page;
         const left = label;
-        const right = page > 0 ? String(page) : '';
+        const right = page > 0 ? String(page) : "";
 
         const rightWidth = doc.widthOfString(right);
-        doc.text(left, { continued: true, width: usableWidth - rightWidth - 10 });
-        doc.text(right, { align: 'right' });
+        doc.text(left, {
+          continued: true,
+          width: usableWidth - rightWidth - 10,
+        });
+        doc.text(right, { align: "right" });
       }
 
       doc.moveDown(1);
-      doc.fontSize(9).fillColor('gray').text(title, { align: 'center' }).fillColor('black');
+      doc
+        .fontSize(9)
+        .fillColor("gray")
+        .text(title, { align: "center" })
+        .fillColor("black");
     });
   }
 
@@ -277,7 +341,7 @@ export class AuditPackagesService {
     const pages = pdfDoc.getPages();
 
     const outlinesDict = ctx.obj({
-      Type: PDFName.of('Outlines'),
+      Type: PDFName.of("Outlines"),
       Count: PDFNumber.of(items.length),
     });
     const outlinesRef = ctx.register(outlinesDict);
@@ -292,7 +356,7 @@ export class AuditPackagesService {
 
       const destArray = ctx.obj([
         pageRef,
-        PDFName.of('XYZ'),
+        PDFName.of("XYZ"),
         PDFNumber.of(0),
         PDFNumber.of(0),
         PDFNumber.of(0),
@@ -316,23 +380,25 @@ export class AuditPackagesService {
 
       if (prevRef) {
         const prevObj = ctx.lookup(prevRef) as any;
-        prevObj.set(PDFName.of('Next'), itemRef);
+        prevObj.set(PDFName.of("Next"), itemRef);
       }
 
       prevRef = itemRef;
       lastRef = itemRef;
     }
 
-    (outlinesDict as any).set(PDFName.of('First'), firstRef);
-    (outlinesDict as any).set(PDFName.of('Last'), lastRef);
+    (outlinesDict as any).set(PDFName.of("First"), firstRef);
+    (outlinesDict as any).set(PDFName.of("Last"), lastRef);
 
-    (pdfDoc.catalog as any).set(PDFName.of('Outlines'), outlinesRef);
+    (pdfDoc.catalog as any).set(PDFName.of("Outlines"), outlinesRef);
   }
 
   async processJob(jobId: string) {
-    const job = await (this.prisma as any).documentAuditPackageJob.findUnique({ where: { id: jobId } });
+    const job = await (this.prisma as any).documentAuditPackageJob.findUnique({
+      where: { id: jobId },
+    });
     if (!job) {
-      throw new NotFoundException('Audit package job not found');
+      throw new NotFoundException("Audit package job not found");
     }
 
     if (job.status === DocumentAuditPackageStatus.CANCELLED) {
@@ -346,11 +412,21 @@ export class AuditPackagesService {
       select: { firstName: true, lastName: true, email: true },
     });
 
-    const preparedBy = creator ? `${creator.firstName} ${creator.lastName}`.trim() || creator.email : 'Unknown';
+    const preparedBy = creator
+      ? `${creator.firstName} ${creator.lastName}`.trim() || creator.email
+      : "Unknown";
 
-    const uniqueDocIds = Array.from(new Set(spec.sections.flatMap((s) => s.documents.map((d) => d.documentId))));
+    const uniqueDocIds = Array.from(
+      new Set(
+        spec.sections.flatMap((s) => s.documents.map((d) => d.documentId)),
+      ),
+    );
     for (const id of uniqueDocIds) {
-      await this.documentPermissionsService.assertHasPermission(id, job.createdById, 'view');
+      await this.documentPermissionsService.assertHasPermission(
+        id,
+        job.createdById,
+        "view",
+      );
     }
 
     const docPageCounts = new Map<string, number>();
@@ -381,7 +457,9 @@ export class AuditPackagesService {
 
         const coverPages = await this.countPages(cover);
 
-        const dividerPageCounts = await Promise.all(dividerBuffers.map((b) => this.countPages(b)));
+        const dividerPageCounts = await Promise.all(
+          dividerBuffers.map((b) => this.countPages(b)),
+        );
 
         let currentPage = coverPages + tocPages;
 
@@ -430,10 +508,10 @@ export class AuditPackagesService {
       };
 
       await addBuffer(cover);
-      outlineItems.push({ title: 'Cover', pageIndex: 0 });
+      outlineItems.push({ title: "Cover", pageIndex: 0 });
 
       await addBuffer(tocBuffer);
-      outlineItems.push({ title: 'Table of Contents', pageIndex: 1 });
+      outlineItems.push({ title: "Table of Contents", pageIndex: 1 });
 
       for (let i = 0; i < spec.sections.length; i++) {
         const section = spec.sections[i];
@@ -460,8 +538,13 @@ export class AuditPackagesService {
       const bytes = await merged.save({ useObjectStreams: true });
       const outBuffer = Buffer.from(bytes);
 
-      const filename = `${job.title.replace(/[^\w.-]/g, '_')}-audit-package.pdf`;
-      const upload = await this.storageService.uploadBuffer(outBuffer, filename, 'application/pdf', 'documents');
+      const filename = `${job.title.replace(/[^\w.-]/g, "_")}-audit-package.pdf`;
+      const upload = await this.storageService.uploadBuffer(
+        outBuffer,
+        filename,
+        "application/pdf",
+        "documents",
+      );
 
       const fileHash = this.computeFileHash(outBuffer);
 
@@ -470,14 +553,14 @@ export class AuditPackagesService {
           fileName: upload.key,
           originalName: filename,
           fileSize: outBuffer.length,
-          mimeType: 'application/pdf',
+          mimeType: "application/pdf",
           fileUrl: upload.url,
           fileHash,
-          category: 'AUDIT_DOCUMENT' as any,
-          module: 'documents',
+          category: "AUDIT_DOCUMENT" as any,
+          module: "documents",
           referenceId: job.id,
           description: `Audit package: ${job.title}`,
-          tags: ['audit-package'],
+          tags: ["audit-package"],
           uploadedById: job.createdById,
         },
       });
@@ -501,7 +584,7 @@ export class AuditPackagesService {
 
       return document;
     } catch (error: any) {
-      const message = error?.message || 'Audit package build failed';
+      const message = error?.message || "Audit package build failed";
       this.logger.error(`Audit package job ${jobId} failed: ${message}`);
 
       await (this.prisma as any).documentAuditPackageJob.update({
@@ -522,16 +605,20 @@ export class AuditPackagesService {
   }
 
   async claimNextJob(): Promise<{ id: string } | null> {
-    const candidates = await (this.prisma as any).documentAuditPackageJob.findMany({
+    const candidates = await (
+      this.prisma as any
+    ).documentAuditPackageJob.findMany({
       where: {
         status: DocumentAuditPackageStatus.PENDING,
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       take: 10,
     });
 
     for (const c of candidates) {
-      const updated = await (this.prisma as any).documentAuditPackageJob.updateMany({
+      const updated = await (
+        this.prisma as any
+      ).documentAuditPackageJob.updateMany({
         where: {
           id: c.id,
           status: DocumentAuditPackageStatus.PENDING,

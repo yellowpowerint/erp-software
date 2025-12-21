@@ -15,6 +15,9 @@ import {
   AlertTriangle,
   FileText,
   Upload,
+  Calendar,
+  DatabaseBackup,
+  FileSpreadsheet,
   type LucideIcon,
 } from 'lucide-react';
 import { UserRole } from '@/types/auth';
@@ -571,6 +574,27 @@ export const menuItems: MenuItem[] = [
         icon: Settings,
         path: '/settings/csv',
         roles: [UserRole.SUPER_ADMIN, UserRole.IT_MANAGER],
+      },
+      {
+        id: 'settings-import-export',
+        label: 'Import/Export',
+        icon: FileSpreadsheet,
+        path: '/settings/import-export',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.IT_MANAGER],
+      },
+      {
+        id: 'settings-data-migration',
+        label: 'Data Migration',
+        icon: DatabaseBackup,
+        path: '/settings/data-migration',
+        roles: [UserRole.SUPER_ADMIN, UserRole.IT_MANAGER],
+      },
+      {
+        id: 'settings-scheduled-exports',
+        label: 'Scheduled Exports',
+        icon: Calendar,
+        path: '/settings/scheduled-exports',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.IT_MANAGER],
       },
       {
         id: 'settings-users',
