@@ -291,6 +291,13 @@ export const menuItems: MenuItem[] = [
         path: '/procurement/requisitions',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER, UserRole.WAREHOUSE_MANAGER, UserRole.EMPLOYEE],
       },
+      {
+        id: 'procurement-requisitions-pending',
+        label: 'Pending Approvals',
+        icon: ClipboardCheck,
+        path: '/procurement/requisitions/pending',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER],
+      },
     ],
   },
   {
