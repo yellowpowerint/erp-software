@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -46,6 +46,36 @@ enum ApprovalType {
   PAYMENT_REQUEST
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RequisitionType {
+  STOCK_REPLENISHMENT
+  PROJECT_MATERIALS
+  EQUIPMENT_PURCHASE
+  MAINTENANCE_PARTS
+  SAFETY_SUPPLIES
+  CONSUMABLES
+  EMERGENCY
+  CAPITAL_EXPENDITURE
+}
+
+enum RequisitionStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_APPROVAL
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+  CANCELLED
+  IN_PROCUREMENT
+  COMPLETED
+}
+
 enum NotificationType {
   APPROVAL_REQUEST
   APPROVAL_APPROVED
@@ -70,67 +100,73 @@ enum PaymentType {
 }
 
 model User {
-  id        String      @id @default(uuid())
-  email     String      @unique
-  password  String
-  firstName String
-  lastName  String
-  phone     String?
-  role      UserRole    @default(EMPLOYEE)
-  status    UserStatus  @default(ACTIVE)
+  id         String     @id @default(uuid())
+  email      String     @unique
+  password   String
+  firstName  String
+  lastName   String
+  phone      String?
+  role       UserRole   @default(EMPLOYEE)
+  status     UserStatus @default(ACTIVE)
   department String?
   position   String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  lastLogin DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  lastLogin  DateTime?
 
   // Relations
-  createdInvoices       Invoice[]         @relation("InvoiceCreator")
-  createdPurchaseRequests PurchaseRequest[] @relation("PurchaseRequestCreator")
-  createdITRequests     ITRequest[]       @relation("ITRequestCreator")
-  createdPaymentRequests PaymentRequest[]  @relation("PaymentRequestCreator")
-  approvalActions       ApprovalHistory[] @relation("ApprovalActor")
-  notifications         Notification[]    @relation("UserNotifications")
-  assignedApprovals     UserAssignment[]  @relation("AssignedUser")
-  approvedPayments      FinancePayment[]
-  submittedExpenses     Expense[]         @relation("ExpenseSubmitter")
-  approvedExpenses      Expense[]         @relation("ExpenseApprover")
-  createdBudgets        Budget[]
-  uploadedDocuments     Document[]        @relation("DocumentUploader")
-  documentVersions      DocumentVersion[] @relation("VersionUploader")
-  documentSignatures    DocumentSignature[] @relation("DocumentSigner")
-  revokedSignatures     DocumentSignature[] @relation("SignatureRevoker")
-  documentAccessLogs    DocumentAccessLog[] @relation("DocumentAccessor")
-  createdSecurity       DocumentSecurity[]  @relation("SecurityCreator")
-  ocrJobs               OCRJob[]          @relation("OCRJobCreator")
-  conversionJobs        DocumentConversionJob[] @relation("ConversionJobCreator")
-  createdFormTemplates  DocumentFormTemplate[] @relation("FormTemplateCreator")
-  formDrafts            DocumentFormDraft[] @relation("FormDraftCreator")
-  auditPackageJobs      DocumentAuditPackageJob[] @relation("AuditPackageJobCreator")
-  finalizeJobs          DocumentFinalizeJob[] @relation("FinalizeJobCreator")
-  integritySeals        DocumentIntegritySeal[] @relation("IntegritySealCreator")
-  importJobs            ImportJob[]        @relation("ImportCreator")
-  exportJobs            ExportJob[]        @relation("ExportCreator")
-  importTemplates       ImportTemplate[]   @relation("ImportTemplateCreator")
-  csvAuditLogs          CsvAuditLog[]      @relation("CsvAuditCreator")
-  csvBatches            CsvBatch[]         @relation("CsvBatchCreator")
-  scheduledExports      ScheduledExport[]  @relation("ScheduledExportCreator")
-  validatedData         ExtractedDocumentData[] @relation("DataValidator")
-  ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
+  createdInvoices         Invoice[]                 @relation("InvoiceCreator")
+  createdPurchaseRequests PurchaseRequest[]         @relation("PurchaseRequestCreator")
+  createdITRequests       ITRequest[]               @relation("ITRequestCreator")
+  createdPaymentRequests  PaymentRequest[]          @relation("PaymentRequestCreator")
+  approvalActions         ApprovalHistory[]         @relation("ApprovalActor")
+  notifications           Notification[]            @relation("UserNotifications")
+  assignedApprovals       UserAssignment[]          @relation("AssignedUser")
+  approvedPayments        FinancePayment[]
+  submittedExpenses       Expense[]                 @relation("ExpenseSubmitter")
+  approvedExpenses        Expense[]                 @relation("ExpenseApprover")
+  createdBudgets          Budget[]
+  uploadedDocuments       Document[]                @relation("DocumentUploader")
+  documentVersions        DocumentVersion[]         @relation("VersionUploader")
+  documentSignatures      DocumentSignature[]       @relation("DocumentSigner")
+  revokedSignatures       DocumentSignature[]       @relation("SignatureRevoker")
+  documentAccessLogs      DocumentAccessLog[]       @relation("DocumentAccessor")
+  createdSecurity         DocumentSecurity[]        @relation("SecurityCreator")
+  ocrJobs                 OCRJob[]                  @relation("OCRJobCreator")
+  conversionJobs          DocumentConversionJob[]   @relation("ConversionJobCreator")
+  createdFormTemplates    DocumentFormTemplate[]    @relation("FormTemplateCreator")
+  formDrafts              DocumentFormDraft[]       @relation("FormDraftCreator")
+  auditPackageJobs        DocumentAuditPackageJob[] @relation("AuditPackageJobCreator")
+  finalizeJobs            DocumentFinalizeJob[]     @relation("FinalizeJobCreator")
+  integritySeals          DocumentIntegritySeal[]   @relation("IntegritySealCreator")
+  importJobs              ImportJob[]               @relation("ImportCreator")
+  exportJobs              ExportJob[]               @relation("ExportCreator")
+  importTemplates         ImportTemplate[]          @relation("ImportTemplateCreator")
+  csvAuditLogs            CsvAuditLog[]             @relation("CsvAuditCreator")
+  csvBatches              CsvBatch[]                @relation("CsvBatchCreator")
+  scheduledExports        ScheduledExport[]         @relation("ScheduledExportCreator")
+  validatedData           ExtractedDocumentData[]   @relation("DataValidator")
+  ocrConfigUpdates        OCRConfiguration[]        @relation("OCRConfigUpdater")
 
-  documentComments      DocumentComment[]  @relation("CommentAuthor")
-  resolvedDocumentComments DocumentComment[] @relation("CommentResolver")
-  documentAnnotations   DocumentAnnotation[] @relation("AnnotationAuthor")
-  documentSharesCreated DocumentShare[]    @relation("ShareAuthor")
-  documentSharesReceived DocumentShare[]   @relation("ShareRecipient")
-  documentPresence      DocumentPresence[]
+  requisitionsRequested          Requisition[]           @relation("RequisitionRequestor")
+  requisitionsApproved           Requisition[]           @relation("RequisitionApprover")
+  requisitionsRejected           Requisition[]           @relation("RequisitionRejecter")
+  requisitionStageApprovals      RequisitionApproval[]   @relation("RequisitionStageApprover")
+  requisitionAttachmentsUploaded RequisitionAttachment[] @relation("RequisitionAttachmentUploader")
 
-  documentUserPermissions DocumentUserPermission[] @relation("DocumentUserAccess")
-  grantedDocumentUserPermissions DocumentUserPermission[] @relation("PermissionGranter")
-  categoryPermissionsSet DocumentCategoryPermission[] @relation("CategoryPermissionSetter")
-  permissionTemplatesCreated DocumentPermissionTemplate[] @relation("TemplateCreator")
-  permissionLogsPerformed DocumentPermissionLog[] @relation("PermissionChanger")
-  permissionLogsTarget DocumentPermissionLog[] @relation("PermissionTarget")
+  documentComments         DocumentComment[]    @relation("CommentAuthor")
+  resolvedDocumentComments DocumentComment[]    @relation("CommentResolver")
+  documentAnnotations      DocumentAnnotation[] @relation("AnnotationAuthor")
+  documentSharesCreated    DocumentShare[]      @relation("ShareAuthor")
+  documentSharesReceived   DocumentShare[]      @relation("ShareRecipient")
+  documentPresence         DocumentPresence[]
+
+  documentUserPermissions        DocumentUserPermission[]     @relation("DocumentUserAccess")
+  grantedDocumentUserPermissions DocumentUserPermission[]     @relation("PermissionGranter")
+  categoryPermissionsSet         DocumentCategoryPermission[] @relation("CategoryPermissionSetter")
+  permissionTemplatesCreated     DocumentPermissionTemplate[] @relation("TemplateCreator")
+  permissionLogsPerformed        DocumentPermissionLog[]      @relation("PermissionChanger")
+  permissionLogsTarget           DocumentPermissionLog[]      @relation("PermissionTarget")
 
   @@map("users")
 }
@@ -173,22 +209,22 @@ model AuditLog {
 }
 
 model Invoice {
-  id              String         @id @default(uuid())
-  invoiceNumber   String         @unique
+  id              String            @id @default(uuid())
+  invoiceNumber   String            @unique
   supplierName    String
   supplierEmail   String?
   description     String
   amount          Float
-  currency        String         @default("GHS")
+  currency        String            @default("GHS")
   dueDate         DateTime
-  status          ApprovalStatus @default(PENDING)
+  status          ApprovalStatus    @default(PENDING)
   createdById     String
-  createdBy       User           @relation("InvoiceCreator", fields: [createdById], references: [id])
+  createdBy       User              @relation("InvoiceCreator", fields: [createdById], references: [id])
   approvalHistory ApprovalHistory[]
   attachmentUrl   String?
   notes           String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@index([status])
   @@index([createdById])
@@ -197,25 +233,25 @@ model Invoice {
 }
 
 model PurchaseRequest {
-  id              String         @id @default(uuid())
-  requestNumber   String         @unique
-  title           String
-  description     String
-  category        String
-  quantity        Int
-  estimatedCost   Float
-  currency        String         @default("GHS")
-  justification   String
-  urgency         String         @default("NORMAL")
-  status          ApprovalStatus @default(PENDING)
-  createdById     String
-  createdBy       User           @relation("PurchaseRequestCreator", fields: [createdById], references: [id])
-  approvalHistory ApprovalHistory[]
-  attachmentUrl   String?
+  id                 String            @id @default(uuid())
+  requestNumber      String            @unique
+  title              String
+  description        String
+  category           String
+  quantity           Int
+  estimatedCost      Float
+  currency           String            @default("GHS")
+  justification      String
+  urgency            String            @default("NORMAL")
+  status             ApprovalStatus    @default(PENDING)
+  createdById        String
+  createdBy          User              @relation("PurchaseRequestCreator", fields: [createdById], references: [id])
+  approvalHistory    ApprovalHistory[]
+  attachmentUrl      String?
   supplierSuggestion String?
-  notes           String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  notes              String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
   @@index([status])
   @@index([createdById])
@@ -223,27 +259,124 @@ model PurchaseRequest {
   @@map("purchase_requests")
 }
 
+model Requisition {
+  id            String            @id @default(uuid())
+  requisitionNo String            @unique
+  title         String
+  description   String?
+  type          RequisitionType
+  priority      Priority          @default(MEDIUM)
+  status        RequisitionStatus @default(DRAFT)
+  department    String
+  projectId     String?
+  project       Project?          @relation(fields: [projectId], references: [id])
+  siteLocation  String
+  requiredDate  DateTime
+  justification String?
+  totalEstimate Decimal           @default(0) @db.Decimal(15, 2)
+  currency      String            @default("GHS")
+
+  requestedById String
+  requestedBy   User   @relation("RequisitionRequestor", fields: [requestedById], references: [id])
+
+  currentStage    Int       @default(1)
+  approvedById    String?
+  approvedBy      User?     @relation("RequisitionApprover", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  rejectedById    String?
+  rejectedBy      User?     @relation("RequisitionRejecter", fields: [rejectedById], references: [id])
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  items           RequisitionItem[]
+  attachments     RequisitionAttachment[]
+  approvalHistory RequisitionApproval[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([requestedById])
+  @@index([department])
+  @@map("requisitions")
+}
+
+model RequisitionItem {
+  id              String      @id @default(uuid())
+  requisitionId   String
+  requisition     Requisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  itemName        String
+  description     String?
+  category        String
+  quantity        Decimal     @db.Decimal(10, 2)
+  unit            String
+  estimatedPrice  Decimal     @db.Decimal(15, 2)
+  totalPrice      Decimal     @db.Decimal(15, 2)
+  specifications  String?
+  preferredVendor String?
+  stockItemId     String?
+  stockItem       StockItem?  @relation(fields: [stockItemId], references: [id])
+  urgency         Priority    @default(MEDIUM)
+  notes           String?
+
+  @@index([requisitionId])
+  @@index([stockItemId])
+  @@map("requisition_items")
+}
+
+model RequisitionAttachment {
+  id            String      @id @default(uuid())
+  requisitionId String
+  requisition   Requisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  fileName      String
+  fileUrl       String
+  fileType      String
+  uploadedById  String
+  uploadedBy    User        @relation("RequisitionAttachmentUploader", fields: [uploadedById], references: [id])
+  uploadedAt    DateTime    @default(now())
+
+  @@index([requisitionId])
+  @@index([uploadedById])
+  @@map("requisition_attachments")
+}
+
+model RequisitionApproval {
+  id            String         @id @default(uuid())
+  requisitionId String
+  requisition   Requisition    @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  stage         Int
+  approverId    String
+  approver      User           @relation("RequisitionStageApprover", fields: [approverId], references: [id])
+  status        ApprovalStatus @default(PENDING)
+  comments      String?
+  actionAt      DateTime?
+
+  @@unique([requisitionId, stage])
+  @@index([approverId])
+  @@map("requisition_approvals")
+}
+
 model ApprovalHistory {
-  id              String         @id @default(uuid())
-  type            ApprovalType
-  referenceId     String
-  approverLevel   Int            @default(1)
-  approverId      String
-  approver        User           @relation("ApprovalActor", fields: [approverId], references: [id])
-  action          ApprovalStatus
-  comments        String?
-  createdAt       DateTime       @default(now())
+  id            String         @id @default(uuid())
+  type          ApprovalType
+  referenceId   String
+  approverLevel Int            @default(1)
+  approverId    String
+  approver      User           @relation("ApprovalActor", fields: [approverId], references: [id])
+  action        ApprovalStatus
+  comments      String?
+  createdAt     DateTime       @default(now())
 
   // Relations to specific types
-  invoice         Invoice?       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  invoiceId       String?
-  purchaseRequest PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  invoice           Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId         String?
+  purchaseRequest   PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
   purchaseRequestId String?
 
   // Relations for new types
-  itRequest       ITRequest?     @relation(fields: [itRequestId], references: [id], onDelete: Cascade)
-  itRequestId     String?
-  paymentRequest  PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  itRequest        ITRequest?      @relation(fields: [itRequestId], references: [id], onDelete: Cascade)
+  itRequestId      String?
+  paymentRequest   PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
   paymentRequestId String?
 
   @@index([referenceId])
@@ -253,23 +386,23 @@ model ApprovalHistory {
 }
 
 model ITRequest {
-  id              String         @id @default(uuid())
-  requestNumber   String         @unique
+  id              String            @id @default(uuid())
+  requestNumber   String            @unique
   requestType     ITRequestType
   title           String
   description     String
-  priority        String         @default("NORMAL")
-  status          ApprovalStatus @default(PENDING)
+  priority        String            @default("NORMAL")
+  status          ApprovalStatus    @default(PENDING)
   createdById     String
-  createdBy       User           @relation("ITRequestCreator", fields: [createdById], references: [id])
+  createdBy       User              @relation("ITRequestCreator", fields: [createdById], references: [id])
   approvalHistory ApprovalHistory[]
   estimatedCost   Float?
-  currency        String         @default("GHS")
+  currency        String            @default("GHS")
   justification   String
   attachmentUrl   String?
   notes           String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@index([status])
   @@index([createdById])
@@ -278,23 +411,23 @@ model ITRequest {
 }
 
 model PaymentRequest {
-  id              String         @id @default(uuid())
-  requestNumber   String         @unique
+  id              String            @id @default(uuid())
+  requestNumber   String            @unique
   paymentType     PaymentType
   payeeName       String
   payeeAccount    String?
   description     String
   amount          Float
-  currency        String         @default("GHS")
-  status          ApprovalStatus @default(PENDING)
+  currency        String            @default("GHS")
+  status          ApprovalStatus    @default(PENDING)
   createdById     String
-  createdBy       User           @relation("PaymentRequestCreator", fields: [createdById], references: [id])
+  createdBy       User              @relation("PaymentRequestCreator", fields: [createdById], references: [id])
   approvalHistory ApprovalHistory[]
   attachmentUrl   String?
   notes           String?
   dueDate         DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@index([status])
   @@index([createdById])
@@ -303,16 +436,16 @@ model PaymentRequest {
 }
 
 model Notification {
-  id          String           @id @default(uuid())
-  userId      String
-  user        User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  type        NotificationType
-  title       String
-  message     String
-  referenceId String?
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type          NotificationType
+  title         String
+  message       String
+  referenceId   String?
   referenceType String?
-  read        Boolean          @default(false)
-  createdAt   DateTime         @default(now())
+  read          Boolean          @default(false)
+  createdAt     DateTime         @default(now())
 
   @@index([userId])
   @@index([read])
@@ -321,12 +454,12 @@ model Notification {
 }
 
 model UserAssignment {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation("AssignedUser", fields: [userId], references: [id], onDelete: Cascade)
-  itemType    String
-  itemId      String
-  assignedAt  DateTime @default(now())
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation("AssignedUser", fields: [userId], references: [id], onDelete: Cascade)
+  itemType   String
+  itemId     String
+  assignedAt DateTime @default(now())
 
   @@unique([userId, itemType, itemId])
   @@index([userId])
@@ -336,16 +469,16 @@ model UserAssignment {
 
 // Workflow System
 model ApprovalWorkflow {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
   description String?
   type        ApprovalType
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  stages      ApprovalStage[]
-  instances   WorkflowInstance[]
+  stages    ApprovalStage[]
+  instances WorkflowInstance[]
 
   @@index([type])
   @@index([isActive])
@@ -353,14 +486,14 @@ model ApprovalWorkflow {
 }
 
 model ApprovalStage {
-  id          String   @id @default(uuid())
-  workflowId  String
-  workflow    ApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  stageOrder  Int
-  stageName   String
+  id            String           @id @default(uuid())
+  workflowId    String
+  workflow      ApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  stageOrder    Int
+  stageName     String
   approverRoles String[]
-  requiresAll Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  requiresAll   Boolean          @default(false)
+  createdAt     DateTime         @default(now())
 
   stageActions StageAction[]
 
@@ -370,15 +503,15 @@ model ApprovalStage {
 }
 
 model WorkflowInstance {
-  id          String   @id @default(uuid())
-  workflowId  String
-  workflow    ApprovalWorkflow @relation(fields: [workflowId], references: [id])
-  itemType    String
-  itemId      String
-  currentStage Int     @default(1)
-  status      ApprovalStatus @default(PENDING)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String           @id @default(uuid())
+  workflowId   String
+  workflow     ApprovalWorkflow @relation(fields: [workflowId], references: [id])
+  itemType     String
+  itemId       String
+  currentStage Int              @default(1)
+  status       ApprovalStatus   @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   stageActions StageAction[]
 
@@ -389,15 +522,15 @@ model WorkflowInstance {
 }
 
 model StageAction {
-  id          String   @id @default(uuid())
-  instanceId  String
-  instance    WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  stageId     String
-  stage       ApprovalStage @relation(fields: [stageId], references: [id])
-  approverId  String
-  action      ApprovalStatus
-  comments    String?
-  createdAt   DateTime @default(now())
+  id         String           @id @default(uuid())
+  instanceId String
+  instance   WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stageId    String
+  stage      ApprovalStage    @relation(fields: [stageId], references: [id])
+  approverId String
+  action     ApprovalStatus
+  comments   String?
+  createdAt  DateTime         @default(now())
 
   @@index([instanceId])
   @@index([stageId])
@@ -450,8 +583,8 @@ model Warehouse {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  stockItems  StockItem[]
-  movements   StockMovement[]
+  stockItems StockItem[]
+  movements  StockMovement[]
 
   @@index([isActive])
   @@map("warehouses")
@@ -478,7 +611,8 @@ model StockItem {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  movements       StockMovement[]
+  movements        StockMovement[]
+  requisitionItems RequisitionItem[]
 
   @@index([category])
   @@index([warehouseId])
@@ -488,21 +622,21 @@ model StockItem {
 }
 
 model StockMovement {
-  id              String       @id @default(uuid())
-  itemId          String
-  item            StockItem    @relation(fields: [itemId], references: [id])
-  warehouseId     String
-  warehouse       Warehouse    @relation(fields: [warehouseId], references: [id])
-  movementType    MovementType
-  quantity        Int
-  previousQty     Int
-  newQty          Int
-  unitPrice       Float?
-  totalValue      Float?
-  reference       String?
-  notes           String?
-  performedById   String
-  createdAt       DateTime     @default(now())
+  id            String       @id @default(uuid())
+  itemId        String
+  item          StockItem    @relation(fields: [itemId], references: [id])
+  warehouseId   String
+  warehouse     Warehouse    @relation(fields: [warehouseId], references: [id])
+  movementType  MovementType
+  quantity      Int
+  previousQty   Int
+  newQty        Int
+  unitPrice     Float?
+  totalValue    Float?
+  reference     String?
+  notes         String?
+  performedById String
+  createdAt     DateTime     @default(now())
 
   @@index([itemId])
   @@index([warehouseId])
@@ -555,6 +689,8 @@ model Asset {
   status            AssetStatus    @default(ACTIVE)
   condition         AssetCondition @default(GOOD)
   assignedTo        String?
+  projectId         String?
+  project           Project?       @relation(fields: [projectId], references: [id])
   notes             String?
   warrantyExpiry    DateTime?
   lastMaintenanceAt DateTime?
@@ -562,18 +698,19 @@ model Asset {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  maintenanceLogs   MaintenanceLog[]
+  maintenanceLogs MaintenanceLog[]
 
   @@index([category])
   @@index([status])
   @@index([condition])
+  @@index([projectId])
   @@map("assets")
 }
 
 model MaintenanceLog {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   assetId         String
-  asset           Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  asset           Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
   maintenanceType String
   description     String
   performedBy     String?
@@ -581,7 +718,7 @@ model MaintenanceLog {
   cost            Float?
   nextDueDate     DateTime?
   notes           String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   @@index([assetId])
   @@index([performedAt])
@@ -629,13 +766,15 @@ model Project {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
-  milestones      Milestone[]
-  tasks           Task[]
-  productionLogs  ProductionLog[]
-  fieldReports    FieldReport[]
-  payments        FinancePayment[]
-  expenses        Expense[]
-  budgets         Budget[]
+  milestones     Milestone[]
+  tasks          Task[]
+  assets         Asset[]
+  requisitions   Requisition[]
+  productionLogs ProductionLog[]
+  fieldReports   FieldReport[]
+  payments       FinancePayment[]
+  expenses       Expense[]
+  budgets        Budget[]
 
   @@index([status])
   @@index([priority])
@@ -644,16 +783,16 @@ model Project {
 }
 
 model Milestone {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name        String
   description String?
   dueDate     DateTime
-  isCompleted Boolean  @default(false)
+  isCompleted Boolean   @default(false)
   completedAt DateTime?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
 
   @@index([projectId])
   @@index([dueDate])
@@ -702,21 +841,21 @@ enum ProductionActivityType {
 }
 
 model ProductionLog {
-  id              String                 @id @default(uuid())
-  projectId       String?
-  project         Project?               @relation(fields: [projectId], references: [id])
-  date            DateTime
-  shiftType       ShiftType
-  activityType    ProductionActivityType
-  location        String?
-  quantity        Float
-  unit            String
-  equipmentUsed   String?
-  operatorName    String?
-  notes           String?
-  createdById     String
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  id            String                 @id @default(uuid())
+  projectId     String?
+  project       Project?               @relation(fields: [projectId], references: [id])
+  date          DateTime
+  shiftType     ShiftType
+  activityType  ProductionActivityType
+  location      String?
+  quantity      Float
+  unit          String
+  equipmentUsed String?
+  operatorName  String?
+  notes         String?
+  createdById   String
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 
   @@index([projectId])
   @@index([date])
@@ -725,17 +864,17 @@ model ProductionLog {
 }
 
 model Shift {
-  id          String    @id @default(uuid())
-  date        DateTime
-  shiftType   ShiftType
-  startTime   String
-  endTime     String
-  supervisor  String?
-  crew        String[]
-  location    String?
-  notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String    @id @default(uuid())
+  date       DateTime
+  shiftType  ShiftType
+  startTime  String
+  endTime    String
+  supervisor String?
+  crew       String[]
+  location   String?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([date])
   @@index([shiftType])
@@ -743,20 +882,20 @@ model Shift {
 }
 
 model FieldReport {
-  id          String   @id @default(uuid())
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id])
-  reportDate  DateTime
-  location    String
-  reportedBy  String
-  title       String
-  description String
-  findings    String?
+  id              String   @id @default(uuid())
+  projectId       String?
+  project         Project? @relation(fields: [projectId], references: [id])
+  reportDate      DateTime
+  location        String
+  reportedBy      String
+  title           String
+  description     String
+  findings        String?
   recommendations String?
-  priority    String   @default("MEDIUM")
-  attachments String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  priority        String   @default("MEDIUM")
+  attachments     String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([projectId])
   @@index([reportDate])
@@ -804,26 +943,26 @@ enum BudgetPeriod {
 }
 
 model FinancePayment {
-  id              String        @id @default(uuid())
-  paymentNumber   String        @unique
-  supplierId      String?
-  supplier        Supplier?     @relation(fields: [supplierId], references: [id])
-  projectId       String?
-  project         Project?      @relation(fields: [projectId], references: [id])
-  amount          Float
-  currency        String        @default("GHS")
-  paymentMethod   PaymentMethod
-  paymentDate     DateTime
-  status          PaymentStatus @default(PENDING)
-  reference       String?
-  description     String
-  category        String?
-  approvedById    String?
-  approvedBy      User?         @relation(fields: [approvedById], references: [id])
-  notes           String?
-  attachments     String[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id            String        @id @default(uuid())
+  paymentNumber String        @unique
+  supplierId    String?
+  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
+  projectId     String?
+  project       Project?      @relation(fields: [projectId], references: [id])
+  amount        Float
+  currency      String        @default("GHS")
+  paymentMethod PaymentMethod
+  paymentDate   DateTime
+  status        PaymentStatus @default(PENDING)
+  reference     String?
+  description   String
+  category      String?
+  approvedById  String?
+  approvedBy    User?         @relation(fields: [approvedById], references: [id])
+  notes         String?
+  attachments   String[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([paymentNumber])
   @@index([supplierId])
@@ -834,25 +973,25 @@ model FinancePayment {
 }
 
 model Expense {
-  id              String          @id @default(uuid())
-  expenseNumber   String          @unique
-  category        ExpenseCategory
-  projectId       String?
-  project         Project?        @relation(fields: [projectId], references: [id])
-  description     String
-  amount          Float
-  currency        String          @default("GHS")
-  expenseDate     DateTime
-  submittedById   String
-  submittedBy     User            @relation("ExpenseSubmitter", fields: [submittedById], references: [id])
-  approvedById    String?
-  approvedBy      User?           @relation("ExpenseApprover", fields: [approvedById], references: [id])
-  status          ApprovalStatus  @default(PENDING)
-  receipt         String?
-  notes           String?
-  attachments     String[]
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id            String          @id @default(uuid())
+  expenseNumber String          @unique
+  category      ExpenseCategory
+  projectId     String?
+  project       Project?        @relation(fields: [projectId], references: [id])
+  description   String
+  amount        Float
+  currency      String          @default("GHS")
+  expenseDate   DateTime
+  submittedById String
+  submittedBy   User            @relation("ExpenseSubmitter", fields: [submittedById], references: [id])
+  approvedById  String?
+  approvedBy    User?           @relation("ExpenseApprover", fields: [approvedById], references: [id])
+  status        ApprovalStatus  @default(PENDING)
+  receipt       String?
+  notes         String?
+  attachments   String[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@index([expenseNumber])
   @@index([category])
@@ -863,22 +1002,22 @@ model Expense {
 }
 
 model Budget {
-  id              String       @id @default(uuid())
+  id              String          @id @default(uuid())
   name            String
   description     String?
   category        ExpenseCategory
   projectId       String?
-  project         Project?     @relation(fields: [projectId], references: [id])
+  project         Project?        @relation(fields: [projectId], references: [id])
   period          BudgetPeriod
   startDate       DateTime
   endDate         DateTime
   allocatedAmount Float
-  spentAmount     Float        @default(0)
-  currency        String       @default("GHS")
+  spentAmount     Float           @default(0)
+  currency        String          @default("GHS")
   createdById     String
-  createdBy       User         @relation(fields: [createdById], references: [id])
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdBy       User            @relation(fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([category])
   @@index([projectId])
@@ -888,25 +1027,25 @@ model Budget {
 }
 
 model Supplier {
-  id              String           @id @default(uuid())
-  supplierCode    String           @unique
-  name            String
-  contactPerson   String?
-  email           String?
-  phone           String?
-  address         String?
-  city            String?
-  country         String           @default("Ghana")
-  taxId           String?
-  bankAccount     String?
-  paymentTerms    String?
-  category        String?
-  rating          Int?
-  isActive        Boolean          @default(true)
-  notes           String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  payments        FinancePayment[]
+  id            String           @id @default(uuid())
+  supplierCode  String           @unique
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  country       String           @default("Ghana")
+  taxId         String?
+  bankAccount   String?
+  paymentTerms  String?
+  category      String?
+  rating        Int?
+  isActive      Boolean          @default(true)
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  payments      FinancePayment[]
 
   @@index([supplierCode])
   @@index([isActive])
@@ -982,30 +1121,30 @@ enum IncidentStatus {
 }
 
 model SafetyIncident {
-  id              String           @id @default(uuid())
-  incidentNumber  String           @unique
-  type            IncidentType
-  severity        IncidentSeverity
-  status          IncidentStatus   @default(REPORTED)
-  location        String
-  incidentDate    DateTime
-  reportedBy      String
-  reportedAt      DateTime         @default(now())
-  description     String           @db.Text
-  injuries        String?          @db.Text
-  witnesses       String[]
-  photoUrls       String[]
-  aiAnalysis      String?          @db.Text
-  rootCause       String?          @db.Text
-  correctiveActions String?        @db.Text
-  oshaReportable  Boolean          @default(false)
-  oshaReport      String?          @db.Text
-  investigatedBy  String?
-  investigatedAt  DateTime?
-  resolvedAt      DateTime?
-  notes           String?          @db.Text
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                String           @id @default(uuid())
+  incidentNumber    String           @unique
+  type              IncidentType
+  severity          IncidentSeverity
+  status            IncidentStatus   @default(REPORTED)
+  location          String
+  incidentDate      DateTime
+  reportedBy        String
+  reportedAt        DateTime         @default(now())
+  description       String           @db.Text
+  injuries          String?          @db.Text
+  witnesses         String[]
+  photoUrls         String[]
+  aiAnalysis        String?          @db.Text
+  rootCause         String?          @db.Text
+  correctiveActions String?          @db.Text
+  oshaReportable    Boolean          @default(false)
+  oshaReport        String?          @db.Text
+  investigatedBy    String?
+  investigatedAt    DateTime?
+  resolvedAt        DateTime?
+  notes             String?          @db.Text
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([type])
   @@index([severity])
@@ -1065,18 +1204,18 @@ enum ReviewRating {
 }
 
 model Employee {
-  id              String           @id @default(uuid())
-  employeeId      String           @unique
-  firstName       String
-  lastName        String
-  email           String           @unique
-  phone           String?
-  dateOfBirth     DateTime?
-  gender          String?
-  address         String?
-  city            String?
-  country         String           @default("Ghana")
-  
+  id          String    @id @default(uuid())
+  employeeId  String    @unique
+  firstName   String
+  lastName    String
+  email       String    @unique
+  phone       String?
+  dateOfBirth DateTime?
+  gender      String?
+  address     String?
+  city        String?
+  country     String    @default("Ghana")
+
   // Employment Details
   department      String
   position        String
@@ -1086,21 +1225,21 @@ model Employee {
   terminationDate DateTime?
   salary          Float?
   supervisorId    String?
-  
+
   // Emergency Contact
   emergencyContact String?
   emergencyPhone   String?
-  
+
   // Documents & Notes
-  documents       String[]
-  notes           String?          @db.Text
-  
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  documents String[]
+  notes     String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  attendances     Attendance[]
-  leaveRequests   LeaveRequest[]
+  attendances        Attendance[]
+  leaveRequests      LeaveRequest[]
   performanceReviews PerformanceReview[]
 
   @@index([employeeId])
@@ -1110,17 +1249,17 @@ model Employee {
 }
 
 model Attendance {
-  id          String           @id @default(uuid())
-  employeeId  String
-  employee    Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  date        DateTime
-  status      AttendanceStatus
-  checkIn     DateTime?
-  checkOut    DateTime?
-  workHours   Float?
-  notes       String?
-  markedBy    String?
-  createdAt   DateTime         @default(now())
+  id         String           @id @default(uuid())
+  employeeId String
+  employee   Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime
+  status     AttendanceStatus
+  checkIn    DateTime?
+  checkOut   DateTime?
+  workHours  Float?
+  notes      String?
+  markedBy   String?
+  createdAt  DateTime         @default(now())
 
   @@unique([employeeId, date])
   @@index([employeeId])
@@ -1129,20 +1268,20 @@ model Attendance {
 }
 
 model LeaveRequest {
-  id            String      @id @default(uuid())
-  employeeId    String
-  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveType     LeaveType
-  startDate     DateTime
-  endDate       DateTime
-  totalDays     Int
-  reason        String      @db.Text
-  status        LeaveStatus @default(PENDING)
-  approvedById  String?
-  approvedAt    DateTime?
+  id              String      @id @default(uuid())
+  employeeId      String
+  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType
+  startDate       DateTime
+  endDate         DateTime
+  totalDays       Int
+  reason          String      @db.Text
+  status          LeaveStatus @default(PENDING)
+  approvedById    String?
+  approvedAt      DateTime?
   rejectionReason String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   @@index([employeeId])
   @@index([status])
@@ -1151,29 +1290,29 @@ model LeaveRequest {
 }
 
 model PerformanceReview {
-  id            String       @id @default(uuid())
-  employeeId    String
-  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  reviewPeriod  String
-  reviewDate    DateTime
-  reviewerId    String
-  reviewerName  String
-  
+  id           String   @id @default(uuid())
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewPeriod String
+  reviewDate   DateTime
+  reviewerId   String
+  reviewerName String
+
   // Performance Metrics
-  overallRating ReviewRating
+  overallRating   ReviewRating
   technicalSkills Float?
   communication   Float?
   teamwork        Float?
   productivity    Float?
   leadership      Float?
-  
-  strengths     String?      @db.Text
+
+  strengths           String? @db.Text
   areasForImprovement String? @db.Text
-  goals         String?      @db.Text
-  comments      String?      @db.Text
-  
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  goals               String? @db.Text
+  comments            String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([employeeId])
   @@index([reviewDate])
@@ -1217,39 +1356,39 @@ enum InterviewStatus {
 }
 
 model JobPosting {
-  id              String      @id @default(uuid())
-  jobId           String      @unique
-  title           String
-  department      String
-  location        String
-  jobType         JobType
-  status          JobStatus   @default(DRAFT)
-  
+  id         String    @id @default(uuid())
+  jobId      String    @unique
+  title      String
+  department String
+  location   String
+  jobType    JobType
+  status     JobStatus @default(DRAFT)
+
   // Job Details
-  description     String      @db.Text
-  requirements    String      @db.Text
-  responsibilities String     @db.Text
-  qualifications  String      @db.Text
-  
+  description      String @db.Text
+  requirements     String @db.Text
+  responsibilities String @db.Text
+  qualifications   String @db.Text
+
   // Compensation
-  salaryMin       Float?
-  salaryMax       Float?
-  benefits        String?     @db.Text
-  
+  salaryMin Float?
+  salaryMax Float?
+  benefits  String? @db.Text
+
   // Dates
-  openDate        DateTime?
-  closeDate       DateTime?
-  
+  openDate  DateTime?
+  closeDate DateTime?
+
   // AI Generated
-  aiGenerated     Boolean     @default(false)
-  aiPrompt        String?     @db.Text
-  
-  postedBy        String
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  aiGenerated Boolean @default(false)
+  aiPrompt    String? @db.Text
+
+  postedBy  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  applications    Application[]
+  applications Application[]
 
   @@index([status])
   @@index([department])
@@ -1258,79 +1397,79 @@ model JobPosting {
 }
 
 model Candidate {
-  id              String      @id @default(uuid())
-  candidateId     String      @unique
-  firstName       String
-  lastName        String
-  email           String      @unique
-  phone           String?
-  
+  id          String  @id @default(uuid())
+  candidateId String  @unique
+  firstName   String
+  lastName    String
+  email       String  @unique
+  phone       String?
+
   // Resume/CV
-  resumeUrl       String?
-  resumeText      String?     @db.Text
-  cvParsed        Boolean     @default(false)
-  
+  resumeUrl  String?
+  resumeText String? @db.Text
+  cvParsed   Boolean @default(false)
+
   // Parsed Information
   skills          String[]
-  experience      String?     @db.Text
-  education       String?     @db.Text
+  experience      String?  @db.Text
+  education       String?  @db.Text
   currentPosition String?
   currentCompany  String?
   yearsExperience Int?
-  
+
   // AI Analysis
-  aiSummary       String?     @db.Text
-  aiSkillMatch    Float?
+  aiSummary         String? @db.Text
+  aiSkillMatch      Float?
   aiExperienceMatch Float?
-  aiCultureFit    Float?
-  
-  linkedinUrl     String?
-  portfolioUrl    String?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  aiCultureFit      Float?
+
+  linkedinUrl  String?
+  portfolioUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  applications    Application[]
-  interviews      Interview[]
+  applications Application[]
+  interviews   Interview[]
 
   @@index([email])
   @@map("candidates")
 }
 
 model Application {
-  id              String            @id @default(uuid())
-  jobPostingId    String
-  jobPosting      JobPosting        @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
-  candidateId     String
-  candidate       Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  
-  status          ApplicationStatus @default(SUBMITTED)
-  coverLetter     String?           @db.Text
-  
+  id           String     @id @default(uuid())
+  jobPostingId String
+  jobPosting   JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  candidateId  String
+  candidate    Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  status      ApplicationStatus @default(SUBMITTED)
+  coverLetter String?           @db.Text
+
   // AI Screening
-  aiScreened      Boolean           @default(false)
-  aiScore         Float?
-  aiRecommendation String?          @db.Text
-  aiStrengths     String[]
-  aiWeaknesses    String[]
-  
+  aiScreened       Boolean  @default(false)
+  aiScore          Float?
+  aiRecommendation String?  @db.Text
+  aiStrengths      String[]
+  aiWeaknesses     String[]
+
   // Ranking
-  overallScore    Float?
-  rank            Int?
-  
+  overallScore Float?
+  rank         Int?
+
   // Dates
-  appliedAt       DateTime          @default(now())
-  screenedAt      DateTime?
-  reviewedBy      String?
-  reviewedAt      DateTime?
-  
-  notes           String?           @db.Text
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  appliedAt  DateTime  @default(now())
+  screenedAt DateTime?
+  reviewedBy String?
+  reviewedAt DateTime?
+
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  interviews      Interview[]
+  interviews Interview[]
 
   @@unique([jobPostingId, candidateId])
   @@index([jobPostingId])
@@ -1340,33 +1479,33 @@ model Application {
 }
 
 model Interview {
-  id              String          @id @default(uuid())
-  applicationId   String
-  application     Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  candidateId     String
-  candidate       Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  
-  interviewType   String
-  scheduledDate   DateTime
-  duration        Int
-  location        String?
-  meetingLink     String?
-  
-  interviewers    String[]
-  status          InterviewStatus @default(SCHEDULED)
-  
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  candidateId   String
+  candidate     Candidate   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  interviewType String
+  scheduledDate DateTime
+  duration      Int
+  location      String?
+  meetingLink   String?
+
+  interviewers String[]
+  status       InterviewStatus @default(SCHEDULED)
+
   // Interview Results
-  completed       Boolean         @default(false)
-  feedback        String?         @db.Text
-  rating          Float?
-  
+  completed Boolean @default(false)
+  feedback  String? @db.Text
+  rating    Float?
+
   // AI Summary
-  aiSummary       String?         @db.Text
-  aiKeyPoints     String[]
+  aiSummary        String?  @db.Text
+  aiKeyPoints      String[]
   aiRecommendation String?
-  
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([applicationId])
   @@index([candidateId])
@@ -1431,45 +1570,45 @@ enum DrillType {
 }
 
 model SafetyInspection {
-  id              String           @id @default(uuid())
-  inspectionId    String           @unique
-  type            InspectionType
-  status          InspectionStatus @default(SCHEDULED)
-  
+  id           String           @id @default(uuid())
+  inspectionId String           @unique
+  type         InspectionType
+  status       InspectionStatus @default(SCHEDULED)
+
   // What is being inspected
-  title           String
-  location        String
-  equipmentId     String?
-  assetId         String?
-  
+  title       String
+  location    String
+  equipmentId String?
+  assetId     String?
+
   // Inspection details
-  scheduledDate   DateTime
-  completedDate   DateTime?
-  inspectedBy     String?
-  inspectorName   String?
-  
+  scheduledDate DateTime
+  completedDate DateTime?
+  inspectedBy   String?
+  inspectorName String?
+
   // Results
   passed          Boolean?
   score           Float?
-  findings        String?          @db.Text
+  findings        String?  @db.Text
   deficiencies    String[]
-  recommendations String?          @db.Text
-  actionRequired  Boolean          @default(false)
-  
+  recommendations String?  @db.Text
+  actionRequired  Boolean  @default(false)
+
   // Corrective actions
-  correctiveActions String?        @db.Text
-  dueDate         DateTime?
-  resolvedDate    DateTime?
-  resolvedBy      String?
-  
+  correctiveActions String?   @db.Text
+  dueDate           DateTime?
+  resolvedDate      DateTime?
+  resolvedBy        String?
+
   // Documentation
-  checklistItems  String[]
-  photoUrls       String[]
-  documentUrls    String[]
-  notes           String?          @db.Text
-  
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  checklistItems String[]
+  photoUrls      String[]
+  documentUrls   String[]
+  notes          String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([status])
@@ -1478,45 +1617,45 @@ model SafetyInspection {
 }
 
 model SafetyTraining {
-  id              String         @id @default(uuid())
-  trainingId      String         @unique
-  type            TrainingType
-  status          TrainingStatus @default(SCHEDULED)
-  
+  id         String         @id @default(uuid())
+  trainingId String         @unique
+  type       TrainingType
+  status     TrainingStatus @default(SCHEDULED)
+
   // Training details
   title           String
-  description     String?        @db.Text
+  description     String? @db.Text
   location        String?
   duration        Int
   maxParticipants Int?
-  
+
   // Scheduling
-  scheduledDate   DateTime
-  startTime       String?
-  endTime         String?
-  
+  scheduledDate DateTime
+  startTime     String?
+  endTime       String?
+
   // Instructor
-  instructorId    String?
-  instructorName  String
-  
+  instructorId   String?
+  instructorName String
+
   // Participants
   participants    String[]
   completedBy     String[]
   attendanceCount Int?
-  
+
   // Results
-  passingScore    Float?
-  completed       Boolean        @default(false)
-  completedDate   DateTime?
-  
+  passingScore  Float?
+  completed     Boolean   @default(false)
+  completedDate DateTime?
+
   // Content
-  topics          String[]
-  materials       String[]
-  certificateUrl  String?
-  
-  notes           String?        @db.Text
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  topics         String[]
+  materials      String[]
+  certificateUrl String?
+
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([status])
@@ -1525,37 +1664,37 @@ model SafetyTraining {
 }
 
 model SafetyCertification {
-  id              String              @id @default(uuid())
-  certificationId String              @unique
-  
+  id              String @id @default(uuid())
+  certificationId String @unique
+
   // Employee
-  employeeId      String
-  employeeName    String
-  
+  employeeId   String
+  employeeName String
+
   // Certification details
-  certType        String
-  certName        String
-  certNumber      String?
-  issuingBody     String
-  
+  certType    String
+  certName    String
+  certNumber  String?
+  issuingBody String
+
   // Dates
-  issueDate       DateTime
-  expiryDate      DateTime
-  renewalDate     DateTime?
-  
-  status          CertificationStatus @default(ACTIVE)
-  
+  issueDate   DateTime
+  expiryDate  DateTime
+  renewalDate DateTime?
+
+  status CertificationStatus @default(ACTIVE)
+
   // Verification
-  verifiedBy      String?
-  verifiedDate    DateTime?
-  
+  verifiedBy   String?
+  verifiedDate DateTime?
+
   // Documentation
-  certificateUrl  String?
-  documentUrls    String[]
-  
-  notes           String?             @db.Text
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  certificateUrl String?
+  documentUrls   String[]
+
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([employeeId])
   @@index([status])
@@ -1564,50 +1703,50 @@ model SafetyCertification {
 }
 
 model SafetyDrill {
-  id              String     @id @default(uuid())
-  drillId         String     @unique
-  type            DrillType
-  
+  id      String    @id @default(uuid())
+  drillId String    @unique
+  type    DrillType
+
   // Drill details
-  title           String
-  description     String?    @db.Text
-  location        String
-  
+  title       String
+  description String? @db.Text
+  location    String
+
   // Scheduling
-  scheduledDate   DateTime
-  startTime       String?
-  endTime         String?
-  duration        Int?
-  
+  scheduledDate DateTime
+  startTime     String?
+  endTime       String?
+  duration      Int?
+
   // Participants
-  expectedCount   Int?
-  actualCount     Int?
-  participants    String[]
-  
+  expectedCount Int?
+  actualCount   Int?
+  participants  String[]
+
   // Coordination
   coordinator     String
   coordinatorName String
   observers       String[]
-  
+
   // Results
-  completed       Boolean    @default(false)
-  completedDate   DateTime?
-  successRating   Float?
-  
+  completed     Boolean   @default(false)
+  completedDate DateTime?
+  successRating Float?
+
   // Evaluation
-  objectives      String[]
-  results         String?    @db.Text
-  strengths       String[]
+  objectives          String[]
+  results             String?  @db.Text
+  strengths           String[]
   areasForImprovement String[]
-  lessonsLearned  String?    @db.Text
-  
+  lessonsLearned      String?  @db.Text
+
   // Follow-up
-  followUpActions String?    @db.Text
-  actionRequired  Boolean    @default(false)
-  
-  notes           String?    @db.Text
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  followUpActions String? @db.Text
+  actionRequired  Boolean @default(false)
+
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([scheduledDate])
@@ -1648,46 +1787,46 @@ enum DocumentCategory {
 }
 
 model Document {
-  id          String   @id @default(uuid())
-  fileName    String
+  id           String           @id @default(uuid())
+  fileName     String
   originalName String
-  fileSize    Int
-  mimeType    String
-  fileUrl     String
-  fileHash    String?
-  category    DocumentCategory
-  module      String
-  referenceId String?
-  description String?
-  tags        String[]
-  version     Int      @default(1)
-  isLatest    Boolean  @default(true)
+  fileSize     Int
+  mimeType     String
+  fileUrl      String
+  fileHash     String?
+  category     DocumentCategory
+  module       String
+  referenceId  String?
+  description  String?
+  tags         String[]
+  version      Int              @default(1)
+  isLatest     Boolean          @default(true)
   uploadedById String
-  uploadedBy  User     @relation("DocumentUploader", fields: [uploadedById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  versions    DocumentVersion[]
-  metadata    DocumentMetadata?
-  permissions DocumentPermission[]
-  userPermissions DocumentUserPermission[]
-  departmentPermissions DocumentDepartmentPermission[]
-  permissionLogs DocumentPermissionLog[]
-  signatures  DocumentSignature[] @relation("DocumentSignatures")
-  security    DocumentSecurity?   @relation("DocumentSecurity")
+  uploadedBy   User             @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  comments    DocumentComment[]
-  annotations DocumentAnnotation[]
-  shares      DocumentShare[]
-  presence    DocumentPresence[]
-  aiInsight   DocumentAiInsight?
-  conversionJobs DocumentConversionJob[]
-  formTemplates DocumentFormTemplate[]
-  formDrafts    DocumentFormDraft[]
+  versions              DocumentVersion[]
+  metadata              DocumentMetadata?
+  permissions           DocumentPermission[]
+  userPermissions       DocumentUserPermission[]
+  departmentPermissions DocumentDepartmentPermission[]
+  permissionLogs        DocumentPermissionLog[]
+  signatures            DocumentSignature[]            @relation("DocumentSignatures")
+  security              DocumentSecurity?              @relation("DocumentSecurity")
+
+  comments               DocumentComment[]
+  annotations            DocumentAnnotation[]
+  shares                 DocumentShare[]
+  presence               DocumentPresence[]
+  aiInsight              DocumentAiInsight?
+  conversionJobs         DocumentConversionJob[]
+  formTemplates          DocumentFormTemplate[]
+  formDrafts             DocumentFormDraft[]
   auditPackageOutputJobs DocumentAuditPackageJob[] @relation("AuditPackageOutputDocument")
-  finalizeJobs  DocumentFinalizeJob[]
-  integritySeals DocumentIntegritySeal[]
-  
+  finalizeJobs           DocumentFinalizeJob[]
+  integritySeals         DocumentIntegritySeal[]
+
   @@index([module, referenceId])
   @@index([category])
   @@index([uploadedById])
@@ -1697,12 +1836,12 @@ model Document {
 
 // Phase 16.4: AI-Powered Document Intelligence
 model DocumentAiInsight {
-  id               String            @id @default(uuid())
-  documentId        String            @unique
-  document          Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  documentId String   @unique
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
-  provider          String?
-  model             String?
+  provider String?
+  model    String?
 
   summary           String?           @db.Text
   entities          Json?
@@ -1712,79 +1851,79 @@ model DocumentAiInsight {
   linkedRecords     Json?
 
   // Optional embeddings used for semantic search and similarity
-  embedding         Float[]           @default([])
+  embedding Float[] @default([])
 
-  analyzedAt        DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  analyzedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([analyzedAt])
   @@map("document_ai_insights")
 }
 
 model DocumentVersion {
-  id          String   @id @default(uuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  documentId    String
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   versionNumber Int
-  fileName    String
-  fileUrl     String
-  fileSize    Int
-  uploadedById String
-  uploadedBy  User     @relation("VersionUploader", fields: [uploadedById], references: [id])
-  changeNotes String?
-  createdAt   DateTime @default(now())
-  
+  fileName      String
+  fileUrl       String
+  fileSize      Int
+  uploadedById  String
+  uploadedBy    User     @relation("VersionUploader", fields: [uploadedById], references: [id])
+  changeNotes   String?
+  createdAt     DateTime @default(now())
+
   @@unique([documentId, versionNumber])
   @@map("document_versions")
 }
 
 model DocumentMetadata {
-  id          String   @id @default(uuid())
-  documentId  String   @unique
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  pageCount   Int?
-  author      String?
-  title       String?
-  subject     String?
-  keywords    String[]  @default([])
-  createdDate DateTime?
-  modifiedDate DateTime?
-  extractedText String?  @db.Text
-  
+  id            String    @id @default(uuid())
+  documentId    String    @unique
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pageCount     Int?
+  author        String?
+  title         String?
+  subject       String?
+  keywords      String[]  @default([])
+  createdDate   DateTime?
+  modifiedDate  DateTime?
+  extractedText String?   @db.Text
+
   @@map("document_metadata")
 }
 
 model DocumentPermission {
-  id          String   @id @default(uuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  role        UserRole
-  canView     Boolean  @default(false)
-  canEdit     Boolean  @default(false)
-  canDelete   Boolean  @default(false)
-  canShare    Boolean  @default(false)
-  canSign     Boolean  @default(false)
-  
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role       UserRole
+  canView    Boolean  @default(false)
+  canEdit    Boolean  @default(false)
+  canDelete  Boolean  @default(false)
+  canShare   Boolean  @default(false)
+  canSign    Boolean  @default(false)
+
   @@unique([documentId, role])
   @@map("document_permissions")
 }
 
 model DocumentUserPermission {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
   userId      String
-  user        User     @relation("DocumentUserAccess", fields: [userId], references: [id], onDelete: Cascade)
-  canView     Boolean  @default(true)
-  canEdit     Boolean  @default(false)
-  canDelete   Boolean  @default(false)
-  canShare    Boolean  @default(false)
-  canSign     Boolean  @default(false)
+  user        User      @relation("DocumentUserAccess", fields: [userId], references: [id], onDelete: Cascade)
+  canView     Boolean   @default(true)
+  canEdit     Boolean   @default(false)
+  canDelete   Boolean   @default(false)
+  canShare    Boolean   @default(false)
+  canSign     Boolean   @default(false)
   grantedById String
-  grantedBy   User     @relation("PermissionGranter", fields: [grantedById], references: [id])
+  grantedBy   User      @relation("PermissionGranter", fields: [grantedById], references: [id])
   expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([documentId, userId])
   @@index([userId])
@@ -1792,53 +1931,53 @@ model DocumentUserPermission {
 }
 
 model DocumentDepartmentPermission {
-  id          String   @id @default(uuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  department  String
-  canView     Boolean  @default(true)
-  canEdit     Boolean  @default(false)
-  canDelete   Boolean  @default(false)
-  canShare    Boolean  @default(false)
-  canSign     Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  department String
+  canView    Boolean  @default(true)
+  canEdit    Boolean  @default(false)
+  canDelete  Boolean  @default(false)
+  canShare   Boolean  @default(false)
+  canSign    Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   @@unique([documentId, department])
   @@map("document_department_permissions")
 }
 
 model DocumentCategoryPermission {
-  id          String   @id @default(uuid())
-  category    DocumentCategory
-  role        UserRole
-  canView     Boolean  @default(false)
-  canEdit     Boolean  @default(false)
-  canDelete   Boolean  @default(false)
-  canShare    Boolean  @default(false)
-  canSign     Boolean  @default(false)
-  canUpload   Boolean  @default(false)
-  setById     String
-  setBy       User     @relation("CategoryPermissionSetter", fields: [setById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String           @id @default(uuid())
+  category  DocumentCategory
+  role      UserRole
+  canView   Boolean          @default(false)
+  canEdit   Boolean          @default(false)
+  canDelete Boolean          @default(false)
+  canShare  Boolean          @default(false)
+  canSign   Boolean          @default(false)
+  canUpload Boolean          @default(false)
+  setById   String
+  setBy     User             @relation("CategoryPermissionSetter", fields: [setById], references: [id])
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   @@unique([category, role])
   @@map("document_category_permissions")
 }
 
 model DocumentPermissionTemplate {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String            @id @default(uuid())
+  name        String            @unique
   description String?
   category    DocumentCategory?
   module      String?
   roles       Json
   departments Json?
-  isDefault   Boolean  @default(false)
+  isDefault   Boolean           @default(false)
   createdById String
-  createdBy   User     @relation("TemplateCreator", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User              @relation("TemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@map("document_permission_templates")
 }
@@ -1852,22 +1991,22 @@ enum PermissionAction {
 }
 
 model DocumentPermissionLog {
-  id               String           @id @default(uuid())
+  id               String            @id @default(uuid())
   documentId       String?
-  document         Document?        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document         Document?         @relation(fields: [documentId], references: [id], onDelete: Cascade)
   category         DocumentCategory?
   action           PermissionAction
   performedById    String
-  performedBy      User             @relation("PermissionChanger", fields: [performedById], references: [id])
+  performedBy      User              @relation("PermissionChanger", fields: [performedById], references: [id])
   targetUserId     String?
-  targetUser       User?            @relation("PermissionTarget", fields: [targetUserId], references: [id])
+  targetUser       User?             @relation("PermissionTarget", fields: [targetUserId], references: [id])
   targetRole       UserRole?
   targetDepartment String?
   oldPermissions   Json?
   newPermissions   Json
   reason           String?
   ipAddress        String
-  createdAt        DateTime         @default(now())
+  createdAt        DateTime          @default(now())
 
   @@index([documentId])
   @@index([performedById])
@@ -1877,10 +2016,10 @@ model DocumentPermissionLog {
 
 // Phase 15.4: Digital Signatures & Document Security
 enum SignatureType {
-  DRAWN        // Hand-drawn signature
-  TYPED        // Typed name
-  UPLOADED     // Uploaded signature image
-  CERTIFICATE  // Digital certificate (future)
+  DRAWN // Hand-drawn signature
+  TYPED // Typed name
+  UPLOADED // Uploaded signature image
+  CERTIFICATE // Digital certificate (future)
 }
 
 enum DocumentAction {
@@ -1895,26 +2034,26 @@ enum DocumentAction {
 }
 
 model DocumentSignature {
-  id              String        @id @default(uuid())
-  documentId      String
-  document        Document      @relation("DocumentSignatures", fields: [documentId], references: [id], onDelete: Cascade)
-  signerId        String
-  signer          User          @relation("DocumentSigner", fields: [signerId], references: [id])
-  signatureData   String        @db.Text // Base64 encoded signature image
-  signatureType   SignatureType @default(DRAWN)
-  signatureHash   String        // Hash of signature for verification
-  ipAddress       String
-  userAgent       String
-  location        String?       // GPS coordinates if available
-  reason          String?       // Reason for signing (e.g., "Approved invoice")
-  metadata        Json?         // Additional metadata (device info, etc.)
-  isValid         Boolean       @default(true)
-  revokedAt       DateTime?
-  revokedById     String?
-  revokedBy       User?         @relation("SignatureRevoker", fields: [revokedById], references: [id])
-  revokeReason    String?
-  signedAt        DateTime      @default(now())
-  
+  id            String        @id @default(uuid())
+  documentId    String
+  document      Document      @relation("DocumentSignatures", fields: [documentId], references: [id], onDelete: Cascade)
+  signerId      String
+  signer        User          @relation("DocumentSigner", fields: [signerId], references: [id])
+  signatureData String        @db.Text // Base64 encoded signature image
+  signatureType SignatureType @default(DRAWN)
+  signatureHash String // Hash of signature for verification
+  ipAddress     String
+  userAgent     String
+  location      String? // GPS coordinates if available
+  reason        String? // Reason for signing (e.g., "Approved invoice")
+  metadata      Json? // Additional metadata (device info, etc.)
+  isValid       Boolean       @default(true)
+  revokedAt     DateTime?
+  revokedById   String?
+  revokedBy     User?         @relation("SignatureRevoker", fields: [revokedById], references: [id])
+  revokeReason  String?
+  signedAt      DateTime      @default(now())
+
   @@index([documentId])
   @@index([signerId])
   @@index([signedAt])
@@ -1922,16 +2061,16 @@ model DocumentSignature {
 }
 
 model DocumentAccessLog {
-  id          String         @id @default(uuid())
-  documentId  String
-  userId      String
-  user        User           @relation("DocumentAccessor", fields: [userId], references: [id])
-  action      DocumentAction
-  ipAddress   String
-  userAgent   String
-  metadata    Json?          // Additional context (e.g., download format, edit details)
-  accessedAt  DateTime       @default(now())
-  
+  id         String         @id @default(uuid())
+  documentId String
+  userId     String
+  user       User           @relation("DocumentAccessor", fields: [userId], references: [id])
+  action     DocumentAction
+  ipAddress  String
+  userAgent  String
+  metadata   Json? // Additional context (e.g., download format, edit details)
+  accessedAt DateTime       @default(now())
+
   @@index([documentId])
   @@index([userId])
   @@index([accessedAt])
@@ -1939,26 +2078,26 @@ model DocumentAccessLog {
 }
 
 model DocumentSecurity {
-  id                String    @id @default(uuid())
-  documentId        String    @unique
-  document          Document  @relation("DocumentSecurity", fields: [documentId], references: [id], onDelete: Cascade)
-  isPasswordProtected Boolean @default(false)
-  passwordHash      String?   // Hashed password for PDF protection
-  hasWatermark      Boolean   @default(false)
-  watermarkText     String?
-  isEncrypted       Boolean   @default(false)
-  encryptionKey     String?   // Encrypted key for sensitive documents
-  expiresAt         DateTime? // Document access expiration
-  maxDownloads      Int?      // Maximum number of downloads allowed
-  downloadCount     Int       @default(0)
-  requireSignature  Boolean   @default(false)
-  allowPrint        Boolean   @default(true)
-  allowCopy         Boolean   @default(true)
-  createdById       String
-  createdBy         User      @relation("SecurityCreator", fields: [createdById], references: [id])
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
+  id                  String    @id @default(uuid())
+  documentId          String    @unique
+  document            Document  @relation("DocumentSecurity", fields: [documentId], references: [id], onDelete: Cascade)
+  isPasswordProtected Boolean   @default(false)
+  passwordHash        String? // Hashed password for PDF protection
+  hasWatermark        Boolean   @default(false)
+  watermarkText       String?
+  isEncrypted         Boolean   @default(false)
+  encryptionKey       String? // Encrypted key for sensitive documents
+  expiresAt           DateTime? // Document access expiration
+  maxDownloads        Int? // Maximum number of downloads allowed
+  downloadCount       Int       @default(0)
+  requireSignature    Boolean   @default(false)
+  allowPrint          Boolean   @default(true)
+  allowCopy           Boolean   @default(true)
+  createdById         String
+  createdBy           User      @relation("SecurityCreator", fields: [createdById], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
   @@map("document_security")
 }
 
@@ -1974,24 +2113,24 @@ enum AnnotationType {
 }
 
 model DocumentComment {
-  id          String   @id @default(uuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User     @relation("CommentAuthor", fields: [authorId], references: [id])
-  content     String
-  pageNumber  Int?
-  positionX   Float?
-  positionY   Float?
-  isResolved  Boolean  @default(false)
+  id           String            @id @default(uuid())
+  documentId   String
+  document     Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User              @relation("CommentAuthor", fields: [authorId], references: [id])
+  content      String
+  pageNumber   Int?
+  positionX    Float?
+  positionY    Float?
+  isResolved   Boolean           @default(false)
   resolvedById String?
-  resolvedBy  User?    @relation("CommentResolver", fields: [resolvedById], references: [id])
-  resolvedAt  DateTime?
-  parentId    String?
-  parent      DocumentComment? @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
-  replies     DocumentComment[] @relation("CommentThread")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  resolvedBy   User?             @relation("CommentResolver", fields: [resolvedById], references: [id])
+  resolvedAt   DateTime?
+  parentId     String?
+  parent       DocumentComment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      DocumentComment[] @relation("CommentThread")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@index([documentId])
   @@index([parentId])
@@ -2000,18 +2139,18 @@ model DocumentComment {
 }
 
 model DocumentAnnotation {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document    Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
   authorId    String
-  author      User     @relation("AnnotationAuthor", fields: [authorId], references: [id])
+  author      User           @relation("AnnotationAuthor", fields: [authorId], references: [id])
   type        AnnotationType
   pageNumber  Int
   coordinates Json
   content     String?
-  color       String   @default("#FFFF00")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  color       String         @default("#FFFF00")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   @@index([documentId])
   @@index([pageNumber])
@@ -2019,19 +2158,19 @@ model DocumentAnnotation {
 }
 
 model DocumentShare {
-  id          String   @id @default(uuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  sharedById  String
-  sharedBy    User     @relation("ShareAuthor", fields: [sharedById], references: [id])
+  id           String    @id @default(uuid())
+  documentId   String
+  document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sharedById   String
+  sharedBy     User      @relation("ShareAuthor", fields: [sharedById], references: [id])
   sharedWithId String?
-  sharedWith  User?    @relation("ShareRecipient", fields: [sharedWithId], references: [id])
-  shareLink   String?  @unique
-  expiresAt   DateTime?
-  accessCount Int      @default(0)
-  canEdit     Boolean  @default(false)
-  canDownload Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  sharedWith   User?     @relation("ShareRecipient", fields: [sharedWithId], references: [id])
+  shareLink    String?   @unique
+  expiresAt    DateTime?
+  accessCount  Int       @default(0)
+  canEdit      Boolean   @default(false)
+  canDownload  Boolean   @default(true)
+  createdAt    DateTime  @default(now())
 
   @@index([documentId])
   @@index([sharedById])
@@ -2040,12 +2179,12 @@ model DocumentShare {
 }
 
 model DocumentPresence {
-  id          String   @id @default(uuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lastSeenAt  DateTime @default(now())
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSeenAt DateTime @default(now())
 
   @@unique([documentId, userId])
   @@index([documentId])
@@ -2105,26 +2244,26 @@ enum ExportStatus {
 }
 
 model DocumentConversionJob {
-  id              String                   @id @default(uuid())
-  documentId      String
-  document        Document                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  provider        DocumentConversionProvider @default(LOCAL)
-  status          DocumentConversionStatus   @default(PENDING)
-  inputMimeType   String
-  outputFileUrl   String?
-  outputFileName  String?
-  outputFileSize  Int?
-  errorMessage    String?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  processingTime  Int?
-  attempts        Int                      @default(0)
-  maxAttempts     Int                      @default(3)
-  options         Json?
-  createdById     String
-  createdBy       User                     @relation("ConversionJobCreator", fields: [createdById], references: [id])
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
+  id             String                     @id @default(uuid())
+  documentId     String
+  document       Document                   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  provider       DocumentConversionProvider @default(LOCAL)
+  status         DocumentConversionStatus   @default(PENDING)
+  inputMimeType  String
+  outputFileUrl  String?
+  outputFileName String?
+  outputFileSize Int?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  processingTime Int?
+  attempts       Int                        @default(0)
+  maxAttempts    Int                        @default(3)
+  options        Json?
+  createdById    String
+  createdBy      User                       @relation("ConversionJobCreator", fields: [createdById], references: [id])
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
 
   @@index([documentId])
   @@index([status])
@@ -2133,18 +2272,18 @@ model DocumentConversionJob {
 }
 
 model DocumentFormTemplate {
-  id             String   @id @default(uuid())
-  documentId     String
-  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  documentId      String
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentVersion Int
-  fieldSchema    Json
-  fieldCount     Int      @default(0)
-  createdById    String
-  createdBy      User     @relation("FormTemplateCreator", fields: [createdById], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  fieldSchema     Json
+  fieldCount      Int      @default(0)
+  createdById     String
+  createdBy       User     @relation("FormTemplateCreator", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  drafts         DocumentFormDraft[]
+  drafts DocumentFormDraft[]
 
   @@unique([documentId, documentVersion])
   @@index([documentId])
@@ -2153,27 +2292,27 @@ model DocumentFormTemplate {
 }
 
 model DocumentFormDraft {
-  id              String                 @id @default(uuid())
-  documentId      String
-  document        Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  templateId      String?
-  template        DocumentFormTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  status          DocumentFormDraftStatus @default(DRAFT)
-  values          Json
-  signatureData   String?
-  signatureType   String?
-  signatureReason String?
-  signatureMetadata Json?
-  outputFileUrl   String?
-  outputFileName  String?
-  outputFileSize  Int?
+  id                    String                  @id @default(uuid())
+  documentId            String
+  document              Document                @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  templateId            String?
+  template              DocumentFormTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  status                DocumentFormDraftStatus @default(DRAFT)
+  values                Json
+  signatureData         String?
+  signatureType         String?
+  signatureReason       String?
+  signatureMetadata     Json?
+  outputFileUrl         String?
+  outputFileName        String?
+  outputFileSize        Int?
   outputDocumentVersion Int?
-  finalizedAt     DateTime?
-  cancelledAt     DateTime?
-  createdById     String
-  createdBy       User                   @relation("FormDraftCreator", fields: [createdById], references: [id])
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  finalizedAt           DateTime?
+  cancelledAt           DateTime?
+  createdById           String
+  createdBy             User                    @relation("FormDraftCreator", fields: [createdById], references: [id])
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
 
   @@index([documentId])
   @@index([templateId])
@@ -2183,21 +2322,21 @@ model DocumentFormDraft {
 }
 
 model DocumentAuditPackageJob {
-  id               String                   @id @default(uuid())
+  id               String                     @id @default(uuid())
   status           DocumentAuditPackageStatus @default(PENDING)
   title            String
   spec             Json
   outputDocumentId String?
-  outputDocument   Document?                @relation("AuditPackageOutputDocument", fields: [outputDocumentId], references: [id], onDelete: SetNull)
+  outputDocument   Document?                  @relation("AuditPackageOutputDocument", fields: [outputDocumentId], references: [id], onDelete: SetNull)
   errorMessage     String?
-  attempts         Int                      @default(0)
-  maxAttempts      Int                      @default(3)
+  attempts         Int                        @default(0)
+  maxAttempts      Int                        @default(3)
   startedAt        DateTime?
   completedAt      DateTime?
   createdById      String
-  createdBy        User                     @relation("AuditPackageJobCreator", fields: [createdById], references: [id])
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  createdBy        User                       @relation("AuditPackageJobCreator", fields: [createdById], references: [id])
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
 
   @@index([status])
   @@index([createdById])
@@ -2206,26 +2345,26 @@ model DocumentAuditPackageJob {
 }
 
 model DocumentFinalizeJob {
-  id               String                @id @default(uuid())
-  documentId       String
-  document         Document              @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  status           DocumentFinalizeStatus @default(PENDING)
-  options          Json
-  outputFileUrl    String?
-  outputFileName   String?
-  outputFileSize   Int?
-  outputFileHash   String?
-  integritySealId  String?               @unique
-  integritySeal    DocumentIntegritySeal? @relation("FinalizeJobIntegritySeal", fields: [integritySealId], references: [id], onDelete: SetNull)
-  errorMessage     String?
-  attempts         Int                   @default(0)
-  maxAttempts      Int                   @default(3)
-  startedAt        DateTime?
-  completedAt      DateTime?
-  createdById      String
-  createdBy        User                  @relation("FinalizeJobCreator", fields: [createdById], references: [id])
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  id              String                 @id @default(uuid())
+  documentId      String
+  document        Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  status          DocumentFinalizeStatus @default(PENDING)
+  options         Json
+  outputFileUrl   String?
+  outputFileName  String?
+  outputFileSize  Int?
+  outputFileHash  String?
+  integritySealId String?                @unique
+  integritySeal   DocumentIntegritySeal? @relation("FinalizeJobIntegritySeal", fields: [integritySealId], references: [id], onDelete: SetNull)
+  errorMessage    String?
+  attempts        Int                    @default(0)
+  maxAttempts     Int                    @default(3)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdById     String
+  createdBy       User                   @relation("FinalizeJobCreator", fields: [createdById], references: [id])
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 
   @@index([documentId])
   @@index([status])
@@ -2235,18 +2374,18 @@ model DocumentFinalizeJob {
 }
 
 model DocumentIntegritySeal {
-  id            String   @id @default(uuid())
+  id            String               @id @default(uuid())
   documentId    String
-  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document      Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
   versionNumber Int
-  algorithm     String   @default("sha256")
+  algorithm     String               @default("sha256")
   hash          String
   previousHash  String?
   metadata      Json?
-  finalizeJob    DocumentFinalizeJob? @relation("FinalizeJobIntegritySeal")
+  finalizeJob   DocumentFinalizeJob? @relation("FinalizeJobIntegritySeal")
   createdById   String
-  createdBy     User     @relation("IntegritySealCreator", fields: [createdById], references: [id])
-  createdAt     DateTime @default(now())
+  createdBy     User                 @relation("IntegritySealCreator", fields: [createdById], references: [id])
+  createdAt     DateTime             @default(now())
 
   @@unique([documentId, versionNumber])
   @@index([documentId])
@@ -2255,29 +2394,29 @@ model DocumentIntegritySeal {
 }
 
 model ImportJob {
-  id            String       @id @default(uuid())
-  module        String
-  fileName      String
-  fileUrl       String
-  storageProvider String     @default("local")
-  originalName  String
-  totalRows     Int
-  processedRows Int          @default(0)
-  successRows   Int          @default(0)
-  errorRows     Int          @default(0)
-  status        ImportStatus @default(PENDING)
-  errors        Json?
-  warnings      Json?
-  mappings      Json?
-  context       Json?
-  rollback      ImportRollback?
-  scheduledAt   DateTime?
-  batchId       String?
-  createdById   String
-  createdBy     User         @relation("ImportCreator", fields: [createdById], references: [id])
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime     @default(now())
+  id              String          @id @default(uuid())
+  module          String
+  fileName        String
+  fileUrl         String
+  storageProvider String          @default("local")
+  originalName    String
+  totalRows       Int
+  processedRows   Int             @default(0)
+  successRows     Int             @default(0)
+  errorRows       Int             @default(0)
+  status          ImportStatus    @default(PENDING)
+  errors          Json?
+  warnings        Json?
+  mappings        Json?
+  context         Json?
+  rollback        ImportRollback?
+  scheduledAt     DateTime?
+  batchId         String?
+  createdById     String
+  createdBy       User            @relation("ImportCreator", fields: [createdById], references: [id])
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
 
   @@index([module])
   @@index([createdById])
@@ -2288,21 +2427,21 @@ model ImportJob {
 }
 
 model ExportJob {
-  id            String       @id @default(uuid())
-  module        String
-  fileName      String
-  storageProvider String     @default("local")
-  filters       Json?
-  columns       String[]
-  context       Json?
-  totalRows     Int
-  status        ExportStatus @default(PENDING)
-  fileUrl       String?
-  expiresAt     DateTime?
-  createdById   String
-  createdBy     User         @relation("ExportCreator", fields: [createdById], references: [id])
-  completedAt   DateTime?
-  createdAt     DateTime     @default(now())
+  id              String       @id @default(uuid())
+  module          String
+  fileName        String
+  storageProvider String       @default("local")
+  filters         Json?
+  columns         String[]
+  context         Json?
+  totalRows       Int
+  status          ExportStatus @default(PENDING)
+  fileUrl         String?
+  expiresAt       DateTime?
+  createdById     String
+  createdBy       User         @relation("ExportCreator", fields: [createdById], references: [id])
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
 
   @@index([module])
   @@index([createdById])
@@ -2341,21 +2480,21 @@ model CsvAuditLog {
 }
 
 model ImportRollback {
-  id          String   @id @default(uuid())
-  importJobId String   @unique
-  importJob   ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
-  status      String   @default("AVAILABLE")
+  id           String    @id @default(uuid())
+  importJobId  String    @unique
+  importJob    ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  status       String    @default("AVAILABLE")
   rolledBackAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
-  changes     ImportChange[]
+  changes ImportChange[]
 
   @@index([importJobId])
   @@map("import_rollbacks")
 }
 
 model ImportChange {
-  id         String   @id @default(uuid())
+  id         String         @id @default(uuid())
   rollbackId String
   rollback   ImportRollback @relation(fields: [rollbackId], references: [id], onDelete: Cascade)
   model      String
@@ -2363,7 +2502,7 @@ model ImportChange {
   operation  String
   before     Json?
   after      Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime       @default(now())
 
   @@index([rollbackId])
   @@index([model, recordId])
@@ -2386,7 +2525,7 @@ model CsvBatch {
 }
 
 model ScheduledExport {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   module      String
   filters     Json?
@@ -2394,16 +2533,16 @@ model ScheduledExport {
   context     Json?
   schedule    String
   recipients  String[]
-  format      String   @default("csv")
-  isActive    Boolean  @default(true)
+  format      String    @default("csv")
+  isActive    Boolean   @default(true)
   lastRunAt   DateTime?
   nextRunAt   DateTime?
   createdById String
-  createdBy   User     @relation("ScheduledExportCreator", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User      @relation("ScheduledExportCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  runs        ScheduledExportRun[]
+  runs ScheduledExportRun[]
 
   @@index([isActive, nextRunAt])
   @@index([module])
@@ -2411,14 +2550,14 @@ model ScheduledExport {
 }
 
 model ScheduledExportRun {
-  id                String   @id @default(uuid())
+  id                String          @id @default(uuid())
   scheduledExportId String
   scheduledExport   ScheduledExport @relation(fields: [scheduledExportId], references: [id], onDelete: Cascade)
   exportJobId       String?
-  status            String   @default("PENDING")
+  status            String          @default("PENDING")
   errorMessage      String?
   sentAt            DateTime?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime        @default(now())
 
   @@index([scheduledExportId])
   @@index([status])
@@ -2449,37 +2588,37 @@ enum ExtractedDataType {
 }
 
 model OCRJob {
-  id              String          @id @default(uuid())
-  documentId      String
-  provider        OCRProvider     @default(TESSERACT_JS)
-  status          OCRStatus       @default(PENDING)
-  priority        Int             @default(5) // 1-10, higher = more urgent
-  
+  id         String      @id @default(uuid())
+  documentId String
+  provider   OCRProvider @default(TESSERACT_JS)
+  status     OCRStatus   @default(PENDING)
+  priority   Int         @default(5) // 1-10, higher = more urgent
+
   // Processing details
-  startedAt       DateTime?
-  completedAt     DateTime?
-  processingTime  Int?            // milliseconds
-  
+  startedAt      DateTime?
+  completedAt    DateTime?
+  processingTime Int? // milliseconds
+
   // Results
-  extractedText   String?         @db.Text
-  confidence      Float?          // 0-100
-  pageCount       Int?
-  errorMessage    String?
-  
+  extractedText String? @db.Text
+  confidence    Float? // 0-100
+  pageCount     Int?
+  errorMessage  String?
+
   // Configuration
-  language        String          @default("eng")
-  autoRotate      Boolean         @default(true)
-  enhanceImage    Boolean         @default(true)
-  
+  language     String  @default("eng")
+  autoRotate   Boolean @default(true)
+  enhanceImage Boolean @default(true)
+
   // Metadata
-  createdById     String
-  createdBy       User            @relation("OCRJobCreator", fields: [createdById], references: [id])
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
+  createdById String
+  createdBy   User     @relation("OCRJobCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   // Relations
-  extractedData   ExtractedDocumentData[]
-  
+  extractedData ExtractedDocumentData[]
+
   @@index([documentId])
   @@index([status])
   @@index([createdAt])
@@ -2487,16 +2626,16 @@ model OCRJob {
 }
 
 model ExtractedDocumentData {
-  id              String            @id @default(uuid())
-  ocrJobId        String
-  ocrJob          OCRJob            @relation(fields: [ocrJobId], references: [id], onDelete: Cascade)
-  documentId      String
-  dataType        ExtractedDataType
-  
+  id         String            @id @default(uuid())
+  ocrJobId   String
+  ocrJob     OCRJob            @relation(fields: [ocrJobId], references: [id], onDelete: Cascade)
+  documentId String
+  dataType   ExtractedDataType
+
   // Extracted fields (JSON for flexibility)
-  extractedFields Json              // Structured data extracted from document
-  confidence      Float?            // Overall confidence score
-  
+  extractedFields Json // Structured data extracted from document
+  confidence      Float? // Overall confidence score
+
   // Invoice-specific fields
   invoiceNumber   String?
   invoiceDate     DateTime?
@@ -2506,39 +2645,39 @@ model ExtractedDocumentData {
   totalAmount     Float?
   taxAmount       Float?
   currency        String?
-  
+
   // Receipt-specific fields
-  vendorName      String?
-  receiptNumber   String?
-  receiptDate     DateTime?
-  receiptAmount   Float?
-  paymentMethod   String?
-  
+  vendorName    String?
+  receiptNumber String?
+  receiptDate   DateTime?
+  receiptAmount Float?
+  paymentMethod String?
+
   // Contract-specific fields
-  contractNumber  String?
-  contractDate    DateTime?
-  partyNames      String[]
-  contractValue   Float?
-  startDate       DateTime?
-  endDate         DateTime?
-  
+  contractNumber String?
+  contractDate   DateTime?
+  partyNames     String[]
+  contractValue  Float?
+  startDate      DateTime?
+  endDate        DateTime?
+
   // General extracted entities
-  entities        Json?             // Named entities (people, organizations, dates, amounts)
-  keyPhrases      String[]
-  
+  entities   Json? // Named entities (people, organizations, dates, amounts)
+  keyPhrases String[]
+
   // Validation
-  isValidated     Boolean           @default(false)
-  validatedById   String?
-  validatedBy     User?             @relation("DataValidator", fields: [validatedById], references: [id])
-  validatedAt     DateTime?
-  
+  isValidated   Boolean   @default(false)
+  validatedById String?
+  validatedBy   User?     @relation("DataValidator", fields: [validatedById], references: [id])
+  validatedAt   DateTime?
+
   // Corrections
-  correctedFields Json?             // User corrections to extracted data
+  correctedFields Json? // User corrections to extracted data
   correctionNotes String?
-  
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([ocrJobId])
   @@index([documentId])
   @@index([dataType])
@@ -2546,51 +2685,51 @@ model ExtractedDocumentData {
 }
 
 model OCRConfiguration {
-  id                String      @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Global settings
-  defaultProvider   OCRProvider @default(TESSERACT_JS)
-  autoOCREnabled    Boolean     @default(false)
+  defaultProvider   OCRProvider        @default(TESSERACT_JS)
+  autoOCREnabled    Boolean            @default(false)
   autoOCRCategories DocumentCategory[]
-  
+
   // Processing settings
-  maxConcurrentJobs Int         @default(3)
-  defaultLanguage   String      @default("eng")
-  confidenceThreshold Float     @default(70.0)
-  
+  maxConcurrentJobs   Int    @default(3)
+  defaultLanguage     String @default("eng")
+  confidenceThreshold Float  @default(70.0)
+
   // Provider-specific settings
-  tesseractConfig   Json?       // Tesseract.js configuration
-  googleVisionConfig Json?      // Google Cloud Vision API config
-  awsTextractConfig Json?       // AWS Textract config
-  
+  tesseractConfig    Json? // Tesseract.js configuration
+  googleVisionConfig Json? // Google Cloud Vision API config
+  awsTextractConfig  Json? // AWS Textract config
+
   // Auto-processing rules
-  autoCreateInvoice Boolean     @default(false)
-  autoCreateExpense Boolean     @default(false)
-  autoCreateContract Boolean    @default(false)
-  
+  autoCreateInvoice  Boolean @default(false)
+  autoCreateExpense  Boolean @default(false)
+  autoCreateContract Boolean @default(false)
+
   // Notifications
-  notifyOnCompletion Boolean    @default(true)
-  notifyOnFailure   Boolean     @default(true)
-  
+  notifyOnCompletion Boolean @default(true)
+  notifyOnFailure    Boolean @default(true)
+
   // Retention
-  retainRawText     Boolean     @default(true)
-  retainExtractedData Boolean   @default(true)
-  
-  updatedById       String
-  updatedBy         User        @relation("OCRConfigUpdater", fields: [updatedById], references: [id])
-  updatedAt         DateTime    @updatedAt
-  
+  retainRawText       Boolean @default(true)
+  retainExtractedData Boolean @default(true)
+
+  updatedById String
+  updatedBy   User     @relation("OCRConfigUpdater", fields: [updatedById], references: [id])
+  updatedAt   DateTime @updatedAt
+
   @@map("ocr_configuration")
 }
 
 model OCRProcessingLog {
-  id              String      @id @default(uuid())
-  ocrJobId        String
-  level           String      // INFO, WARNING, ERROR
-  message         String      @db.Text
-  metadata        Json?
-  timestamp       DateTime    @default(now())
-  
+  id        String   @id @default(uuid())
+  ocrJobId  String
+  level     String // INFO, WARNING, ERROR
+  message   String   @db.Text
+  metadata  Json?
+  timestamp DateTime @default(now())
+
   @@index([ocrJobId])
   @@index([timestamp])
   @@map("ocr_processing_logs")

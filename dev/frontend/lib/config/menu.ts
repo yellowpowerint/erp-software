@@ -284,6 +284,13 @@ export const menuItems: MenuItem[] = [
         path: '/finance/suppliers',
         roles: [UserRole.SUPER_ADMIN, UserRole.CFO, UserRole.PROCUREMENT_OFFICER],
       },
+      {
+        id: 'procurement-requisitions',
+        label: 'Requisitions',
+        icon: ClipboardCheck,
+        path: '/procurement/requisitions',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER, UserRole.WAREHOUSE_MANAGER, UserRole.EMPLOYEE],
+      },
     ],
   },
   {
