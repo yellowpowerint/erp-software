@@ -1420,6 +1420,83 @@ Enable converting non-PDF documents to PDF in a production-ready way using async
 - ✅ Successful conversion creates a new document version and preserves history
 - ✅ Conversion endpoints enforce document permissions
 
+---
+
+## Session 16.6: Fillable Forms + Templates + “Fill & Sign” (Drafts, Finalize/Flatten, Signature Integration)
+
+**Duration:** 1 session
+
+### Objective:
+Enable filling PDF form fields using reusable templates and saveable drafts, then finalize into a flattened PDF output (optionally embedding a signature image) as a versioned document update.
+
+### Backend Deliverables:
+- **DB models (persistent, audit-friendly):**
+  - Form templates extracted from PDFs (field schema)
+  - Fill drafts that store field values and optional signature payload/metadata
+  - Draft status lifecycle: `DRAFT`, `FINALIZED`, `CANCELLED`
+- **Template management:**
+  - Create a template by extracting fillable fields from an existing PDF document
+  - List templates and view template field schema
+  - Delete template
+- **Draft workflow:**
+  - Create a draft for a document (optionally using a template)
+  - Save/update draft values
+  - Render a draft preview PDF (non-flattened) for review
+  - Finalize a draft:
+    - apply values
+    - embed signature image (optional)
+    - flatten form fields
+    - store output PDF in configured storage
+    - archive prior document to `DocumentVersion`
+    - update `Document` with new PDF output and increment `version`
+- **Signature integration:**
+  - If a signature is included when finalizing, record a `document_signatures` entry (existing Phase 15.4 table)
+  - Embed the signature image into the finalized PDF output (visual signature)
+
+### API:
+```typescript
+POST   /api/documents/:id/form-template                 // Create (or return existing) template from document PDF
+GET    /api/documents/form-templates                    // List templates
+GET    /api/documents/form-templates/:templateId        // Template details + field schema
+DELETE /api/documents/form-templates/:templateId        // Delete template
+
+POST   /api/documents/:id/form-drafts                   // Create draft for document
+GET    /api/documents/:id/form-drafts                   // List drafts for document
+GET    /api/documents/form-drafts/:draftId              // Draft details
+PUT    /api/documents/form-drafts/:draftId              // Update draft values/signature payload
+POST   /api/documents/form-drafts/:draftId/render       // Render draft preview PDF
+POST   /api/documents/form-drafts/:draftId/finalize     // Finalize: fill + (optional) sign + flatten + version document
+DELETE /api/documents/form-drafts/:draftId              // Cancel draft
+```
+
+### Permissions:
+- Template extraction requires document `view` permission.
+- Draft create/update/render requires document `edit` permission.
+- Finalize requires document `edit` permission.
+- If signature is included, user must also have document `sign` permission.
+
+### Frontend Deliverables:
+- **Fillable Form Panel (Document Detail):**
+  - Visible for PDF documents
+  - Detects available form fields and presents inputs
+  - Create/load a draft
+  - Save draft
+  - Preview rendered draft
+  - Finalize/flatten into the document (version increment)
+  - Optional signature capture for "Fill & Sign"
+- **Template Listing (PDF Tools):**
+  - List templates
+  - Create template from a selected PDF document
+  - Delete template
+
+### Acceptance Criteria (Production-Ready):
+- ✅ For a PDF with fillable fields, the system can extract a stable schema and display inputs in the UI
+- ✅ Draft values persist across reloads and are stored in Postgres
+- ✅ Draft preview rendering produces a PDF output users can download/view
+- ✅ Finalize flattens the form and updates the document as a new version (history preserved)
+- ✅ Optional signature capture embeds a visible signature on the finalized PDF and records a signature audit entry
+- ✅ All endpoints enforce document permissions (view/edit/sign as applicable)
+
 # 📊 Summary of Document Management System
 
 ## Menu Structure (Left Sidebar)

@@ -10,8 +10,9 @@ import PDFMerger from '@/components/documents/PDFMerger';
 import PDFEditor from '@/components/documents/PDFEditor';
 import RedactionTool from '@/components/documents/RedactionTool';
 import StampLibrary from '@/components/documents/StampLibrary';
+import PdfFormTemplatesPanel from '@/components/documents/PdfFormTemplatesPanel';
 
-type ToolTab = 'merge' | 'edit' | 'redact' | 'stamps';
+type ToolTab = 'merge' | 'edit' | 'redact' | 'stamps' | 'forms';
 
 function ToolsContent() {
   const { getDocuments } = useDocuments();
@@ -103,6 +104,16 @@ function ToolsContent() {
         >
           Stamps
         </button>
+        <button
+          onClick={() => setActiveTab('forms')}
+          className={
+            activeTab === 'forms'
+              ? 'px-4 py-2 rounded-md bg-blue-600 text-white text-sm'
+              : 'px-4 py-2 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200'
+          }
+        >
+          Form Templates
+        </button>
       </div>
 
       {pdfDocuments.length === 0 ? (
@@ -115,6 +126,7 @@ function ToolsContent() {
           {activeTab === 'edit' && <PDFEditor documents={pdfDocuments} />}
           {activeTab === 'redact' && <RedactionTool documents={pdfDocuments} />}
           {activeTab === 'stamps' && <StampLibrary documents={pdfDocuments} />}
+          {activeTab === 'forms' && <PdfFormTemplatesPanel documents={docs} />}
         </>
       )}
     </div>

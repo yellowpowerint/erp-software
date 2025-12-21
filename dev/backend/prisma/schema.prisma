@@ -104,6 +104,8 @@ model User {
   createdSecurity       DocumentSecurity[]  @relation("SecurityCreator")
   ocrJobs               OCRJob[]          @relation("OCRJobCreator")
   conversionJobs        DocumentConversionJob[] @relation("ConversionJobCreator")
+  createdFormTemplates  DocumentFormTemplate[] @relation("FormTemplateCreator")
+  formDrafts            DocumentFormDraft[] @relation("FormDraftCreator")
   validatedData         ExtractedDocumentData[] @relation("DataValidator")
   ocrConfigUpdates      OCRConfiguration[] @relation("OCRConfigUpdater")
 
@@ -1671,6 +1673,8 @@ model Document {
   presence    DocumentPresence[]
   aiInsight   DocumentAiInsight?
   conversionJobs DocumentConversionJob[]
+  formTemplates DocumentFormTemplate[]
+  formDrafts    DocumentFormDraft[]
   
   @@index([module, referenceId])
   @@index([category])
@@ -2050,6 +2054,12 @@ enum DocumentConversionStatus {
   CANCELLED
 }
 
+enum DocumentFormDraftStatus {
+  DRAFT
+  FINALIZED
+  CANCELLED
+}
+
 model DocumentConversionJob {
   id              String                   @id @default(uuid())
   documentId      String
@@ -2076,6 +2086,56 @@ model DocumentConversionJob {
   @@index([status])
   @@index([createdAt])
   @@map("document_conversion_jobs")
+}
+
+model DocumentFormTemplate {
+  id             String   @id @default(uuid())
+  documentId     String
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion Int
+  fieldSchema    Json
+  fieldCount     Int      @default(0)
+  createdById    String
+  createdBy      User     @relation("FormTemplateCreator", fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  drafts         DocumentFormDraft[]
+
+  @@unique([documentId, documentVersion])
+  @@index([documentId])
+  @@index([createdAt])
+  @@map("document_form_templates")
+}
+
+model DocumentFormDraft {
+  id              String                 @id @default(uuid())
+  documentId      String
+  document        Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  templateId      String?
+  template        DocumentFormTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  status          DocumentFormDraftStatus @default(DRAFT)
+  values          Json
+  signatureData   String?
+  signatureType   String?
+  signatureReason String?
+  signatureMetadata Json?
+  outputFileUrl   String?
+  outputFileName  String?
+  outputFileSize  Int?
+  outputDocumentVersion Int?
+  finalizedAt     DateTime?
+  cancelledAt     DateTime?
+  createdById     String
+  createdBy       User                   @relation("FormDraftCreator", fields: [createdById], references: [id])
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([documentId])
+  @@index([templateId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("document_form_drafts")
 }
 
 // Phase 16.1: OCR & Text Extraction

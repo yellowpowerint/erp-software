@@ -20,6 +20,7 @@ import DocumentDuplicateAlert from './DocumentDuplicateAlert';
 import DocumentQaPanel from './DocumentQaPanel';
 import PermissionEditor from './PermissionEditor';
 import ConvertToPdfPanel from './ConvertToPdfPanel';
+import FillableFormsPanel from './FillableFormsPanel';
 
 interface DocumentDetailModalProps {
   document: Document;
@@ -348,6 +349,13 @@ export default function DocumentDetailModal({
                         documentId={document.id}
                         mimeType={document.mimeType}
                         onConverted={refreshDocument}
+                      />
+                    )}
+
+                    {document.mimeType === 'application/pdf' && (
+                      <FillableFormsPanel
+                        documentId={document.id}
+                        onFinalized={refreshDocument}
                       />
                     )}
 

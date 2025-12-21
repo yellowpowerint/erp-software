@@ -15,6 +15,7 @@ import {
   BasicUser,
 } from '@/types/document';
 import { DocumentConversionJob } from '@/types/conversion';
+import { DocumentFormDraft, DocumentFormTemplate } from '@/types/forms';
 
 type PermissionFlags = {
   canView?: boolean;
@@ -310,6 +311,171 @@ export const useDocuments = () => {
       await api.delete(`/documents/conversion/jobs/${jobId}`);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to cancel conversion job';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createFormTemplate = useCallback(async (documentId: string): Promise<DocumentFormTemplate> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.post(`/documents/${documentId}/form-template`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to create form template';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const listFormTemplates = useCallback(async (): Promise<DocumentFormTemplate[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/documents/form-templates');
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load form templates';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteFormTemplate = useCallback(async (templateId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.delete(`/documents/form-templates/${templateId}`);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to delete form template';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createFormDraft = useCallback(
+    async (documentId: string, templateId?: string): Promise<DocumentFormDraft> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.post(`/documents/${documentId}/form-drafts`, { templateId });
+        return res.data.data;
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to create form draft';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const listFormDrafts = useCallback(async (documentId: string): Promise<DocumentFormDraft[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/${documentId}/form-drafts`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load form drafts';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getFormDraft = useCallback(async (draftId: string): Promise<DocumentFormDraft> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/documents/form-drafts/${draftId}`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load draft';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateFormDraft = useCallback(
+    async (
+      draftId: string,
+      payload: {
+        values?: Record<string, any>;
+        signatureData?: string | null;
+        signatureType?: string | null;
+        signatureReason?: string | null;
+        signatureMetadata?: any;
+      },
+    ): Promise<DocumentFormDraft> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.put(`/documents/form-drafts/${draftId}`, payload);
+        return res.data.data;
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to update draft';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const renderFormDraft = useCallback(async (draftId: string): Promise<Blob> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.post(`/documents/form-drafts/${draftId}/render`, null, {
+        responseType: 'blob',
+      });
+      return res.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to render draft preview';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const finalizeFormDraft = useCallback(async (draftId: string): Promise<any> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.post(`/documents/form-drafts/${draftId}/finalize`);
+      return res.data.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to finalize draft';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const cancelFormDraft = useCallback(async (draftId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.delete(`/documents/form-drafts/${draftId}`);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to cancel draft';
       setError(errorMessage);
       throw err;
     } finally {
@@ -1188,6 +1354,16 @@ export const useDocuments = () => {
     getConversionJob,
     listConversionJobs,
     cancelConversionJob,
+    createFormTemplate,
+    listFormTemplates,
+    deleteFormTemplate,
+    createFormDraft,
+    listFormDrafts,
+    getFormDraft,
+    updateFormDraft,
+    renderFormDraft,
+    finalizeFormDraft,
+    cancelFormDraft,
     getDocument,
     updateDocument,
     deleteDocument,
