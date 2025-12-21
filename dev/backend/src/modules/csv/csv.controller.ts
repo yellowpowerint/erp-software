@@ -72,7 +72,7 @@ export class CsvController {
   async startImport(
     @Param('module') module: string,
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: { mappings?: string },
+    @Body() body: { mappings?: string; context?: string },
     @Request() req: any,
   ) {
     if (!file) {
@@ -80,7 +80,8 @@ export class CsvController {
     }
 
     const mappings = body.mappings ? this.csvService.parseJson(body.mappings, 'mappings') : undefined;
-    const job = await this.csvService.createImportJob(module, file, req.user.userId, mappings);
+    const context = body.context ? this.csvService.parseJson(body.context, 'context') : undefined;
+    const job = await this.csvService.createImportJob(module, file, req.user.userId, mappings, context);
     return { success: true, data: job };
   }
 
@@ -160,10 +161,17 @@ export class CsvController {
   )
   async startExport(
     @Param('module') module: string,
-    @Body() body: { filters?: any; columns: string[]; fileName?: string },
+    @Body() body: { filters?: any; columns: string[]; fileName?: string; context?: any },
     @Request() req: any,
   ) {
-    const job = await this.csvService.createExportJob(module, body.filters || {}, body.columns, req.user.userId, body.fileName);
+    const job = await this.csvService.createExportJob(
+      module,
+      body.filters || {},
+      body.columns,
+      req.user.userId,
+      body.fileName,
+      body.context,
+    );
     return { success: true, data: job };
   }
 

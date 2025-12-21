@@ -1,0 +1,2 @@
+ALTER TABLE "import_jobs" ADD COLUMN IF NOT EXISTS "context" JSONB;
+ALTER TABLE "export_jobs" ADD COLUMN IF NOT EXISTS "context" JSONB;

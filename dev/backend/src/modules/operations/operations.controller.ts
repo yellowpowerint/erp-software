@@ -7,9 +7,11 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   Request,
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   OperationsService,
   CreateProductionLogDto,
@@ -19,6 +21,7 @@ import {
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { RolesGuard } from "../auth/guards/roles.guard";
+import { parse as json2csv } from "json2csv";
 
 @Controller("operations")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -193,5 +196,78 @@ export class OperationsController {
   @Get("reports/project-progress")
   getProjectProgressReport() {
     return this.operationsService.getProjectProgressReport();
+  }
+
+  // ==================== CSV Exports (Session 17.2) ====================
+
+  @Get("export/production")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER", "EMPLOYEE")
+  async exportProductionLogs(
+    @Res({ passthrough: true }) res: Response,
+    @Query("projectId") projectId?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("shiftType") shiftType?: string,
+  ) {
+    const rows = await this.operationsService.getProductionLogs(
+      projectId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+      shiftType,
+    );
+
+    const fields = [
+      "id",
+      "projectId",
+      "date",
+      "shiftType",
+      "activityType",
+      "location",
+      "quantity",
+      "unit",
+      "equipmentUsed",
+      "operatorName",
+      "notes",
+      "createdById",
+      "createdAt",
+    ];
+
+    const csv = json2csv(rows as any, { fields });
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=production-logs-export.csv`);
+    return csv;
+  }
+
+  @Get("export/shifts")
+  @Roles("SUPER_ADMIN", "OPERATIONS_MANAGER")
+  async exportShifts(
+    @Res({ passthrough: true }) res: Response,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("shiftType") shiftType?: string,
+  ) {
+    const rows = await this.operationsService.getShifts(
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+      shiftType,
+    );
+
+    const fields = [
+      "id",
+      "date",
+      "shiftType",
+      "startTime",
+      "endTime",
+      "supervisor",
+      "crew",
+      "location",
+      "notes",
+      "createdAt",
+    ];
+
+    const csv = json2csv(rows as any, { fields });
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=shifts-export.csv`);
+    return csv;
   }
 }

@@ -6,8 +6,10 @@ import { WarehousesService } from "./warehouses.service";
 import { InventoryReportsController } from "./reports.controller";
 import { InventoryReportsService } from "./reports.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CsvModule } from "../csv/csv.module";
 
 @Module({
+  imports: [CsvModule],
   controllers: [
     InventoryController,
     WarehousesController,

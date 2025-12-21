@@ -7,6 +7,8 @@ import { FolderKanban, Plus, Filter, CheckCircle, Clock, AlertCircle } from 'luc
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface Project {
   id: string;
@@ -40,6 +42,8 @@ function ProjectsContent() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -67,6 +71,10 @@ function ProjectsContent() {
   };
 
   const canManage = user && ['SUPER_ADMIN', 'CEO', 'OPERATIONS_MANAGER'].includes(user.role);
+
+  const exportFilters: any = {};
+  if (statusFilter !== 'ALL') exportFilters.status = statusFilter;
+  if (priorityFilter !== 'ALL') exportFilters.priority = priorityFilter;
 
   const getStatusColor = (status: string) => {
     const colors: any = {
@@ -109,16 +117,45 @@ function ProjectsContent() {
             <p className="text-gray-600 mt-1">Manage mining projects and track progress</p>
           </div>
           {canManage && (
-            <Link
-              href="/projects/new"
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>New Project</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Import CSV
+              </button>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Export CSV
+              </button>
+              <Link
+                href="/projects/new"
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>New Project</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        module="projects"
+        title="Import Projects"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="projects"
+        title="Export Projects"
+        defaultFilters={exportFilters}
+      />
 
       {/* Stats Cards */}
       {stats && (

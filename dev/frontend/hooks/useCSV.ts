@@ -39,7 +39,12 @@ export const useCSV = () => {
   }, []);
 
   const startImport = useCallback(
-    async (module: CsvModule, file: File, mappings?: ColumnMapping[]): Promise<ImportJob> => {
+    async (
+      module: CsvModule,
+      file: File,
+      mappings?: ColumnMapping[],
+      context?: any,
+    ): Promise<ImportJob> => {
       setLoading(true);
       setError(null);
 
@@ -48,6 +53,9 @@ export const useCSV = () => {
         formData.append('file', file);
         if (mappings) {
           formData.append('mappings', JSON.stringify(mappings));
+        }
+        if (context) {
+          formData.append('context', JSON.stringify(context));
         }
 
         const res = await api.post(`/csv/import/${module}`, formData, {
@@ -82,12 +90,18 @@ export const useCSV = () => {
   }, []);
 
   const startExport = useCallback(
-    async (module: CsvModule, columns: string[], filters?: any, fileName?: string): Promise<ExportJob> => {
+    async (
+      module: CsvModule,
+      columns: string[],
+      filters?: any,
+      fileName?: string,
+      context?: any,
+    ): Promise<ExportJob> => {
       setLoading(true);
       setError(null);
 
       try {
-        const res = await api.post(`/csv/export/${module}`, { columns, filters, fileName });
+        const res = await api.post(`/csv/export/${module}`, { columns, filters, fileName, context });
         return res.data.data;
       } catch (err: any) {
         const msg = err.response?.data?.message || 'Failed to start export';

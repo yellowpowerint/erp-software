@@ -2266,6 +2266,7 @@ model ImportJob {
   errors        Json?
   warnings      Json?
   mappings      Json?
+  context       Json?
   createdById   String
   createdBy     User         @relation("ImportCreator", fields: [createdById], references: [id])
   startedAt     DateTime?
@@ -2285,6 +2286,7 @@ model ExportJob {
   storageProvider String     @default("local")
   filters       Json?
   columns       String[]
+  context       Json?
   totalRows     Int
   status        ExportStatus @default(PENDING)
   fileUrl       String?

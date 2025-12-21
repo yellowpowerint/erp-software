@@ -7,6 +7,8 @@ import { Truck, Plus, Filter, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface Asset {
   id: string;
@@ -38,6 +40,8 @@ function AssetsContent() {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -65,6 +69,10 @@ function AssetsContent() {
   };
 
   const canManage = user && ['SUPER_ADMIN', 'CEO', 'OPERATIONS_MANAGER'].includes(user.role);
+
+  const exportFilters: any = {};
+  if (categoryFilter !== 'ALL') exportFilters.category = categoryFilter;
+  if (statusFilter !== 'ALL') exportFilters.status = statusFilter;
 
   const getStatusColor = (status: string) => {
     const colors: any = {
@@ -97,16 +105,45 @@ function AssetsContent() {
             <p className="text-gray-600 mt-1">Track and manage heavy equipment and assets</p>
           </div>
           {canManage && (
-            <Link
-              href="/assets/new"
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Add Asset</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Import CSV
+              </button>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Export CSV
+              </button>
+              <Link
+                href="/assets/new"
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Asset</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        module="assets"
+        title="Import Assets"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="assets"
+        title="Export Assets"
+        defaultFilters={exportFilters}
+      />
 
       {/* Stats Cards */}
       {stats && (

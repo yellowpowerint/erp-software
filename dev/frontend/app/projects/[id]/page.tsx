@@ -9,6 +9,8 @@ import { ArrowLeft, Edit, CheckCircle, Clock, User } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import GeneratePDFButton from '@/components/documents/GeneratePDFButton';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface Project {
   id: string;
@@ -50,6 +52,8 @@ function ProjectDetailContent() {
   const { user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [importTasksOpen, setImportTasksOpen] = useState(false);
+  const [exportTasksOpen, setExportTasksOpen] = useState(false);
 
   useEffect(() => {
     fetchProject();
@@ -123,6 +127,23 @@ function ProjectDetailContent() {
             />
 
             {canManage && (
+              <>
+                <button
+                  onClick={() => setImportTasksOpen(true)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+                >
+                  Import Tasks CSV
+                </button>
+                <button
+                  onClick={() => setExportTasksOpen(true)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+                >
+                  Export Tasks CSV
+                </button>
+              </>
+            )}
+
+            {canManage && (
               <Link
                 href={`/projects/${project.id}/edit`}
                 className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -134,6 +155,23 @@ function ProjectDetailContent() {
           </div>
         </div>
       </div>
+
+      <ImportModal
+        open={importTasksOpen}
+        onClose={() => setImportTasksOpen(false)}
+        module="project_tasks"
+        title="Import Project Tasks"
+        context={{ projectId: project.id }}
+      />
+
+      <ExportModal
+        open={exportTasksOpen}
+        onClose={() => setExportTasksOpen(false)}
+        module="project_tasks"
+        title="Export Project Tasks"
+        defaultFilters={{}}
+        context={{ projectId: project.id }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}

@@ -8,6 +8,8 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { UserRole } from '@/types/auth';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface Employee {
   id: string;
@@ -27,6 +29,8 @@ function EmployeesPageContent() {
   const { user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -84,16 +88,45 @@ function EmployeesPageContent() {
             </div>
           </div>
           {canCreate && (
-            <Link
-              href="/hr/employees/new"
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Employee</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Import CSV
+              </button>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Export CSV
+              </button>
+              <Link
+                href="/hr/employees/new"
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Employee</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        module="employees"
+        title="Import Employees"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="employees"
+        title="Export Employees"
+        defaultFilters={{}}
+      />
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">

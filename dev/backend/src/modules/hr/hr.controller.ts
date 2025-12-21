@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -7,12 +8,26 @@ import {
   Param,
   Query,
   Body,
+  Request,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
 import { HrService } from "./hr.service";
+import { CsvService } from "../csv/csv.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
 
 @Controller("hr")
 export class HrController {
-  constructor(private readonly hrService: HrService) {}
+  constructor(
+    private readonly hrService: HrService,
+    private readonly csvService: CsvService,
+  ) {}
 
   // Employees
   @Post("employees")
@@ -103,6 +118,74 @@ export class HrController {
   @Get("stats")
   getHrStats() {
     return this.hrService.getHrStats();
+  }
+
+  // ==================== CSV: Employees ====================
+
+  @Post("employees/import")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "HR_MANAGER")
+  @UseInterceptors(FileInterceptor("file"))
+  async importEmployees(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mappings?: string; duplicateStrategy?: string },
+    @Request() req: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException("file is required");
+    }
+
+    const mappings = body.mappings ? this.csvService.parseJson(body.mappings, "mappings") : undefined;
+    const context = { duplicateStrategy: body.duplicateStrategy };
+    const job = await this.csvService.createImportJob("employees", file, req.user.userId, mappings, context);
+    return { success: true, data: job };
+  }
+
+  @Get("employees/import/sample")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async downloadEmployeesSample(@Res({ passthrough: true }) res: Response) {
+    const template = await this.csvService.getSampleTemplate("employees");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=employees-sample.csv`);
+    return template;
+  }
+
+  @Get("employees/export")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async exportEmployees(
+    @Query("department") department: string | undefined,
+    @Query("status") status: string | undefined,
+    @Query("employmentType") employmentType: string | undefined,
+    @Query("columns") columns: string | undefined,
+    @Request() req: any,
+  ) {
+    const cols = columns
+      ? String(columns)
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [
+          "employeeId",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "department",
+          "position",
+          "employmentType",
+          "status",
+          "hireDate",
+          "salary",
+          "createdAt",
+        ];
+
+    const filters: any = {};
+    if (department) filters.department = department;
+    if (status) filters.status = status;
+    if (employmentType) filters.employmentType = employmentType;
+
+    const job = await this.csvService.createExportJob("employees", filters, cols, req.user.userId, undefined);
+    return { success: true, data: job };
   }
 
   // Recruitment & AI HR Assistant

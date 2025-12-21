@@ -9,7 +9,17 @@ import { parse as json2csv } from 'json2csv';
 import csvParser from 'csv-parser';
 import { Readable } from 'stream';
 
-type ModuleKey = 'inventory' | 'suppliers' | 'employees' | 'warehouses' | 'projects' | 'assets';
+type ModuleKey =
+  | 'inventory'
+  | 'inventory_movements'
+  | 'suppliers'
+  | 'employees'
+  | 'warehouses'
+  | 'projects'
+  | 'project_tasks'
+  | 'assets';
+
+type DuplicateStrategy = 'skip' | 'update' | 'error';
 
 interface UploadPreviewRow {
   rowNumber: number;
@@ -65,7 +75,16 @@ export class CsvService {
 
   private normalizeModule(module: string): ModuleKey {
     const m = (module || '').toLowerCase().trim();
-    const allowed: ModuleKey[] = ['inventory', 'suppliers', 'employees', 'warehouses', 'projects', 'assets'];
+    const allowed: ModuleKey[] = [
+      'inventory',
+      'inventory_movements',
+      'suppliers',
+      'employees',
+      'warehouses',
+      'projects',
+      'project_tasks',
+      'assets',
+    ];
     if (!allowed.includes(m as ModuleKey)) {
       throw new BadRequestException(`Unsupported module: ${module}`);
     }
@@ -106,9 +125,32 @@ export class CsvService {
           { key: 'unitPrice', header: 'unitPrice', required: false, type: 'number' },
           { key: 'reorderLevel', header: 'reorderLevel', required: false, type: 'int' },
           { key: 'maxStockLevel', header: 'maxStockLevel', required: false, type: 'int' },
-          { key: 'warehouseId', header: 'warehouseId', required: true, type: 'string' },
+          { key: 'warehouseId', header: 'warehouseId', required: false, type: 'string' },
+          { key: 'warehouseCode', header: 'warehouseCode', required: false, type: 'string' },
           { key: 'barcode', header: 'barcode', required: false, type: 'string' },
           { key: 'supplier', header: 'supplier', required: false, type: 'string' },
+          { key: 'notes', header: 'notes', required: false, type: 'string' },
+          { key: 'initialQuantity', header: 'initialQuantity', required: false, type: 'int' },
+        ],
+      };
+    }
+
+    if (module === 'inventory_movements') {
+      return {
+        columns: [
+          { key: 'itemCode', header: 'itemCode', required: true, type: 'string' },
+          { key: 'warehouseId', header: 'warehouseId', required: false, type: 'string' },
+          { key: 'warehouseCode', header: 'warehouseCode', required: false, type: 'string' },
+          {
+            key: 'movementType',
+            header: 'movementType',
+            required: true,
+            type: 'enum',
+            enumValues: ['STOCK_IN', 'STOCK_OUT', 'RETURN', 'DAMAGED', 'EXPIRED', 'ADJUSTMENT'],
+          },
+          { key: 'quantity', header: 'quantity', required: true, type: 'int' },
+          { key: 'unitPrice', header: 'unitPrice', required: false, type: 'number' },
+          { key: 'reference', header: 'reference', required: false, type: 'string' },
           { key: 'notes', header: 'notes', required: false, type: 'string' },
         ],
       };
@@ -150,7 +192,7 @@ export class CsvService {
     if (module === 'employees') {
       return {
         columns: [
-          { key: 'employeeId', header: 'employeeId', required: true, type: 'string' },
+          { key: 'employeeId', header: 'employeeId', required: false, type: 'string' },
           { key: 'firstName', header: 'firstName', required: true, type: 'string' },
           { key: 'lastName', header: 'lastName', required: true, type: 'string' },
           { key: 'email', header: 'email', required: true, type: 'string' },
@@ -190,6 +232,19 @@ export class CsvService {
           { key: 'progress', header: 'progress', required: false, type: 'int' },
           { key: 'managerId', header: 'managerId', required: false, type: 'string' },
           { key: 'notes', header: 'notes', required: false, type: 'string' },
+        ],
+      };
+    }
+
+    if (module === 'project_tasks') {
+      return {
+        columns: [
+          { key: 'title', header: 'title', required: true, type: 'string' },
+          { key: 'description', header: 'description', required: false, type: 'string' },
+          { key: 'status', header: 'status', required: false, type: 'string' },
+          { key: 'assignedTo', header: 'assignedTo', required: false, type: 'string' },
+          { key: 'dueDate', header: 'dueDate', required: false, type: 'date' },
+          { key: 'order', header: 'order', required: false, type: 'int' },
         ],
       };
     }
@@ -364,7 +419,13 @@ export class CsvService {
     });
   }
 
-  async createImportJob(module: string, file: Express.Multer.File, userId: string, mappings?: any) {
+  async createImportJob(
+    module: string,
+    file: Express.Multer.File,
+    userId: string,
+    mappings?: any,
+    context?: any,
+  ) {
     const mod = this.normalizeModule(module);
 
     if (!file?.buffer?.length) {
@@ -394,6 +455,24 @@ export class CsvService {
       throw new BadRequestException(`Missing required mappings: ${missingRequired.join(', ')}`);
     }
 
+    if (mod === 'inventory') {
+      const hasWarehouseId = (usedMappings || []).some((m: any) => m?.key === 'warehouseId' && m?.sourceColumn);
+      const hasWarehouseCode = (usedMappings || []).some((m: any) => m?.key === 'warehouseCode' && m?.sourceColumn);
+      const hasWarehouseIdCtx = !!(context?.warehouseId && String(context.warehouseId).trim());
+      const hasWarehouseCodeCtx = !!(context?.warehouseCode && String(context.warehouseCode).trim());
+
+      if (!hasWarehouseId && !hasWarehouseCode && !hasWarehouseIdCtx && !hasWarehouseCodeCtx) {
+        throw new BadRequestException('Missing required mappings: warehouseId or warehouseCode');
+      }
+    }
+
+    if (mod === 'project_tasks') {
+      const projectId = context?.projectId ? String(context.projectId).trim() : '';
+      if (!projectId) {
+        throw new BadRequestException('Missing required context: projectId');
+      }
+    }
+
     const job = await (this.prisma as any).importJob.create({
       data: {
         module: mod,
@@ -403,6 +482,7 @@ export class CsvService {
         originalName: file.originalname,
         totalRows: parsed.rows.length,
         mappings: usedMappings,
+        context: context ?? undefined,
         status: ImportStatus.PENDING,
         createdById: userId,
       },
@@ -560,7 +640,7 @@ export class CsvService {
             output[c.key] = raw == null || String(raw).trim() === '' ? null : this.coerceValue(raw, c);
           }
 
-          await this.applyImportRow(job.module as ModuleKey, output);
+          await this.applyImportRow(job, output);
           success++;
         } catch (e: any) {
           errors.push({
@@ -610,25 +690,206 @@ export class CsvService {
     }
   }
 
-  private async applyImportRow(module: ModuleKey, data: Record<string, any>) {
+  private async applyImportRow(job: any, data: Record<string, any>) {
+    const module = this.normalizeModule(job.module);
+
+    const duplicateStrategy = String(job?.context?.duplicateStrategy || 'error') as DuplicateStrategy;
+
     if (module === 'inventory') {
-      return this.prisma.stockItem.create({
+      const itemCode = String(data.itemCode || '').trim();
+      if (!itemCode) {
+        throw new BadRequestException('Missing required field: itemCode');
+      }
+
+      const warehouseIdFromRow = data.warehouseId ? String(data.warehouseId).trim() : '';
+      const warehouseCodeFromRow = data.warehouseCode ? String(data.warehouseCode).trim() : '';
+      const warehouseIdFromContext = job?.context?.warehouseId ? String(job.context.warehouseId).trim() : '';
+      const warehouseCodeFromContext = job?.context?.warehouseCode ? String(job.context.warehouseCode).trim() : '';
+      const warehouse = warehouseIdFromRow
+        ? await this.prisma.warehouse.findUnique({ where: { id: warehouseIdFromRow } })
+        : warehouseCodeFromRow
+          ? await this.prisma.warehouse.findUnique({ where: { code: warehouseCodeFromRow } })
+          : warehouseIdFromContext
+            ? await this.prisma.warehouse.findUnique({ where: { id: warehouseIdFromContext } })
+            : warehouseCodeFromContext
+              ? await this.prisma.warehouse.findUnique({ where: { code: warehouseCodeFromContext } })
+          : null;
+
+      if (!warehouse) {
+        throw new BadRequestException('Missing required field: warehouseId/warehouseCode');
+      }
+
+      const existing = await this.prisma.stockItem.findUnique({ where: { itemCode } });
+      const initialQuantity = data.initialQuantity == null ? null : Number(data.initialQuantity);
+      const initialQtyInt = initialQuantity == null ? null : Math.max(0, Math.trunc(initialQuantity));
+
+      if (existing) {
+        if (duplicateStrategy === 'skip') {
+          return { skipped: true };
+        }
+        if (duplicateStrategy === 'error') {
+          throw new BadRequestException(`Duplicate itemCode: ${itemCode}`);
+        }
+
+        const updated = await this.prisma.stockItem.update({
+          where: { id: existing.id },
+          data: {
+            name: data.name,
+            description: data.description ?? undefined,
+            category: data.category as any,
+            unit: data.unit as any,
+            unitPrice: data.unitPrice ?? undefined,
+            reorderLevel: data.reorderLevel ?? 0,
+            maxStockLevel: data.maxStockLevel ?? undefined,
+            warehouseId: warehouse.id,
+            barcode: data.barcode ?? undefined,
+            supplier: data.supplier ?? undefined,
+            notes: data.notes ?? undefined,
+          },
+        });
+
+        if (initialQtyInt != null) {
+          const previousQty = existing.currentQuantity;
+          const newQty = initialQtyInt;
+          const unitPrice = data.unitPrice ?? existing.unitPrice ?? undefined;
+
+          await this.prisma.$transaction([
+            this.prisma.stockMovement.create({
+              data: {
+                itemId: existing.id,
+                warehouseId: warehouse.id,
+                movementType: 'ADJUSTMENT' as any,
+                quantity: newQty,
+                previousQty,
+                newQty,
+                unitPrice,
+                totalValue: (unitPrice || 0) * newQty,
+                reference: 'CSV_IMPORT_UPDATE',
+                notes: data.notes ?? undefined,
+                performedById: job.createdById,
+              },
+            }),
+            this.prisma.stockItem.update({
+              where: { id: existing.id },
+              data: { currentQuantity: newQty },
+            }),
+          ]);
+        }
+
+        return updated;
+      }
+
+      const created = await this.prisma.stockItem.create({
         data: {
-          itemCode: data.itemCode,
+          itemCode,
           name: data.name,
           description: data.description ?? undefined,
-          category: data.category,
-          unit: data.unit,
+          category: data.category as any,
+          unit: data.unit as any,
           unitPrice: data.unitPrice ?? undefined,
           reorderLevel: data.reorderLevel ?? 0,
           maxStockLevel: data.maxStockLevel ?? undefined,
-          warehouseId: data.warehouseId,
+          warehouseId: warehouse.id,
           barcode: data.barcode ?? undefined,
           supplier: data.supplier ?? undefined,
           notes: data.notes ?? undefined,
-          currentQuantity: 0,
+          currentQuantity: initialQtyInt ?? 0,
         },
       });
+
+      if (initialQtyInt != null && initialQtyInt > 0) {
+        const unitPrice = data.unitPrice ?? 0;
+        await this.prisma.stockMovement.create({
+          data: {
+            itemId: created.id,
+            warehouseId: warehouse.id,
+            movementType: 'STOCK_IN' as any,
+            quantity: initialQtyInt,
+            previousQty: 0,
+            newQty: initialQtyInt,
+            unitPrice,
+            totalValue: unitPrice * initialQtyInt,
+            reference: 'CSV_IMPORT',
+            notes: data.notes ?? undefined,
+            performedById: job.createdById,
+          },
+        });
+      }
+
+      return created;
+    }
+
+    if (module === 'inventory_movements') {
+      const itemCode = String(data.itemCode || '').trim();
+      if (!itemCode) {
+        throw new BadRequestException('Missing required field: itemCode');
+      }
+
+      const item = await this.prisma.stockItem.findUnique({ where: { itemCode } });
+      if (!item) {
+        throw new BadRequestException(`Unknown itemCode: ${itemCode}`);
+      }
+
+      const warehouseIdFromRow = data.warehouseId ? String(data.warehouseId).trim() : '';
+      const warehouseCodeFromRow = data.warehouseCode ? String(data.warehouseCode).trim() : '';
+      const warehouse = warehouseIdFromRow
+        ? await this.prisma.warehouse.findUnique({ where: { id: warehouseIdFromRow } })
+        : warehouseCodeFromRow
+          ? await this.prisma.warehouse.findUnique({ where: { code: warehouseCodeFromRow } })
+          : await this.prisma.warehouse.findUnique({ where: { id: item.warehouseId } });
+
+      if (!warehouse) {
+        throw new BadRequestException('Missing required field: warehouseId/warehouseCode');
+      }
+
+      const movementType = String(data.movementType || '').trim();
+      const qty = Math.max(0, Math.trunc(Number(data.quantity)));
+      const previousQty = item.currentQuantity;
+      let newQty = previousQty;
+
+      switch (movementType) {
+        case 'STOCK_IN':
+        case 'RETURN':
+          newQty = previousQty + qty;
+          break;
+        case 'STOCK_OUT':
+        case 'DAMAGED':
+        case 'EXPIRED':
+          if (previousQty < qty) {
+            throw new BadRequestException('Insufficient stock');
+          }
+          newQty = previousQty - qty;
+          break;
+        case 'ADJUSTMENT':
+          newQty = qty;
+          break;
+        default:
+          throw new BadRequestException(`Invalid movementType: ${movementType}`);
+      }
+
+      const unitPrice = data.unitPrice ?? item.unitPrice ?? undefined;
+      const totalValue = (unitPrice || 0) * qty;
+
+      const [movement] = await this.prisma.$transaction([
+        this.prisma.stockMovement.create({
+          data: {
+            itemId: item.id,
+            warehouseId: warehouse.id,
+            movementType: movementType as any,
+            quantity: qty,
+            previousQty,
+            newQty,
+            unitPrice,
+            totalValue,
+            reference: data.reference ?? undefined,
+            notes: data.notes ?? undefined,
+            performedById: job.createdById,
+          },
+        }),
+        this.prisma.stockItem.update({ where: { id: item.id }, data: { currentQuantity: newQty } }),
+      ]);
+
+      return movement;
     }
 
     if (module === 'warehouses') {
@@ -644,7 +905,37 @@ export class CsvService {
     }
 
     if (module === 'suppliers') {
-      // Match FinanceService generation logic (supplierCode is auto-generated in service). Here we generate similarly.
+      const email = data.email ? String(data.email).trim() : '';
+      const existing = email ? await this.prisma.supplier.findFirst({ where: { email } }) : null;
+
+      if (existing) {
+        if (duplicateStrategy === 'skip') {
+          return { skipped: true };
+        }
+        if (duplicateStrategy === 'error') {
+          throw new BadRequestException(`Duplicate supplier email: ${email}`);
+        }
+
+        return this.prisma.supplier.update({
+          where: { id: existing.id },
+          data: {
+            name: data.name ?? undefined,
+            contactPerson: data.contactPerson ?? undefined,
+            phone: data.phone ?? undefined,
+            address: data.address ?? undefined,
+            city: data.city ?? undefined,
+            country: data.country ?? undefined,
+            taxId: data.taxId ?? undefined,
+            bankAccount: data.bankAccount ?? undefined,
+            paymentTerms: data.paymentTerms ?? undefined,
+            category: data.category ?? undefined,
+            rating: data.rating ?? undefined,
+            isActive: data.isActive ?? undefined,
+            notes: data.notes ?? undefined,
+          },
+        });
+      }
+
       const supplierCount = await this.prisma.supplier.count();
       const supplierCode = `SUP-${Date.now()}-${supplierCount + 1}`;
       return this.prisma.supplier.create({
@@ -669,9 +960,47 @@ export class CsvService {
     }
 
     if (module === 'employees') {
+      const employeeId = data.employeeId ? String(data.employeeId).trim() : '';
+      const generatedEmployeeId = employeeId || `EMP-${Date.now()}-${(await this.prisma.employee.count()) + 1}`;
+
+      const existing = await this.prisma.employee.findUnique({ where: { employeeId: generatedEmployeeId } });
+      if (existing) {
+        if (duplicateStrategy === 'skip') {
+          return { skipped: true };
+        }
+        if (duplicateStrategy === 'error') {
+          throw new BadRequestException(`Duplicate employeeId: ${generatedEmployeeId}`);
+        }
+        return this.prisma.employee.update({
+          where: { id: existing.id },
+          data: {
+            firstName: data.firstName ?? undefined,
+            lastName: data.lastName ?? undefined,
+            email: data.email ?? undefined,
+            phone: data.phone ?? undefined,
+            dateOfBirth: data.dateOfBirth ?? undefined,
+            gender: data.gender ?? undefined,
+            address: data.address ?? undefined,
+            city: data.city ?? undefined,
+            country: data.country ?? undefined,
+            department: data.department ?? undefined,
+            position: data.position ?? undefined,
+            employmentType: data.employmentType ?? undefined,
+            status: data.status ?? undefined,
+            hireDate: data.hireDate ?? undefined,
+            terminationDate: data.terminationDate ?? undefined,
+            salary: data.salary ?? undefined,
+            supervisorId: data.supervisorId ?? undefined,
+            emergencyContact: data.emergencyContact ?? undefined,
+            emergencyPhone: data.emergencyPhone ?? undefined,
+            notes: data.notes ?? undefined,
+          } as any,
+        });
+      }
+
       return this.prisma.employee.create({
         data: {
-          employeeId: data.employeeId,
+          employeeId: generatedEmployeeId,
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
@@ -698,6 +1027,37 @@ export class CsvService {
     }
 
     if (module === 'projects') {
+      const projectCode = String(data.projectCode || '').trim();
+      if (!projectCode) {
+        throw new BadRequestException('Missing required field: projectCode');
+      }
+
+      const existing = await this.prisma.project.findUnique({ where: { projectCode } });
+      if (existing) {
+        if (duplicateStrategy === 'skip') {
+          return { skipped: true };
+        }
+        if (duplicateStrategy === 'error') {
+          throw new BadRequestException(`Duplicate projectCode: ${projectCode}`);
+        }
+        return this.prisma.project.update({
+          where: { id: existing.id },
+          data: {
+            name: data.name ?? undefined,
+            description: data.description ?? undefined,
+            status: data.status ?? undefined,
+            priority: data.priority ?? undefined,
+            location: data.location ?? undefined,
+            startDate: data.startDate ?? undefined,
+            endDate: data.endDate ?? undefined,
+            estimatedBudget: data.estimatedBudget ?? undefined,
+            progress: data.progress ?? undefined,
+            managerId: data.managerId ?? undefined,
+            notes: data.notes ?? undefined,
+          } as any,
+        });
+      }
+
       return this.prisma.project.create({
         data: {
           projectCode: data.projectCode,
@@ -712,6 +1072,68 @@ export class CsvService {
           progress: data.progress ?? undefined,
           managerId: data.managerId ?? undefined,
           notes: data.notes ?? undefined,
+        } as any,
+      });
+    }
+
+    if (module === 'project_tasks') {
+      const projectId = String(job?.context?.projectId || '').trim();
+      if (!projectId) {
+        throw new BadRequestException('Missing required context: projectId');
+      }
+
+      const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+      if (!project) {
+        throw new BadRequestException('Invalid projectId');
+      }
+
+      return this.prisma.task.create({
+        data: {
+          projectId,
+          title: data.title,
+          description: data.description ?? undefined,
+          status: (data.status as any) ?? 'PENDING',
+          assignedTo: data.assignedTo ?? undefined,
+          dueDate: data.dueDate ?? undefined,
+          order: data.order ?? 0,
+        } as any,
+      });
+    }
+
+    const assetCode = String(data.assetCode || '').trim();
+    if (!assetCode) {
+      throw new BadRequestException('Missing required field: assetCode');
+    }
+
+    const existing = await this.prisma.asset.findUnique({ where: { assetCode } });
+    if (existing) {
+      if (duplicateStrategy === 'skip') {
+        return { skipped: true };
+      }
+      if (duplicateStrategy === 'error') {
+        throw new BadRequestException(`Duplicate assetCode: ${assetCode}`);
+      }
+      return this.prisma.asset.update({
+        where: { id: existing.id },
+        data: {
+          name: data.name ?? undefined,
+          description: data.description ?? undefined,
+          category: data.category ?? undefined,
+          manufacturer: data.manufacturer ?? undefined,
+          model: data.model ?? undefined,
+          serialNumber: data.serialNumber ?? undefined,
+          purchaseDate: data.purchaseDate ?? undefined,
+          purchasePrice: data.purchasePrice ?? undefined,
+          currentValue: data.currentValue ?? undefined,
+          depreciationRate: data.depreciationRate ?? undefined,
+          location: data.location ?? undefined,
+          status: data.status ?? undefined,
+          condition: data.condition ?? undefined,
+          assignedTo: data.assignedTo ?? undefined,
+          notes: data.notes ?? undefined,
+          warrantyExpiry: data.warrantyExpiry ?? undefined,
+          lastMaintenanceAt: data.lastMaintenanceAt ?? undefined,
+          nextMaintenanceAt: data.nextMaintenanceAt ?? undefined,
         } as any,
       });
     }
@@ -741,7 +1163,7 @@ export class CsvService {
     });
   }
 
-  async createExportJob(module: string, filters: any, columns: string[], userId: string, fileName?: string) {
+  async createExportJob(module: string, filters: any, columns: string[], userId: string, fileName?: string, context?: any) {
     const mod = this.normalizeModule(module);
     if (!Array.isArray(columns) || columns.length === 0) {
       throw new BadRequestException('columns is required');
@@ -755,6 +1177,7 @@ export class CsvService {
         fileName: safeFileName,
         filters: filters || {},
         columns,
+        context: context ?? undefined,
         totalRows: 0,
         status: ExportStatus.PENDING,
         createdById: userId,
@@ -844,7 +1267,7 @@ export class CsvService {
     }
 
     try {
-      const rows = await this.fetchExportRows(job.module as ModuleKey, job.filters || {}, job.columns);
+      const rows = await this.fetchExportRows(job, job.filters || {}, job.columns);
       const csv = json2csv(rows, { fields: job.columns });
       const buffer = Buffer.from(csv, 'utf8');
 
@@ -873,12 +1296,34 @@ export class CsvService {
     }
   }
 
-  private async fetchExportRows(module: ModuleKey, filters: any, columns: string[]) {
+  private async fetchExportRows(job: any, filters: any, columns: string[]) {
+    const module = this.normalizeModule(job.module);
     const where = this.coerceFilters(module, filters);
 
     if (module === 'inventory') {
       const items = await this.prisma.stockItem.findMany({ where, orderBy: { createdAt: 'desc' } });
       return items.map((x) => this.pickColumns(x as any, columns));
+    }
+
+    if (module === 'inventory_movements') {
+      const movements = await this.prisma.stockMovement.findMany({
+        where,
+        include: { item: { select: { itemCode: true, name: true } }, warehouse: { select: { code: true, name: true } } },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return movements.map((m) =>
+        this.pickColumns(
+          {
+            ...m,
+            itemCode: m.item?.itemCode,
+            itemName: m.item?.name,
+            warehouseCode: m.warehouse?.code,
+            warehouseName: m.warehouse?.name,
+          } as any,
+          columns,
+        ),
+      );
     }
 
     if (module === 'warehouses') {
@@ -898,6 +1343,16 @@ export class CsvService {
 
     if (module === 'projects') {
       const items = await this.prisma.project.findMany({ where, orderBy: { createdAt: 'desc' } });
+      return items.map((x) => this.pickColumns(x as any, columns));
+    }
+
+    if (module === 'project_tasks') {
+      const projectId = String(job?.context?.projectId || '').trim();
+      if (!projectId) {
+        throw new BadRequestException('Missing required context: projectId');
+      }
+
+      const items = await this.prisma.task.findMany({ where: { ...where, projectId }, orderBy: { createdAt: 'desc' } });
       return items.map((x) => this.pickColumns(x as any, columns));
     }
 
@@ -998,7 +1453,152 @@ export class CsvService {
     const mod = this.normalizeModule(module);
     const template = this.getDefaultTemplateForModule(mod);
     const headers = template.columns.map((c) => c.header);
-    const csv = json2csv([], { fields: headers });
+
+    const sampleRows = this.getSampleRowsForModule(mod);
+    const csv = json2csv(sampleRows, { fields: headers });
     return csv;
+  }
+
+  private getSampleRowsForModule(module: ModuleKey): Record<string, any>[] {
+    if (module === 'inventory') {
+      return [
+        {
+          itemCode: 'SKU-001',
+          name: 'Safety Helmet',
+          description: 'PPE - hard hat',
+          category: 'SAFETY_GEAR',
+          unit: 'PIECES',
+          unitPrice: 120,
+          reorderLevel: 10,
+          maxStockLevel: 200,
+          warehouseId: '',
+          warehouseCode: 'WH-MAIN',
+          barcode: '1234567890123',
+          supplier: 'SUP-EXAMPLE',
+          notes: 'Sample inventory item',
+          initialQuantity: 50,
+        },
+      ];
+    }
+
+    if (module === 'inventory_movements') {
+      return [
+        {
+          itemCode: 'SKU-001',
+          warehouseId: '',
+          warehouseCode: 'WH-MAIN',
+          movementType: 'STOCK_IN',
+          quantity: 20,
+          unitPrice: 120,
+          reference: 'PO-1001',
+          notes: 'Initial restock',
+        },
+      ];
+    }
+
+    if (module === 'suppliers') {
+      return [
+        {
+          name: 'Goldline Supplies Ltd',
+          contactPerson: 'Ama Mensah',
+          email: 'ama.mensah@goldline.example',
+          phone: '+233200000000',
+          address: 'Accra Industrial Area',
+          city: 'Accra',
+          country: 'Ghana',
+          taxId: 'GHA-TAX-001',
+          bankAccount: 'GCB-000111222',
+          paymentTerms: 'Net 30',
+          category: 'Consumables',
+          rating: 5,
+          isActive: true,
+          notes: 'Preferred supplier',
+        },
+      ];
+    }
+
+    if (module === 'employees') {
+      return [
+        {
+          employeeId: 'EMP-0001',
+          firstName: 'Kwame',
+          lastName: 'Owusu',
+          email: 'kwame.owusu@company.example',
+          phone: '+233201111111',
+          dateOfBirth: '1990-01-15',
+          gender: 'Male',
+          address: 'Tarkwa',
+          city: 'Tarkwa',
+          country: 'Ghana',
+          department: 'Operations',
+          position: 'Supervisor',
+          employmentType: 'FULL_TIME',
+          status: 'ACTIVE',
+          hireDate: '2024-01-01',
+          terminationDate: '',
+          salary: 5000,
+          supervisorId: '',
+          emergencyContact: 'Akosua Owusu',
+          emergencyPhone: '+233202222222',
+          notes: 'Sample employee',
+        },
+      ];
+    }
+
+    if (module === 'projects') {
+      return [
+        {
+          projectCode: 'PRJ-001',
+          name: 'Tarkwa Pit Expansion',
+          description: 'Phase 1 expansion',
+          status: 'PLANNING',
+          priority: 'HIGH',
+          location: 'Tarkwa',
+          startDate: '2025-01-01',
+          endDate: '2025-06-30',
+          estimatedBudget: 250000,
+          progress: 0,
+          managerId: '',
+          notes: 'Sample project',
+        },
+      ];
+    }
+
+    if (module === 'project_tasks') {
+      return [
+        {
+          title: 'Mobilize equipment',
+          description: 'Move excavator to site',
+          status: 'PENDING',
+          assignedTo: 'EMP-0001',
+          dueDate: '2025-01-10',
+          order: 1,
+        },
+      ];
+    }
+
+    return [
+      {
+        assetCode: 'AST-001',
+        name: 'CAT 320 Excavator',
+        description: 'Heavy equipment',
+        category: 'HEAVY_EQUIPMENT',
+        manufacturer: 'Caterpillar',
+        model: '320',
+        serialNumber: 'CAT320-XYZ',
+        purchaseDate: '2023-05-01',
+        purchasePrice: 750000,
+        currentValue: 700000,
+        depreciationRate: 0.15,
+        location: 'Tarkwa Site',
+        status: 'ACTIVE',
+        condition: 'GOOD',
+        assignedTo: 'Operations',
+        notes: 'Sample asset',
+        warrantyExpiry: '2026-05-01',
+        lastMaintenanceAt: '',
+        nextMaintenanceAt: '',
+      },
+    ];
   }
 }

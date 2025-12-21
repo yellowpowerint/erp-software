@@ -1,4 +1,12 @@
-export type CsvModule = 'inventory' | 'suppliers' | 'employees' | 'warehouses' | 'projects' | 'assets';
+export type CsvModule =
+  | 'inventory'
+  | 'inventory_movements'
+  | 'suppliers'
+  | 'employees'
+  | 'warehouses'
+  | 'projects'
+  | 'project_tasks'
+  | 'assets';
 
 export type ImportStatus = 'PENDING' | 'VALIDATING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 export type ExportStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
@@ -39,6 +47,7 @@ export interface ImportJob {
   errors?: any[];
   warnings?: any[];
   mappings?: any;
+  context?: any;
   createdById: string;
   startedAt?: string | null;
   completedAt?: string | null;
@@ -52,6 +61,7 @@ export interface ExportJob {
   storageProvider: string;
   filters?: any;
   columns: string[];
+  context?: any;
   totalRows: number;
   status: ExportStatus;
   fileUrl?: string | null;

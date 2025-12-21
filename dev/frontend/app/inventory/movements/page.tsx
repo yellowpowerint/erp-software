@@ -5,6 +5,9 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { TrendingUp, TrendingDown, Filter, RefreshCw } from 'lucide-react';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface StockMovement {
   id: string;
@@ -34,11 +37,14 @@ interface Warehouse {
 }
 
 function StockMovementsContent() {
+  const { user } = useAuth();
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [warehouseFilter, setWarehouseFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -80,6 +86,12 @@ function StockMovementsContent() {
     return typeConfig || { color: 'text-gray-600', bg: 'bg-gray-100', label: type };
   };
 
+  const canManage = user && ['SUPER_ADMIN', 'WAREHOUSE_MANAGER'].includes(user.role);
+
+  const exportFilters: any = {};
+  if (warehouseFilter !== 'ALL') exportFilters.warehouseId = warehouseFilter;
+  if (typeFilter !== 'ALL') exportFilters.movementType = typeFilter;
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -88,15 +100,50 @@ function StockMovementsContent() {
             <h1 className="text-2xl font-bold text-gray-900">Stock Movements</h1>
             <p className="text-gray-600 mt-1">Complete history of all inventory movements</p>
           </div>
-          <button
-            onClick={fetchData}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <RefreshCw className="w-5 h-5" />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {canManage && (
+              <>
+                <button
+                  onClick={() => setImportOpen(true)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+                >
+                  Import CSV
+                </button>
+                <button
+                  onClick={() => setExportOpen(true)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+                >
+                  Export CSV
+                </button>
+              </>
+            )}
+
+            <button
+              onClick={fetchData}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <RefreshCw className="w-5 h-5" />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        module="inventory_movements"
+        title="Import Inventory Movements"
+        context={warehouseFilter !== 'ALL' ? { warehouseId: warehouseFilter } : undefined}
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="inventory_movements"
+        title="Export Inventory Movements"
+        defaultFilters={exportFilters}
+      />
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">

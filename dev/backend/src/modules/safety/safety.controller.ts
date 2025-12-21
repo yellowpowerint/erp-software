@@ -1,9 +1,18 @@
-import { Controller, Get, Post, Put, Param, Query, Body } from "@nestjs/common";
+import { Controller, Get, Post, Put, Param, Query, Body, Res, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
+import { parse as json2csv } from "json2csv";
 import { SafetyService } from "./safety.service";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
 
 @Controller("safety")
 export class SafetyController {
-  constructor(private readonly safetyService: SafetyService) {}
+  constructor(
+    private readonly safetyService: SafetyService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // Inspections
   @Post("inspections")
@@ -153,5 +162,159 @@ export class SafetyController {
   @Get("stats")
   getSafetyStats() {
     return this.safetyService.getSafetyStats();
+  }
+
+  // ==================== CSV Exports (Session 17.2) ====================
+
+  @Get("export/inspections")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SAFETY_OFFICER", "OPERATIONS_MANAGER")
+  async exportSafetyInspections(
+    @Res({ passthrough: true }) res: Response,
+    @Query("type") type?: string,
+    @Query("status") status?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    const where: any = {};
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.scheduledDate = {};
+      if (startDate) where.scheduledDate.gte = new Date(startDate);
+      if (endDate) where.scheduledDate.lte = new Date(endDate);
+    }
+
+    const rows = await this.prisma.safetyInspection.findMany({ where, orderBy: { scheduledDate: "desc" } });
+    const fields = [
+      "inspectionId",
+      "type",
+      "status",
+      "title",
+      "location",
+      "equipmentId",
+      "assetId",
+      "scheduledDate",
+      "completedDate",
+      "inspectedBy",
+      "inspectorName",
+      "passed",
+      "score",
+      "findings",
+      "deficiencies",
+      "recommendations",
+      "actionRequired",
+      "correctiveActions",
+      "dueDate",
+      "notes",
+      "createdAt",
+    ];
+
+    const csv = json2csv(rows as any, { fields });
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=safety-inspections-export.csv`);
+    return csv;
+  }
+
+  @Get("export/incidents")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SAFETY_OFFICER", "OPERATIONS_MANAGER")
+  async exportSafetyIncidents(
+    @Res({ passthrough: true }) res: Response,
+    @Query("type") type?: string,
+    @Query("status") status?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    const where: any = {};
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.incidentDate = {};
+      if (startDate) where.incidentDate.gte = new Date(startDate);
+      if (endDate) where.incidentDate.lte = new Date(endDate);
+    }
+
+    const rows = await this.prisma.safetyIncident.findMany({ where, orderBy: { incidentDate: "desc" } });
+    const fields = [
+      "incidentNumber",
+      "type",
+      "severity",
+      "status",
+      "location",
+      "incidentDate",
+      "reportedBy",
+      "reportedAt",
+      "description",
+      "injuries",
+      "witnesses",
+      "photoUrls",
+      "rootCause",
+      "correctiveActions",
+      "oshaReportable",
+      "investigatedBy",
+      "investigatedAt",
+      "resolvedAt",
+      "notes",
+      "createdAt",
+    ];
+
+    const csv = json2csv(rows as any, { fields });
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=safety-incidents-export.csv`);
+    return csv;
+  }
+
+  @Get("export/training")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SAFETY_OFFICER", "HR_MANAGER")
+  async exportSafetyTraining(
+    @Res({ passthrough: true }) res: Response,
+    @Query("type") type?: string,
+    @Query("status") status?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    const where: any = {};
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.scheduledDate = {};
+      if (startDate) where.scheduledDate.gte = new Date(startDate);
+      if (endDate) where.scheduledDate.lte = new Date(endDate);
+    }
+
+    const rows = await this.prisma.safetyTraining.findMany({ where, orderBy: { scheduledDate: "desc" } });
+    const fields = [
+      "trainingId",
+      "type",
+      "status",
+      "title",
+      "description",
+      "location",
+      "duration",
+      "maxParticipants",
+      "scheduledDate",
+      "startTime",
+      "endTime",
+      "instructorId",
+      "instructorName",
+      "participants",
+      "completedBy",
+      "attendanceCount",
+      "passingScore",
+      "completed",
+      "completedDate",
+      "topics",
+      "materials",
+      "certificateUrl",
+      "notes",
+      "createdAt",
+    ];
+
+    const csv = json2csv(rows as any, { fields });
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=safety-training-export.csv`);
+    return csv;
   }
 }

@@ -6,6 +6,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Warehouse, Plus, MapPin, Package, CheckCircle, XCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface WarehouseItem {
   id: string;
@@ -25,6 +27,8 @@ function WarehousesContent() {
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchWarehouses();
@@ -66,17 +70,46 @@ function WarehousesContent() {
             <p className="text-gray-600 mt-1">Manage warehouse locations and inventory distribution</p>
           </div>
           {canManage && (
-            <button
-              onClick={seedDefaultWarehouses}
-              disabled={seeding || warehouses.length > 0}
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>{seeding ? 'Seeding...' : 'Seed Default Warehouses'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Import CSV
+              </button>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Export CSV
+              </button>
+              <button
+                onClick={seedDefaultWarehouses}
+                disabled={seeding || warehouses.length > 0}
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>{seeding ? 'Seeding...' : 'Seed Default Warehouses'}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        module="warehouses"
+        title="Import Warehouses"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="warehouses"
+        title="Export Warehouses"
+        defaultFilters={{}}
+      />
 
       {loading ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">

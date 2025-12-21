@@ -7,6 +7,8 @@ import { Package, Plus, Search, Filter, Eye, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface StockItem {
   id: string;
@@ -36,6 +38,8 @@ function StockItemsContent() {
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [warehouseFilter, setWarehouseFilter] = useState('ALL');
   const [lowStockFilter, setLowStockFilter] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -83,6 +87,10 @@ function StockItemsContent() {
 
   const categories = ['CONSUMABLES', 'EQUIPMENT', 'SPARE_PARTS', 'TOOLS', 'FUEL', 'CHEMICALS', 'SAFETY_GEAR', 'OFFICE_SUPPLIES', 'OTHER'];
 
+  const exportFilters: any = {};
+  if (warehouseFilter !== 'ALL') exportFilters.warehouseId = warehouseFilter;
+  if (categoryFilter !== 'ALL') exportFilters.category = categoryFilter;
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -92,16 +100,45 @@ function StockItemsContent() {
             <p className="text-gray-600 mt-1">Manage inventory items across all warehouses</p>
           </div>
           {canManage && (
-            <Link
-              href="/inventory/items/new"
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Add Stock Item</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Import CSV
+              </button>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Export CSV
+              </button>
+              <Link
+                href="/inventory/items/new"
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Stock Item</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        module="inventory"
+        title="Import Inventory Items"
+        context={warehouseFilter !== 'ALL' ? { warehouseId: warehouseFilter } : undefined}
+      />
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="inventory"
+        title="Export Inventory Items"
+        defaultFilters={exportFilters}
+      />
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">

@@ -7,6 +7,8 @@ import { Users, Plus, ArrowLeft, Filter, Star, Phone, Mail, MapPin } from 'lucid
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface Supplier {
   id: string;
@@ -33,6 +35,8 @@ function SuppliersPageContent() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('true');
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchSuppliers();
@@ -77,6 +81,9 @@ function SuppliersPageContent() {
   const inactiveCount = suppliers.filter(s => !s.isActive).length;
   const avgRating = suppliers.filter(s => s.rating).reduce((sum, s) => sum + (s.rating || 0), 0) / suppliers.filter(s => s.rating).length || 0;
 
+  const exportFilters: any = {};
+  if (statusFilter) exportFilters.isActive = statusFilter === 'true';
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -101,16 +108,45 @@ function SuppliersPageContent() {
             <p className="text-gray-600 mt-1">Manage supplier and vendor information</p>
           </div>
           {canCreate && (
-            <Link
-              href="/finance/suppliers/new"
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              <Plus className="w-5 h-5" />
-              <span>New Supplier</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Import CSV
+              </button>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-sm"
+              >
+                Export CSV
+              </button>
+              <Link
+                href="/finance/suppliers/new"
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                <Plus className="w-5 h-5" />
+                <span>New Supplier</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        module="suppliers"
+        title="Import Suppliers"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="suppliers"
+        title="Export Suppliers"
+        defaultFilters={exportFilters}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
