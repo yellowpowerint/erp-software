@@ -1696,6 +1696,8 @@ model MaintenanceRecord {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  breakdownLogs    BreakdownLog[]
+
   @@index([assetId])
   @@index([scheduleId])
   @@index([status])
@@ -1937,6 +1939,7 @@ model Project {
   payments       FinancePayment[]
   expenses       Expense[]
   budgets        Budget[]
+  usageLogs      UsageLog[]
 
   @@index([status])
   @@index([priority])
