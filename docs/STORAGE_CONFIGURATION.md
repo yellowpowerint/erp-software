@@ -18,18 +18,66 @@ The system uses a **pluggable storage architecture** via `StorageService` that s
 ### Supported Storage Providers
 
 1. **LOCAL** - File system storage (development only)
-2. **S3** - AWS S3 object storage (recommended for production)
+2. **S3** - AWS S3 and S3-compatible services (Cloudflare R2, Backblaze B2)
 3. **CLOUDINARY** - Placeholder (not yet implemented)
 
-## ⚠️ Critical: Render Deployment Requires S3
+## ⚠️ Critical: Render Deployment Requires Cloud Storage
 
 **Render uses ephemeral containers** - the filesystem is wiped on every deploy or container restart. This means:
 
 - ❌ **LOCAL storage will NOT work on Render**
 - ❌ All uploaded files will be lost on redeploy
-- ✅ **You MUST use S3 for production on Render**
+- ✅ **You MUST use cloud storage (R2/B2/S3) for production on Render**
 
-## Production Setup: AWS S3
+## 🎯 Recommended: Cloudflare R2 (Free Tier)
+
+**Best choice for most deployments:**
+- ✅ **10 GB storage free forever**
+- ✅ **10M reads + 1M writes per month free**
+- ✅ **Zero egress fees** (unlimited downloads!)
+- ✅ **5-minute setup**
+- ✅ **S3-compatible** (no code changes)
+
+👉 **[See detailed R2 setup guide](./CLOUDFLARE_R2_SETUP.md)**
+
+### Quick R2 Setup
+
+1. Sign up at cloudflare.com (free)
+2. Enable R2 → Create bucket
+3. Generate API token
+4. Add to Render environment:
+
+```env
+STORAGE_PROVIDER=s3
+AWS_REGION=auto
+AWS_ACCESS_KEY_ID=<your-r2-access-key>
+AWS_SECRET_ACCESS_KEY=<your-r2-secret-key>
+AWS_S3_BUCKET=<your-bucket-name>
+S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+BASE_URL=https://erp-software-mbx9.onrender.com
+```
+
+## Alternative: Backblaze B2 (Free Tier)
+
+**Good alternative with similar free tier:**
+- ✅ **10 GB storage free**
+- ✅ **1 GB/day download free** (~30GB/month)
+- ✅ **S3-compatible**
+- After free tier: $0.006/GB storage, $0.01/GB egress
+
+### Quick B2 Setup
+
+```env
+STORAGE_PROVIDER=s3
+AWS_REGION=us-west-004
+AWS_ACCESS_KEY_ID=<your-b2-key-id>
+AWS_SECRET_ACCESS_KEY=<your-b2-app-key>
+AWS_S3_BUCKET=<your-b2-bucket>
+S3_ENDPOINT=https://s3.us-west-004.backblazeb2.com
+BASE_URL=https://erp-software-mbx9.onrender.com
+```
+
+## Alternative: AWS S3
 
 ### Step 1: Create S3 Bucket
 

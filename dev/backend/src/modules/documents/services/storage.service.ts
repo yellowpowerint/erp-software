@@ -57,17 +57,27 @@ export class StorageService {
       const secretAccessKey = this.configService.get<string>(
         "AWS_SECRET_ACCESS_KEY",
       );
+      const endpoint = this.configService.get<string>("S3_ENDPOINT");
 
       if (region && accessKeyId && secretAccessKey) {
-        this.s3Client = new S3Client({
+        const s3Config: any = {
           region,
           credentials: {
             accessKeyId,
             secretAccessKey,
           },
-        });
+        };
+
+        // Support for S3-compatible services (Cloudflare R2, Backblaze B2, etc.)
+        if (endpoint) {
+          s3Config.endpoint = endpoint;
+          this.logger.log(`S3-compatible storage initialized with endpoint: ${endpoint}`);
+        } else {
+          this.logger.log("AWS S3 storage initialized");
+        }
+
+        this.s3Client = new S3Client(s3Config);
         this.provider = StorageProvider.S3;
-        this.logger.log("S3 storage initialized");
       } else {
         this.logger.warn(
           "S3 credentials not found, falling back to local storage",
