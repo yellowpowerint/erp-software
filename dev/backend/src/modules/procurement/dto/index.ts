@@ -28,3 +28,15 @@ export * from "./update-rfq-response.dto";
 export * from "./create-purchase-order.dto";
 export * from "./update-purchase-order.dto";
 export * from "./cancel-purchase-order.dto";
+
+export * from "./create-goods-receipt.dto";
+export * from "./update-goods-receipt.dto";
+export * from "./submit-quality-inspection.dto";
+export * from "./accept-goods-receipt.dto";
+export * from "./reject-goods-receipt.dto";
+
+export * from "./create-vendor-invoice.dto";
+export * from "./match-vendor-invoice.dto";
+export * from "./approve-vendor-invoice.dto";
+export * from "./dispute-vendor-invoice.dto";
+export * from "./record-vendor-payment.dto";

@@ -14,6 +14,13 @@ import { RFQsController } from "./rfqs.controller";
 import { RFQsService } from "./rfqs.service";
 import { PurchaseOrdersController } from "./purchase-orders.controller";
 import { PurchaseOrdersService } from "./purchase-orders.service";
+import { GoodsReceiptsController } from "./goods-receipts.controller";
+import { GoodsReceiptsService } from "./goods-receipts.service";
+import { InvoicesController } from "./invoices.controller";
+import { InvoicesService } from "./invoices.service";
+import { PaymentsController } from "./payments.controller";
+import { PaymentsService } from "./payments.service";
+import { ThreeWayMatchingService } from "./three-way-matching.service";
 
 @Module({
   imports: [PrismaModule, NotificationsModule, DocumentsModule],
@@ -24,6 +31,9 @@ import { PurchaseOrdersService } from "./purchase-orders.service";
     VendorsController,
     RFQsController,
     PurchaseOrdersController,
+    GoodsReceiptsController,
+    InvoicesController,
+    PaymentsController,
   ],
   providers: [
     RequisitionsService,
@@ -32,6 +42,10 @@ import { PurchaseOrdersService } from "./purchase-orders.service";
     VendorsService,
     RFQsService,
     PurchaseOrdersService,
+    GoodsReceiptsService,
+    ThreeWayMatchingService,
+    InvoicesService,
+    PaymentsService,
   ],
   exports: [
     RequisitionsService,
@@ -40,6 +54,10 @@ import { PurchaseOrdersService } from "./purchase-orders.service";
     VendorsService,
     RFQsService,
     PurchaseOrdersService,
+    GoodsReceiptsService,
+    ThreeWayMatchingService,
+    InvoicesService,
+    PaymentsService,
   ],
 })
 export class ProcurementModule {}

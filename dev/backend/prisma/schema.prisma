@@ -178,6 +178,12 @@ model User {
   posCreated  PurchaseOrder[] @relation("POCreator")
   posApproved PurchaseOrder[] @relation("POApprover")
 
+  goodsReceiptsReceived GoodsReceipt[] @relation("GoodsReceiver")
+  qualityInspections    QualityInspection[] @relation("QualityInspector")
+  vendorInvoicesMatched VendorInvoice[] @relation("InvoiceMatcher")
+  vendorInvoicesApproved VendorInvoice[] @relation("VendorInvoiceApprover")
+  vendorPaymentsProcessed VendorPayment[] @relation("PaymentProcessor")
+
   documentComments         DocumentComment[]    @relation("CommentAuthor")
   resolvedDocumentComments DocumentComment[]    @relation("CommentResolver")
   documentAnnotations      DocumentAnnotation[] @relation("AnnotationAuthor")
@@ -527,6 +533,7 @@ model Vendor {
   rfqInvites     RFQVendorInvite[]
   rfqResponses   RFQResponse[]
   purchaseOrders PurchaseOrder[]
+  invoices       VendorInvoice[]
   portalUsers    User[] @relation("VendorPortalUser")
 
   createdById String
@@ -641,6 +648,44 @@ enum POStatus {
 }
 
 enum PurchaseOrderPaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+enum ReceiptStatus {
+  PENDING_INSPECTION
+  INSPECTING
+  ACCEPTED
+  PARTIALLY_ACCEPTED
+  REJECTED
+}
+
+enum ItemCondition {
+  GOOD
+  DAMAGED
+  DEFECTIVE
+  WRONG_ITEM
+}
+
+enum InspectionResult {
+  PASSED
+  PASSED_WITH_NOTES
+  FAILED
+  PENDING_REVIEW
+}
+
+enum MatchStatus {
+  PENDING
+  MATCHED
+  PARTIAL_MATCH
+  MISMATCH
+  DISPUTED
+  RESOLVED
+}
+
+enum VendorInvoicePaymentStatus {
   UNPAID
   PARTIALLY_PAID
   PAID
@@ -801,6 +846,9 @@ model PurchaseOrder {
 
   items PurchaseOrderItem[]
 
+  receipts GoodsReceipt[]
+  vendorInvoices VendorInvoice[]
+
   createdById String
   createdBy   User     @relation("POCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -826,9 +874,169 @@ model PurchaseOrderItem {
   stockItemId     String?
   stockItem       StockItem?    @relation(fields: [stockItemId], references: [id])
 
+  goodsReceiptItems GoodsReceiptItem[]
+  vendorInvoiceItems VendorInvoiceItem[]
+
   @@index([purchaseOrderId])
   @@index([stockItemId])
   @@map("purchase_order_items")
+}
+
+model GoodsReceipt {
+  id              String        @id @default(uuid())
+  grnNumber       String        @unique
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  receivedDate    DateTime      @default(now())
+  receivedById    String
+  receivedBy      User          @relation("GoodsReceiver", fields: [receivedById], references: [id])
+
+  warehouseId  String?
+  siteLocation String
+
+  deliveryNote  String?
+  carrierName   String?
+  vehicleNumber String?
+  driverName    String?
+
+  status ReceiptStatus @default(PENDING_INSPECTION)
+
+  items       GoodsReceiptItem[]
+  inspections QualityInspection[]
+
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([purchaseOrderId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id             String       @id @default(uuid())
+  goodsReceiptId String
+  goodsReceipt   GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  poItemId       String
+  poItem         PurchaseOrderItem @relation(fields: [poItemId], references: [id])
+  itemName       String
+  orderedQty     Decimal      @db.Decimal(10, 2)
+  receivedQty    Decimal      @db.Decimal(10, 2)
+  acceptedQty    Decimal      @default(0) @db.Decimal(10, 2)
+  rejectedQty    Decimal      @default(0) @db.Decimal(10, 2)
+  unit           String
+  condition      ItemCondition @default(GOOD)
+  notes          String?
+
+  @@index([goodsReceiptId])
+  @@index([poItemId])
+  @@map("goods_receipt_items")
+}
+
+model QualityInspection {
+  id             String       @id @default(uuid())
+  goodsReceiptId String
+  goodsReceipt   GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  inspectorId    String
+  inspector      User         @relation("QualityInspector", fields: [inspectorId], references: [id])
+  inspectionDate DateTime     @default(now())
+
+  overallResult InspectionResult
+  qualityScore  Int?
+
+  visualCheck   Boolean @default(false)
+  quantityCheck Boolean @default(false)
+  specCheck     Boolean @default(false)
+  documentCheck Boolean @default(false)
+  safetyCheck   Boolean @default(false)
+
+  findings        String?
+  recommendations String?
+  photos          String[]
+
+  @@index([goodsReceiptId])
+  @@index([inspectorId])
+  @@map("quality_inspections")
+}
+
+model VendorInvoice {
+  id              String     @id @default(uuid())
+  invoiceNumber   String
+  vendorId        String
+  vendor          Vendor     @relation(fields: [vendorId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  subtotal    Decimal @db.Decimal(15, 2)
+  taxAmount   Decimal @default(0) @db.Decimal(15, 2)
+  totalAmount Decimal @db.Decimal(15, 2)
+  currency    String  @default("GHS")
+
+  invoiceDate  DateTime
+  dueDate      DateTime
+  receivedDate DateTime @default(now())
+
+  matchStatus MatchStatus @default(PENDING)
+  matchedAt   DateTime?
+  matchedById String?
+  matchedBy   User? @relation("InvoiceMatcher", fields: [matchedById], references: [id])
+
+  priceVariance    Decimal @default(0) @db.Decimal(15, 2)
+  quantityVariance Decimal @default(0) @db.Decimal(10, 2)
+  discrepancyNotes String?
+
+  approvedForPayment Boolean @default(false)
+  approvedAt         DateTime?
+  approvedById       String?
+  approvedBy         User? @relation("VendorInvoiceApprover", fields: [approvedById], references: [id])
+
+  paymentStatus VendorInvoicePaymentStatus @default(UNPAID)
+  paidAmount    Decimal @default(0) @db.Decimal(15, 2)
+  paidAt        DateTime?
+
+  invoiceDocument String?
+
+  items    VendorInvoiceItem[]
+  payments VendorPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([vendorId, invoiceNumber])
+  @@index([matchStatus])
+  @@index([purchaseOrderId])
+  @@map("vendor_invoices")
+}
+
+model VendorInvoiceItem {
+  id          String       @id @default(uuid())
+  invoiceId   String
+  invoice     VendorInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal      @db.Decimal(10, 2)
+  unitPrice   Decimal      @db.Decimal(15, 2)
+  totalPrice  Decimal      @db.Decimal(15, 2)
+  poItemId    String?
+  poItem      PurchaseOrderItem? @relation(fields: [poItemId], references: [id])
+
+  @@index([invoiceId])
+  @@index([poItemId])
+  @@map("vendor_invoice_items")
+}
+
+model VendorPayment {
+  id            String       @id @default(uuid())
+  invoiceId     String
+  invoice       VendorInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount        Decimal      @db.Decimal(15, 2)
+  paymentDate   DateTime
+  paymentMethod String
+  reference     String?
+  processedById String
+  processedBy   User         @relation("PaymentProcessor", fields: [processedById], references: [id])
+  notes         String?
+
+  @@index([invoiceId])
+  @@index([processedById])
+  @@map("vendor_payments")
 }
 
 model ApprovalHistory {
