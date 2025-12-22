@@ -21,6 +21,7 @@ enum UserRole {
   SAFETY_OFFICER
   WAREHOUSE_MANAGER
   EMPLOYEE
+  VENDOR
 }
 
 enum UserStatus {
@@ -117,6 +118,8 @@ model User {
   status     UserStatus @default(ACTIVE)
   department String?
   position   String?
+  vendorId   String?
+  vendor     Vendor?    @relation("VendorPortalUser", fields: [vendorId], references: [id])
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   lastLogin  DateTime?
@@ -170,6 +173,10 @@ model User {
   vendorsCreated          Vendor[]          @relation("VendorCreator")
   vendorDocumentsUploaded VendorDocument[]  @relation("VendorDocumentUploader")
   vendorEvaluations       VendorEvaluation[] @relation("VendorEvaluator")
+
+  rfqsCreated RFQ[] @relation("RFQCreator")
+  posCreated  PurchaseOrder[] @relation("POCreator")
+  posApproved PurchaseOrder[] @relation("POApprover")
 
   documentComments         DocumentComment[]    @relation("CommentAuthor")
   resolvedDocumentComments DocumentComment[]    @relation("CommentResolver")
@@ -311,6 +318,8 @@ model Requisition {
   items           RequisitionItem[]
   attachments     RequisitionAttachment[]
   approvalHistory RequisitionApproval[]
+  rfqs            RFQ[]
+  purchaseOrders  PurchaseOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -515,6 +524,11 @@ model Vendor {
   products    VendorProduct[]
   evaluations VendorEvaluation[]
 
+  rfqInvites     RFQVendorInvite[]
+  rfqResponses   RFQResponse[]
+  purchaseOrders PurchaseOrder[]
+  portalUsers    User[] @relation("VendorPortalUser")
+
   createdById String
   createdBy   User     @relation("VendorCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -595,6 +609,226 @@ model VendorEvaluation {
   @@index([evaluatorId])
   @@index([evaluatedAt])
   @@map("vendor_evaluations")
+}
+
+enum RFQStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  EVALUATING
+  AWARDED
+  CANCELLED
+}
+
+enum RFQResponseStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  SHORTLISTED
+  SELECTED
+  REJECTED
+}
+
+enum POStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  ACKNOWLEDGED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+enum PurchaseOrderPaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+model RFQ {
+  id               String     @id @default(uuid())
+  rfqNumber        String     @unique
+  title            String
+  description      String?
+  requisitionId    String?
+  requisition      Requisition? @relation(fields: [requisitionId], references: [id])
+  status           RFQStatus  @default(DRAFT)
+
+  issueDate        DateTime?
+  responseDeadline DateTime
+  validityPeriod   Int        @default(30)
+
+  deliveryLocation  String
+  deliveryTerms     String?
+  paymentTerms      String?
+  specialConditions String?
+
+  siteAccess          String?
+  safetyRequirements  String?
+  technicalSpecs      String?
+
+  items          RFQItem[]
+  invitedVendors RFQVendorInvite[]
+  responses      RFQResponse[]
+  selectedResponseId String?
+
+  createdById String
+  createdBy   User   @relation("RFQCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([requisitionId])
+  @@map("rfqs")
+}
+
+model RFQItem {
+  id             String   @id @default(uuid())
+  rfqId          String
+  rfq            RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  itemName       String
+  description    String?
+  specifications String?
+  quantity       Decimal  @db.Decimal(10, 2)
+  unit           String
+  estimatedPrice Decimal? @db.Decimal(15, 2)
+
+  responseItems  RFQResponseItem[]
+
+  @@index([rfqId])
+  @@map("rfq_items")
+}
+
+model RFQVendorInvite {
+  id        String   @id @default(uuid())
+  rfqId     String
+  rfq       RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  invitedAt DateTime @default(now())
+  viewedAt  DateTime?
+  status    String   @default("INVITED")
+
+  @@unique([rfqId, vendorId])
+  @@index([vendorId])
+  @@map("rfq_vendor_invites")
+}
+
+model RFQResponse {
+  id          String            @id @default(uuid())
+  rfqId       String
+  rfq         RFQ               @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendorId    String
+  vendor      Vendor            @relation(fields: [vendorId], references: [id])
+  status      RFQResponseStatus @default(SUBMITTED)
+
+  totalAmount Decimal @db.Decimal(15, 2)
+  currency    String  @default("GHS")
+  validUntil  DateTime
+
+  deliveryDays Int
+  paymentTerms String?
+  warranty     String?
+
+  quotationDoc String?
+  technicalDoc String?
+
+  technicalScore  Decimal? @db.Decimal(5, 2)
+  commercialScore Decimal? @db.Decimal(5, 2)
+  overallScore    Decimal? @db.Decimal(5, 2)
+  evaluationNotes String?
+
+  items       RFQResponseItem[]
+  purchaseOrders PurchaseOrder[]
+  submittedAt DateTime @default(now())
+  evaluatedAt DateTime?
+
+  @@unique([rfqId, vendorId])
+  @@index([vendorId])
+  @@map("rfq_responses")
+}
+
+model RFQResponseItem {
+  id           String      @id @default(uuid())
+  responseId   String
+  response     RFQResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  rfqItemId    String
+  rfqItem      RFQItem     @relation(fields: [rfqItemId], references: [id])
+  unitPrice    Decimal     @db.Decimal(15, 2)
+  totalPrice   Decimal     @db.Decimal(15, 2)
+  leadTimeDays Int?
+  notes        String?
+
+  @@index([responseId])
+  @@index([rfqItemId])
+  @@map("rfq_response_items")
+}
+
+model PurchaseOrder {
+  id            String    @id @default(uuid())
+  poNumber      String    @unique
+  requisitionId String?
+  requisition   Requisition? @relation(fields: [requisitionId], references: [id])
+  rfqResponseId String?
+  rfqResponse   RFQResponse? @relation(fields: [rfqResponseId], references: [id])
+
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+
+  status POStatus @default(DRAFT)
+
+  subtotal       Decimal @db.Decimal(15, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(15, 2)
+  discountAmount Decimal @default(0) @db.Decimal(15, 2)
+  shippingCost   Decimal @default(0) @db.Decimal(15, 2)
+  totalAmount    Decimal @db.Decimal(15, 2)
+  currency       String  @default("GHS")
+
+  deliveryAddress  String
+  deliverySite     String?
+  expectedDelivery DateTime
+  actualDelivery   DateTime?
+  deliveryTerms    String?
+
+  paymentTerms  Int                     @default(30)
+  paymentStatus PurchaseOrderPaymentStatus @default(UNPAID)
+
+  approvedById String?
+  approvedBy   User? @relation("POApprover", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
+
+  items PurchaseOrderItem[]
+
+  createdById String
+  createdBy   User     @relation("POCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([vendorId])
+  @@index([requisitionId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  itemName        String
+  description     String?
+  quantity        Decimal       @db.Decimal(10, 2)
+  unit            String
+  unitPrice       Decimal       @db.Decimal(15, 2)
+  totalPrice      Decimal       @db.Decimal(15, 2)
+  receivedQty     Decimal       @default(0) @db.Decimal(10, 2)
+  stockItemId     String?
+  stockItem       StockItem?    @relation(fields: [stockItemId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@index([stockItemId])
+  @@map("purchase_order_items")
 }
 
 model ApprovalHistory {
@@ -854,6 +1088,7 @@ model StockItem {
 
   movements        StockMovement[]
   requisitionItems RequisitionItem[]
+  purchaseOrderItems PurchaseOrderItem[]
 
   @@index([category])
   @@index([warehouseId])

@@ -319,6 +319,20 @@ export const menuItems: MenuItem[] = [
         path: '/procurement/vendors',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER, UserRole.WAREHOUSE_MANAGER, UserRole.SAFETY_OFFICER],
       },
+      {
+        id: 'procurement-rfqs',
+        label: 'RFQs',
+        icon: FileText,
+        path: '/procurement/rfqs',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.VENDOR],
+      },
+      {
+        id: 'procurement-purchase-orders',
+        label: 'Purchase Orders',
+        icon: FileText,
+        path: '/procurement/purchase-orders',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.VENDOR],
+      },
     ],
   },
   {

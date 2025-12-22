@@ -125,10 +125,14 @@ export class PdfGeneratorService {
     poId: string,
     options: PDFGenerationOptions = {},
   ): Promise<Buffer> {
-    const po = await this.prisma.purchaseRequest.findUnique({
+    const po = await (this.prisma as any).purchaseOrder.findUnique({
       where: { id: poId },
       include: {
+        vendor: true,
+        items: true,
         createdBy: true,
+        approvedBy: true,
+        requisition: true,
       },
     });
 
@@ -137,17 +141,19 @@ export class PdfGeneratorService {
     }
 
     return this.createPDF(async (doc) => {
-      await this.addHeader(doc, "PURCHASE REQUEST");
+      await this.addHeader(doc, "PURCHASE ORDER");
 
       // PR details
       doc.fontSize(10);
-      doc.text(`Request Number: ${po.requestNumber}`, 50, 150);
+      doc.text(`PO Number: ${po.poNumber}`, 50, 150);
       doc.text(`Date: ${new Date(po.createdAt).toLocaleDateString()}`, 50, 165);
       doc.text(`Status: ${po.status}`, 50, 180);
-      doc.text(`Urgency: ${po.urgency}`, 50, 195);
+      if (po.requisition?.requisitionNo) {
+        doc.text(`Requisition: ${po.requisition.requisitionNo}`, 50, 195);
+      }
 
       // Requester info
-      doc.fontSize(12).text("Requested By", 50, 230, { underline: true });
+      doc.fontSize(12).text("Created By", 50, 230, { underline: true });
       doc.fontSize(10);
       doc.text(
         `Name: ${po.createdBy.firstName} ${po.createdBy.lastName}`,
@@ -158,43 +164,63 @@ export class PdfGeneratorService {
         doc.text(`Department: ${po.createdBy.department}`, 50, 265);
       }
 
+      if (po.approvedBy) {
+        doc.text(
+          `Approved By: ${po.approvedBy.firstName} ${po.approvedBy.lastName}`,
+          50,
+          280,
+        );
+        if (po.approvedAt) {
+          doc.text(
+            `Approved At: ${new Date(po.approvedAt).toLocaleDateString()}`,
+            50,
+            295,
+          );
+        }
+      }
+
       // Request details
-      doc.fontSize(12).text("Request Details", 50, 300, { underline: true });
+      doc.fontSize(12).text("Vendor & Delivery", 50, 330, { underline: true });
       doc.fontSize(10);
-      doc.text(`Title: ${po.title}`, 50, 320);
-      doc.text(`Category: ${po.category}`, 50, 335);
-      doc.text(`Quantity: ${po.quantity}`, 50, 350);
+      doc.text(`Vendor: ${po.vendor?.companyName || "-"}`, 50, 350);
+      doc.text(`Vendor Code: ${po.vendor?.vendorCode || "-"}`, 50, 365);
+      doc.text(`Delivery Address: ${po.deliveryAddress}`, 50, 380, { width: 500 });
       doc.text(
-        `Estimated Cost: ₵${po.estimatedCost.toFixed(2)} ${po.currency}`,
+        `Expected Delivery: ${new Date(po.expectedDelivery).toLocaleDateString()}`,
         50,
-        365,
+        410,
       );
+      if (po.deliveryTerms) {
+        doc.text(`Delivery Terms: ${po.deliveryTerms}`, 50, 425, { width: 500 });
+      }
 
       // Description
-      doc.fontSize(12).text("Description", 50, 400, { underline: true });
+      doc.fontSize(12).text("Items", 50, 460, { underline: true });
       doc.fontSize(9);
-      doc.text(po.description, 50, 420, { width: 500 });
+      let y = 480;
+      const items = (po.items || []) as any[];
+      for (const item of items.slice(0, 25)) {
+        const line = `${item.itemName} | Qty: ${item.quantity} ${item.unit} | Unit: ${po.currency} ${Number(item.unitPrice).toFixed(2)} | Total: ${po.currency} ${Number(item.totalPrice).toFixed(2)}`;
+        doc.text(line, 50, y, { width: 500 });
+        y += 14;
+        if (y > 680) break;
+      }
 
       // Justification
-      if (po.justification) {
-        doc.fontSize(12).font("Helvetica");
-        doc.text("Justification:", 50, 480, { underline: true });
-        doc.fontSize(9);
-        doc.text(po.justification, 50, 500, { width: 500 });
-      }
+      doc.fontSize(12).font("Helvetica");
+      doc.text("Totals:", 50, 700, { underline: true });
+      doc.fontSize(10);
+      doc.text(`Subtotal: ${po.currency} ${Number(po.subtotal).toFixed(2)}`, 50, 720);
+      doc.text(`Tax: ${po.currency} ${Number(po.taxAmount).toFixed(2)}`, 50, 735);
+      doc.text(`Discount: ${po.currency} ${Number(po.discountAmount).toFixed(2)}`, 50, 750);
+      doc.text(`Shipping: ${po.currency} ${Number(po.shippingCost).toFixed(2)}`, 300, 720);
+      doc.text(`Total: ${po.currency} ${Number(po.totalAmount).toFixed(2)}`, 300, 735);
 
       // Supplier suggestion
-      if (po.supplierSuggestion) {
-        doc.fontSize(12).font("Helvetica");
-        doc.text("Supplier Suggestion:", 50, 560, { underline: true });
-        doc.fontSize(9);
-        doc.text(po.supplierSuggestion, 50, 580, { width: 500 });
-      }
-
       if (options.includeQRCode) {
         this.addQRCode(
           doc,
-          options.qrCodeData || `PR-${po.requestNumber}`,
+          options.qrCodeData || `PO-${po.poNumber}`,
           450,
           650,
         );

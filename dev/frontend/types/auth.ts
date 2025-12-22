@@ -11,6 +11,7 @@ export enum UserRole {
   SAFETY_OFFICER = 'SAFETY_OFFICER',
   WAREHOUSE_MANAGER = 'WAREHOUSE_MANAGER',
   EMPLOYEE = 'EMPLOYEE',
+  VENDOR = 'VENDOR',
 }
 
 export enum UserStatus {
@@ -29,6 +30,7 @@ export interface User {
   status: UserStatus;
   department?: string;
   position?: string;
+  vendorId?: string;
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
