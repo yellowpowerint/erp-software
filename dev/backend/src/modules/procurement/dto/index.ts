@@ -40,3 +40,7 @@ export * from "./match-vendor-invoice.dto";
 export * from "./approve-vendor-invoice.dto";
 export * from "./dispute-vendor-invoice.dto";
 export * from "./record-vendor-payment.dto";
+
+export * from "./inventory-sync.dto";
+export * from "./auto-requisition.dto";
+export * from "./check-availability.dto";

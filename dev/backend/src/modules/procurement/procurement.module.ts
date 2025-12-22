@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { PrismaModule } from "../../common/prisma/prisma.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { DocumentsModule } from "../documents/documents.module";
+import { InventoryModule } from "../inventory/inventory.module";
 import { RequisitionsController } from "./requisitions.controller";
 import { RequisitionsService } from "./requisitions.service";
 import { ProcurementWorkflowsController } from "./procurement-workflows.controller";
@@ -21,9 +22,15 @@ import { InvoicesService } from "./invoices.service";
 import { PaymentsController } from "./payments.controller";
 import { PaymentsService } from "./payments.service";
 import { ThreeWayMatchingService } from "./three-way-matching.service";
+import { ProcurementDashboardController } from "./procurement-dashboard.controller";
+import { ProcurementDashboardService } from "./procurement-dashboard.service";
+import { ProcurementReportsController } from "./procurement-reports.controller";
+import { ProcurementReportsService } from "./procurement-reports.service";
+import { ProcurementInventoryController } from "./procurement-inventory.controller";
+import { InventoryIntegrationService } from "./inventory-integration.service";
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, DocumentsModule],
+  imports: [PrismaModule, NotificationsModule, DocumentsModule, InventoryModule],
   controllers: [
     RequisitionsController,
     ProcurementWorkflowsController,
@@ -34,6 +41,9 @@ import { ThreeWayMatchingService } from "./three-way-matching.service";
     GoodsReceiptsController,
     InvoicesController,
     PaymentsController,
+    ProcurementDashboardController,
+    ProcurementReportsController,
+    ProcurementInventoryController,
   ],
   providers: [
     RequisitionsService,
@@ -46,6 +56,9 @@ import { ThreeWayMatchingService } from "./three-way-matching.service";
     ThreeWayMatchingService,
     InvoicesService,
     PaymentsService,
+    ProcurementDashboardService,
+    ProcurementReportsService,
+    InventoryIntegrationService,
   ],
   exports: [
     RequisitionsService,
@@ -58,6 +71,9 @@ import { ThreeWayMatchingService } from "./three-way-matching.service";
     ThreeWayMatchingService,
     InvoicesService,
     PaymentsService,
+    ProcurementDashboardService,
+    ProcurementReportsService,
+    InventoryIntegrationService,
   ],
 })
 export class ProcurementModule {}

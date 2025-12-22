@@ -285,6 +285,27 @@ export const menuItems: MenuItem[] = [
         roles: [UserRole.SUPER_ADMIN, UserRole.CFO, UserRole.PROCUREMENT_OFFICER],
       },
       {
+        id: 'procurement-dashboard',
+        label: 'Procurement Dashboard',
+        icon: BarChart3,
+        path: '/procurement',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.WAREHOUSE_MANAGER],
+      },
+      {
+        id: 'procurement-reports',
+        label: 'Procurement Reports',
+        icon: BarChart3,
+        path: '/procurement/reports',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER, UserRole.WAREHOUSE_MANAGER],
+      },
+      {
+        id: 'procurement-analytics',
+        label: 'Procurement Analytics',
+        icon: TrendingUp,
+        path: '/procurement/analytics',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.ACCOUNTANT, UserRole.PROCUREMENT_OFFICER, UserRole.OPERATIONS_MANAGER],
+      },
+      {
         id: 'procurement-requisitions',
         label: 'Requisitions',
         icon: ClipboardCheck,

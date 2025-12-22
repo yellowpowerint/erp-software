@@ -905,9 +905,11 @@ model GoodsReceipt {
   inspections QualityInspection[]
 
   notes     String?
+  inventorySyncedAt DateTime?
   createdAt DateTime @default(now())
 
   @@index([purchaseOrderId])
+  @@index([inventorySyncedAt])
   @@map("goods_receipts")
 }
 
@@ -1286,6 +1288,7 @@ model StockItem {
   warehouseId     String
   warehouse       Warehouse     @relation(fields: [warehouseId], references: [id])
   currentQuantity Int           @default(0)
+  reservedQuantity Int          @default(0)
   barcode         String?
   supplier        String?
   expiryDate      DateTime?
@@ -1301,6 +1304,7 @@ model StockItem {
   @@index([category])
   @@index([warehouseId])
   @@index([currentQuantity])
+  @@index([reservedQuantity])
   @@index([expiryDate])
   @@map("stock_items")
 }

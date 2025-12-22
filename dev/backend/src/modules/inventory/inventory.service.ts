@@ -298,37 +298,35 @@ export class InventoryService {
   async getInventoryStats(warehouseId?: string) {
     const where = warehouseId ? { warehouseId } : {};
 
-    const [totalItems, lowStockItems, outOfStockItems, totalValue] =
-      await Promise.all([
-        this.prisma.stockItem.count({ where }),
-        this.prisma.stockItem.count({
-          where: {
-            ...where,
-            currentQuantity: { lte: this.prisma.stockItem.fields.reorderLevel },
-          },
-        }),
-        this.prisma.stockItem.count({
-          where: {
-            ...where,
-            currentQuantity: 0,
-          },
-        }),
-        this.prisma.stockItem.aggregate({
-          where,
-          _sum: {
-            currentQuantity: true,
-          },
-        }),
-      ]);
+    const [totalItems, outOfStockItems, totalValue] = await Promise.all([
+      this.prisma.stockItem.count({ where }),
+      this.prisma.stockItem.count({
+        where: {
+          ...where,
+          currentQuantity: 0,
+        },
+      }),
+      this.prisma.stockItem.aggregate({
+        where,
+        _sum: {
+          currentQuantity: true,
+        },
+      }),
+    ]);
 
     // Get total stock value
     const items = await this.prisma.stockItem.findMany({
       where,
       select: {
         currentQuantity: true,
+        reorderLevel: true,
         unitPrice: true,
       },
     });
+
+    const lowStockItems = items.filter(
+      (item) => item.currentQuantity <= item.reorderLevel,
+    ).length;
 
     const stockValue = items.reduce((sum, item) => {
       return sum + item.currentQuantity * (item.unitPrice || 0);
