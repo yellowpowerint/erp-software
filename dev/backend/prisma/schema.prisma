@@ -204,6 +204,10 @@ model User {
   fleetAssignmentsAssigned   FleetAssignment[] @relation("FleetAssigner")
   fleetDocumentsUploaded  FleetDocument[]   @relation("FleetDocumentUploader")
 
+  maintenancePerformed MaintenanceRecord[] @relation("MaintenancePerformer")
+  maintenanceApproved  MaintenanceRecord[] @relation("MaintenanceApprover")
+  maintenanceCreated   MaintenanceRecord[] @relation("MaintenanceCreator")
+
   @@map("users")
 }
 
@@ -541,6 +545,7 @@ model Vendor {
   purchaseOrders PurchaseOrder[]
   invoices       VendorInvoice[]
   portalUsers    User[] @relation("VendorPortalUser")
+  maintenanceRecords MaintenanceRecord[]
 
   createdById String
   createdBy   User     @relation("VendorCreator", fields: [createdById], references: [id])
@@ -1511,6 +1516,8 @@ model FleetAsset {
 
   documents          FleetDocument[]
   assignments        FleetAssignment[]
+  maintenanceSchedules MaintenanceSchedule[]
+  maintenanceRecords   MaintenanceRecord[]
 
   createdById        String
   createdBy          User               @relation("FleetCreator", fields: [createdById], references: [id])
@@ -1564,6 +1571,137 @@ model FleetAssignment {
   @@index([projectId])
   @@index([status])
   @@map("fleet_assignments")
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  PREDICTIVE
+  EMERGENCY
+  INSPECTION
+  OVERHAUL
+}
+
+enum ScheduleFrequency {
+  TIME_BASED
+  DISTANCE_BASED
+  HOURS_BASED
+  COMBINED
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+model MaintenanceSchedule {
+  id               String            @id @default(uuid())
+  assetId          String
+  asset            FleetAsset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  type             MaintenanceType
+  name             String
+  description      String?
+
+  records          MaintenanceRecord[]
+
+  frequency        ScheduleFrequency
+  intervalValue    Int
+  intervalUnit     String
+
+  lastPerformed    DateTime?
+  lastOdometer     Decimal?          @db.Decimal(12, 2)
+  lastHours        Decimal?          @db.Decimal(12, 2)
+  nextDue          DateTime?
+  nextDueOdometer  Decimal?          @db.Decimal(12, 2)
+  nextDueHours     Decimal?          @db.Decimal(12, 2)
+
+  alertDaysBefore  Int               @default(7)
+  alertKmBefore    Decimal?          @db.Decimal(10, 2)
+  alertHoursBefore Decimal?          @db.Decimal(10, 2)
+
+  isActive         Boolean           @default(true)
+  priority         Priority          @default(MEDIUM)
+
+  estimatedCost     Decimal?         @db.Decimal(15, 2)
+  estimatedDuration Int?
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([assetId])
+  @@index([nextDue])
+  @@index([isActive])
+  @@map("maintenance_schedules")
+}
+
+model MaintenanceRecord {
+  id               String            @id @default(uuid())
+  assetId          String
+  asset            FleetAsset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  scheduleId       String?
+  schedule         MaintenanceSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  type             MaintenanceType
+  title            String
+  description      String?
+
+  scheduledDate    DateTime?
+  startDate        DateTime
+  completionDate   DateTime?
+  downtime         Decimal?          @db.Decimal(10, 2)
+
+  odometerReading  Decimal?          @db.Decimal(12, 2)
+  hoursReading     Decimal?          @db.Decimal(12, 2)
+
+  workPerformed    String?
+  partsReplaced    String?
+  technicianNotes  String?
+
+  laborCost        Decimal           @default(0) @db.Decimal(15, 2)
+  partsCost        Decimal           @default(0) @db.Decimal(15, 2)
+  externalCost     Decimal           @default(0) @db.Decimal(15, 2)
+  totalCost        Decimal           @default(0) @db.Decimal(15, 2)
+
+  serviceProvider  String?
+  vendorId         String?
+  vendor           Vendor?           @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  invoiceNumber    String?
+
+  status           MaintenanceStatus @default(SCHEDULED)
+  priority         Priority          @default(MEDIUM)
+
+  performedById    String?
+  performedBy      User?             @relation("MaintenancePerformer", fields: [performedById], references: [id], onDelete: SetNull)
+  approvedById     String?
+  approvedBy       User?             @relation("MaintenanceApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  documents        String[]
+  photos           String[]
+
+  createdById      String
+  createdBy        User              @relation("MaintenanceCreator", fields: [createdById], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([assetId])
+  @@index([scheduleId])
+  @@index([status])
+  @@map("maintenance_records")
+}
+
+model MaintenanceChecklist {
+  id        String         @id @default(uuid())
+  assetType FleetAssetType
+  name      String
+  items     Json
+  isDefault Boolean        @default(false)
+  createdAt DateTime       @default(now())
+
+  @@index([assetType])
+  @@map("maintenance_checklists")
 }
 
 // Operations & Project Management System
