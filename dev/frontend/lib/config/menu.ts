@@ -19,6 +19,7 @@ import {
   Calendar,
   DatabaseBackup,
   FileSpreadsheet,
+  Boxes,
   type LucideIcon,
 } from 'lucide-react';
 import { UserRole } from '@/types/auth';
@@ -173,7 +174,7 @@ export const menuItems: MenuItem[] = [
   {
     id: 'assets',
     label: 'Assets',
-    icon: Truck,
+    icon: Boxes,
     path: '/assets',
     roles: [
       UserRole.SUPER_ADMIN,
