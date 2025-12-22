@@ -38,8 +38,8 @@ export class CreateFleetInspectionDto {
   @IsString()
   inspectorId: string;
 
-  @IsEnum(InspectionResult)
-  overallResult: InspectionResult;
+  @IsString()
+  overallResult: InspectionResult | "PASS" | "FAIL" | "CONDITIONAL";
 
   @IsOptional()
   @IsInt()

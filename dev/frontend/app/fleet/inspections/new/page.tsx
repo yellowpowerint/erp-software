@@ -15,7 +15,7 @@ function Inner() {
   const [assetId, setAssetId] = useState('');
   const [inspectorId, setInspectorId] = useState('');
   const [type, setType] = useState('PRE_OPERATION');
-  const [overallResult, setOverallResult] = useState('PASS');
+  const [overallResult, setOverallResult] = useState('PASSED');
   const [score, setScore] = useState('');
   const [findings, setFindings] = useState('');
   const [recommendations, setRecommendations] = useState('');
@@ -92,9 +92,10 @@ function Inner() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Overall Result</label>
             <select value={overallResult} onChange={(e) => setOverallResult(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
-              <option value="PASS">Pass</option>
-              <option value="FAIL">Fail</option>
-              <option value="CONDITIONAL">Conditional</option>
+              <option value="PASSED">Passed</option>
+              <option value="PASSED_WITH_NOTES">Passed with notes</option>
+              <option value="FAILED">Failed</option>
+              <option value="PENDING_REVIEW">Pending review</option>
             </select>
           </div>
 

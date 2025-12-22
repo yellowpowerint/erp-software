@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { InspectionResult, Prisma } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import {
   AssignBreakdownDto,
@@ -36,6 +36,24 @@ function toDecimal(value: string): Prisma.Decimal {
   const n = Number(value);
   if (!Number.isFinite(n)) throw new BadRequestException("Invalid number");
   return new Prisma.Decimal(n);
+}
+
+function normalizeInspectionResult(value: unknown): InspectionResult {
+  const raw = String(value ?? "").trim();
+  const upper = raw.toUpperCase();
+
+  if (upper === "PASS") return InspectionResult.PASSED;
+  if (upper === "FAIL") return InspectionResult.FAILED;
+  if (upper === "CONDITIONAL") return InspectionResult.PASSED_WITH_NOTES;
+
+  if (upper === "PASSED") return InspectionResult.PASSED;
+  if (upper === "PASSED_WITH_NOTES") return InspectionResult.PASSED_WITH_NOTES;
+  if (upper === "FAILED") return InspectionResult.FAILED;
+  if (upper === "PENDING_REVIEW") return InspectionResult.PENDING_REVIEW;
+
+  throw new BadRequestException(
+    `Invalid overallResult. Expected PASSED, PASSED_WITH_NOTES, FAILED, PENDING_REVIEW (or legacy PASS/FAIL/CONDITIONAL). Got: ${raw}`,
+  );
 }
 
 @Injectable()
@@ -735,13 +753,15 @@ export class FleetOperationsService {
       ? dto.checklistItems
       : [];
 
+    const overallResult = normalizeInspectionResult(dto.overallResult);
+
     const created = await (this.prisma as any).fleetInspection.create({
       data: {
         assetId: dto.assetId,
         type: dto.type as any,
         inspectionDate: new Date(dto.inspectionDate),
         inspectorId: dto.inspectorId,
-        overallResult: dto.overallResult as any,
+        overallResult,
         score: dto.score ?? null,
         checklistItems,
         findings: dto.findings ?? null,
