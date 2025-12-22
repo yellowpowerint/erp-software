@@ -312,6 +312,13 @@ export const menuItems: MenuItem[] = [
         path: '/procurement/delegations',
         roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER],
       },
+      {
+        id: 'procurement-vendors',
+        label: 'Vendors',
+        icon: Truck,
+        path: '/procurement/vendors',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER, UserRole.DEPARTMENT_HEAD, UserRole.OPERATIONS_MANAGER, UserRole.WAREHOUSE_MANAGER, UserRole.SAFETY_OFFICER],
+      },
     ],
   },
   {

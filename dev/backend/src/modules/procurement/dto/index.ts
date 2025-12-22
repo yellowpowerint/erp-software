@@ -7,3 +7,12 @@ export * from "./create-procurement-workflow.dto";
 export * from "./update-procurement-workflow.dto";
 export * from "./create-approval-delegation.dto";
 export * from "./requisition-approval-action.dto";
+
+export * from "./create-vendor.dto";
+export * from "./update-vendor.dto";
+export * from "./vendor-status-action.dto";
+export * from "./create-vendor-contact.dto";
+export * from "./create-vendor-document.dto";
+export * from "./create-vendor-product.dto";
+export * from "./update-vendor-product.dto";
+export * from "./create-vendor-evaluation.dto";

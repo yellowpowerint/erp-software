@@ -167,6 +167,10 @@ model User {
   approvalDelegationsGiven          ApprovalDelegation[]       @relation("Delegator")
   approvalDelegationsReceived       ApprovalDelegation[]       @relation("Delegate")
 
+  vendorsCreated          Vendor[]          @relation("VendorCreator")
+  vendorDocumentsUploaded VendorDocument[]  @relation("VendorDocumentUploader")
+  vendorEvaluations       VendorEvaluation[] @relation("VendorEvaluator")
+
   documentComments         DocumentComment[]    @relation("CommentAuthor")
   resolvedDocumentComments DocumentComment[]    @relation("CommentResolver")
   documentAnnotations      DocumentAnnotation[] @relation("AnnotationAuthor")
@@ -434,6 +438,163 @@ model ApprovalDelegation {
   @@index([delegateId])
   @@index([isActive])
   @@map("approval_delegations")
+}
+
+enum VendorType {
+  MANUFACTURER
+  DISTRIBUTOR
+  WHOLESALER
+  RETAILER
+  SERVICE_PROVIDER
+  CONTRACTOR
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  BLACKLISTED
+  INACTIVE
+}
+
+model Vendor {
+  id          String      @id @default(uuid())
+  vendorCode  String      @unique
+  companyName String
+  tradingName String?
+  type        VendorType
+  category    String[]
+
+  primaryContact String
+  email          String
+  phone          String
+  alternatePhone String?
+  website        String?
+
+  address        String
+  city           String
+  region         String
+  country        String      @default("Ghana")
+  postalCode     String?
+  gpsCoordinates String?
+
+  taxId         String?
+  businessRegNo String?
+  vatRegistered Boolean     @default(false)
+  vatNumber     String?
+
+  bankName      String?
+  bankBranch    String?
+  accountNumber String?
+  accountName   String?
+  swiftCode     String?
+
+  paymentTerms Int      @default(30)
+  creditLimit  Decimal? @db.Decimal(15, 2)
+  currency     String   @default("GHS")
+
+  rating         Decimal @default(0) @db.Decimal(3, 2)
+  totalOrders    Int     @default(0)
+  totalSpend     Decimal @default(0) @db.Decimal(15, 2)
+  onTimeDelivery Decimal @default(0) @db.Decimal(5, 2)
+  qualityScore   Decimal @default(0) @db.Decimal(5, 2)
+
+  status          VendorStatus @default(PENDING)
+  isPreferred     Boolean      @default(false)
+  isBlacklisted   Boolean      @default(false)
+  blacklistReason String?
+
+  miningLicense     String?
+  environmentalCert String?
+  safetyCompliance  Boolean  @default(false)
+  insuranceCert     String?
+  insuranceExpiry   DateTime?
+
+  contacts    VendorContact[]
+  documents   VendorDocument[]
+  products    VendorProduct[]
+  evaluations VendorEvaluation[]
+
+  createdById String
+  createdBy   User     @relation("VendorCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([isPreferred])
+  @@index([isBlacklisted])
+  @@map("vendors")
+}
+
+model VendorContact {
+  id        String @id @default(uuid())
+  vendorId  String
+  vendor    Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name      String
+  position  String?
+  email     String
+  phone     String
+  isPrimary Boolean @default(false)
+
+  @@index([vendorId])
+  @@map("vendor_contacts")
+}
+
+model VendorDocument {
+  id          String   @id @default(uuid())
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  type        String
+  name        String
+  fileUrl     String
+  expiryDate  DateTime?
+  uploadedById String
+  uploadedBy  User     @relation("VendorDocumentUploader", fields: [uploadedById], references: [id])
+  uploadedAt  DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([expiryDate])
+  @@index([uploadedById])
+  @@map("vendor_documents")
+}
+
+model VendorProduct {
+  id           String  @id @default(uuid())
+  vendorId     String
+  vendor       Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  productName  String
+  category     String
+  description  String?
+  unitPrice    Decimal @db.Decimal(15, 2)
+  unit         String
+  leadTimeDays Int?
+  minOrderQty  Decimal? @db.Decimal(10, 2)
+
+  @@index([vendorId])
+  @@map("vendor_products")
+}
+
+model VendorEvaluation {
+  id             String   @id @default(uuid())
+  vendorId       String
+  vendor         Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  evaluatorId    String
+  evaluator      User     @relation("VendorEvaluator", fields: [evaluatorId], references: [id])
+  period         String
+  qualityScore   Int
+  deliveryScore  Int
+  priceScore     Int
+  serviceScore   Int
+  safetyScore    Int
+  overallScore   Decimal  @db.Decimal(3, 2)
+  comments       String?
+  recommendation String?
+  evaluatedAt    DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([evaluatorId])
+  @@index([evaluatedAt])
+  @@map("vendor_evaluations")
 }
 
 model ApprovalHistory {

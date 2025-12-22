@@ -8,6 +8,8 @@ import { ProcurementWorkflowsController } from "./procurement-workflows.controll
 import { ProcurementWorkflowsService } from "./procurement-workflows.service";
 import { ApprovalDelegationsController } from "./approval-delegations.controller";
 import { ApprovalDelegationsService } from "./approval-delegations.service";
+import { VendorsController } from "./vendors.controller";
+import { VendorsService } from "./vendors.service";
 
 @Module({
   imports: [PrismaModule, NotificationsModule, DocumentsModule],
@@ -15,16 +17,19 @@ import { ApprovalDelegationsService } from "./approval-delegations.service";
     RequisitionsController,
     ProcurementWorkflowsController,
     ApprovalDelegationsController,
+    VendorsController,
   ],
   providers: [
     RequisitionsService,
     ProcurementWorkflowsService,
     ApprovalDelegationsService,
+    VendorsService,
   ],
   exports: [
     RequisitionsService,
     ProcurementWorkflowsService,
     ApprovalDelegationsService,
+    VendorsService,
   ],
 })
 export class ProcurementModule {}
