@@ -198,6 +198,12 @@ model User {
   permissionLogsPerformed        DocumentPermissionLog[]      @relation("PermissionChanger")
   permissionLogsTarget           DocumentPermissionLog[]      @relation("PermissionTarget")
 
+  fleetAssetsCreated      FleetAsset[]      @relation("FleetCreator")
+  fleetAssetsOperated     FleetAsset[]      @relation("FleetAssetOperator")
+  fleetAssignmentsAsOperator FleetAssignment[] @relation("FleetOperator")
+  fleetAssignmentsAssigned   FleetAssignment[] @relation("FleetAssigner")
+  fleetDocumentsUploaded  FleetDocument[]   @relation("FleetDocumentUploader")
+
   @@map("users")
 }
 
@@ -1413,6 +1419,153 @@ model MaintenanceLog {
   @@map("maintenance_logs")
 }
 
+enum FleetAssetType {
+  VEHICLE
+  HEAVY_MACHINERY
+  DRILLING_EQUIPMENT
+  PROCESSING_EQUIPMENT
+  SUPPORT_EQUIPMENT
+  TRANSPORT
+}
+
+enum FuelType {
+  DIESEL
+  PETROL
+  ELECTRIC
+  HYBRID
+  LPG
+  NONE
+}
+
+enum FleetAssetStatus {
+  ACTIVE
+  IN_MAINTENANCE
+  BREAKDOWN
+  STANDBY
+  DECOMMISSIONED
+  SOLD
+}
+
+enum FleetAssetCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  CRITICAL
+}
+
+model FleetAsset {
+  id                 String             @id @default(uuid())
+  assetCode          String             @unique
+  name               String
+  type               FleetAssetType
+  category           String
+
+  registrationNo     String?
+  serialNumber       String?
+  engineNumber       String?
+  chassisNumber      String?
+
+  make               String
+  model              String
+  year               Int
+  capacity           String?
+  fuelType           FuelType
+  tankCapacity       Decimal?           @db.Decimal(10, 2)
+
+  purchaseDate       DateTime?
+  purchasePrice      Decimal?           @db.Decimal(15, 2)
+  vendor             String?
+  warrantyExpiry     DateTime?
+
+  status             FleetAssetStatus   @default(ACTIVE)
+  condition          FleetAssetCondition @default(GOOD)
+  currentLocation    String
+  currentOperator    String?
+  operatorId         String?
+  operator           User?              @relation("FleetAssetOperator", fields: [operatorId], references: [id], onDelete: SetNull)
+
+  currentOdometer    Decimal            @default(0) @db.Decimal(12, 2)
+  currentHours       Decimal            @default(0) @db.Decimal(12, 2)
+  lastOdometerUpdate DateTime?
+
+  depreciationMethod String             @default("STRAIGHT_LINE")
+  usefulLifeYears    Int                @default(10)
+  salvageValue       Decimal            @default(0) @db.Decimal(15, 2)
+  currentValue       Decimal?           @db.Decimal(15, 2)
+
+  insuranceProvider  String?
+  insurancePolicyNo  String?
+  insuranceExpiry    DateTime?
+  insurancePremium   Decimal?           @db.Decimal(15, 2)
+
+  miningPermit       String?
+  permitExpiry       DateTime?
+  safetyInspection   DateTime?
+  nextInspectionDue  DateTime?
+  emissionsCert      String?
+  emissionsExpiry    DateTime?
+
+  decommissionReason String?
+  decommissionedAt   DateTime?
+
+  documents          FleetDocument[]
+  assignments        FleetAssignment[]
+
+  createdById        String
+  createdBy          User               @relation("FleetCreator", fields: [createdById], references: [id])
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([currentLocation])
+  @@map("fleet_assets")
+}
+
+model FleetDocument {
+  id              String     @id @default(uuid())
+  assetId         String
+  asset           FleetAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  type            String
+  name            String
+  fileUrl         String
+  storageKey      String
+  storageProvider String     @default("local")
+  expiryDate      DateTime?
+  uploadedById    String
+  uploadedBy      User       @relation("FleetDocumentUploader", fields: [uploadedById], references: [id])
+  uploadedAt      DateTime   @default(now())
+
+  @@index([assetId])
+  @@index([expiryDate])
+  @@map("fleet_documents")
+}
+
+model FleetAssignment {
+  id           String     @id @default(uuid())
+  assetId      String
+  asset        FleetAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  operatorId   String
+  operator     User       @relation("FleetOperator", fields: [operatorId], references: [id])
+  projectId    String?
+  project      Project?   @relation("FleetAssignmentProject", fields: [projectId], references: [id], onDelete: SetNull)
+  siteLocation String
+  startDate    DateTime
+  endDate      DateTime?
+  status       String     @default("ACTIVE")
+  notes        String?
+
+  assignedById String
+  assignedBy   User       @relation("FleetAssigner", fields: [assignedById], references: [id])
+
+  @@index([assetId])
+  @@index([operatorId])
+  @@index([projectId])
+  @@index([status])
+  @@map("fleet_assignments")
+}
+
 // Operations & Project Management System
 enum ProjectStatus {
   PLANNING
@@ -1457,6 +1610,7 @@ model Project {
   milestones     Milestone[]
   tasks          Task[]
   assets         Asset[]
+  fleetAssignments FleetAssignment[] @relation("FleetAssignmentProject")
   requisitions   Requisition[]
   productionLogs ProductionLog[]
   fieldReports   FieldReport[]

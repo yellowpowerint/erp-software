@@ -21,6 +21,7 @@ import { SettingsModule } from "./modules/settings/settings.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { CsvModule } from "./modules/csv/csv.module";
 import { ProcurementModule } from "./modules/procurement/procurement.module";
+import { FleetModule } from "./modules/fleet/fleet.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
 
 @Module({
@@ -46,6 +47,7 @@ import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
     DocumentsModule,
     CsvModule,
     ProcurementModule,
+    FleetModule,
   ],
   controllers: [AppController],
   providers: [
