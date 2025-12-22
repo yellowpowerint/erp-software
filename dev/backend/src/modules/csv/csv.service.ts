@@ -26,7 +26,8 @@ type ModuleKey =
   | "warehouses"
   | "projects"
   | "project_tasks"
-  | "assets";
+  | "assets"
+  | "fleet";
 
 type DuplicateStrategy = "skip" | "update" | "error";
 
@@ -68,6 +69,41 @@ export class CsvService {
     private readonly configService: ConfigService,
     private readonly storageService: StorageService,
   ) {}
+
+  private toNumberOrZero(value: any): number {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    try {
+      const s =
+        typeof value?.toString === "function"
+          ? value.toString()
+          : String(value);
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private parseDateRangeForFleet(
+    ctx: any,
+    filters: any,
+  ): { from?: Date; to?: Date } {
+    const fromRaw = filters?.from ?? ctx?.from;
+    const toRaw = filters?.to ?? ctx?.to;
+    const from = fromRaw ? new Date(fromRaw) : undefined;
+    const to = toRaw ? new Date(toRaw) : undefined;
+    if (from && Number.isNaN(from.getTime())) {
+      throw new BadRequestException("Invalid from date");
+    }
+    if (to && Number.isNaN(to.getTime())) {
+      throw new BadRequestException("Invalid to date");
+    }
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException("from must be <= to");
+    }
+    return { from, to };
+  }
 
   private async audit(
     action: string,
@@ -116,6 +152,30 @@ export class CsvService {
         }),
       ]);
       return this.buildPreviewResult(items, columns, totalRows);
+    }
+
+    if (mod === "fleet") {
+      const exportType = String(opts?.context?.exportType || "").trim();
+      if (!exportType) {
+        throw new BadRequestException("Missing required context: exportType");
+      }
+      const rows = await this.fetchFleetExportRows(
+        exportType,
+        opts?.context || {},
+        opts.filters || {},
+      );
+      const previewRows = rows.slice(0, limit);
+      const csv = json2csv(previewRows, { fields: columns });
+      const previewBytes = Buffer.byteLength(csv, "utf8");
+      const perRow = previewRows.length ? previewBytes / previewRows.length : 0;
+      const estimatedSizeBytes = Math.round(perRow * rows.length);
+      return {
+        totalRows: rows.length,
+        previewRows: previewRows.map((x) =>
+          this.pickColumns(x as any, columns),
+        ),
+        estimatedSizeBytes,
+      };
     }
 
     if (mod === "inventory_movements") {
@@ -261,6 +321,7 @@ export class CsvService {
       "projects",
       "project_tasks",
       "assets",
+      "fleet",
     ];
     if (!allowed.includes(m as ModuleKey)) {
       throw new BadRequestException(`Unsupported module: ${module}`);
@@ -939,6 +1000,9 @@ export class CsvService {
     context?: any,
   ) {
     const mod = this.normalizeModule(module);
+    if (mod === "fleet") {
+      throw new BadRequestException("Unsupported module for import: fleet");
+    }
 
     if (!file?.buffer?.length) {
       throw new BadRequestException("Empty file");
@@ -2409,6 +2473,19 @@ export class CsvService {
     const module = this.normalizeModule(job.module);
     const where = this.coerceFilters(module, filters);
 
+    if (module === "fleet") {
+      const exportType = String(job?.context?.exportType || "").trim();
+      if (!exportType) {
+        throw new BadRequestException("Missing required context: exportType");
+      }
+      const rows = await this.fetchFleetExportRows(
+        exportType,
+        job?.context || {},
+        filters || {},
+      );
+      return rows.map((x) => this.pickColumns(x as any, columns));
+    }
+
     if (module === "inventory") {
       const items = await this.prisma.stockItem.findMany({
         where,
@@ -2491,6 +2568,299 @@ export class CsvService {
       orderBy: { createdAt: "desc" },
     });
     return items.map((x) => this.pickColumns(x as any, columns));
+  }
+
+  private async fetchFleetExportRows(
+    exportType: string,
+    ctx: any,
+    filters: any,
+  ): Promise<Record<string, any>[]> {
+    const t = exportType.toLowerCase().trim();
+    const { from, to } = this.parseDateRangeForFleet(ctx, filters);
+
+    if (t === "costs") {
+      const where: any = {};
+      if (filters?.assetId) where.assetId = String(filters.assetId);
+      if (filters?.category) where.category = filters.category;
+      if (from || to) {
+        where.costDate = {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lte: to } : {}),
+        };
+      }
+
+      const rows = await (this.prisma as any).fleetCost.findMany({
+        where,
+        include: {
+          asset: { select: { id: true, assetCode: true, name: true } },
+          createdBy: {
+            select: { id: true, firstName: true, lastName: true, role: true },
+          },
+          approvedBy: {
+            select: { id: true, firstName: true, lastName: true, role: true },
+          },
+        },
+        orderBy: { costDate: "desc" },
+        take: 100000,
+      });
+
+      return rows.map((r: any) => ({
+        id: r.id,
+        costDate: r.costDate?.toISOString?.() || r.costDate,
+        assetId: r.assetId,
+        assetCode: r.asset?.assetCode,
+        assetName: r.asset?.name,
+        category: r.category,
+        description: r.description,
+        amount: r.amount?.toString?.() || String(r.amount ?? "0"),
+        currency: r.currency,
+        referenceType: r.referenceType,
+        referenceId: r.referenceId,
+        invoiceNumber: r.invoiceNumber,
+        receiptUrl: r.receiptUrl,
+        createdById: r.createdById,
+        createdByName:
+          `${r.createdBy?.firstName || ""} ${r.createdBy?.lastName || ""}`.trim(),
+        approvedById: r.approvedById,
+        approvedByName:
+          `${r.approvedBy?.firstName || ""} ${r.approvedBy?.lastName || ""}`.trim(),
+        createdAt: r.createdAt?.toISOString?.() || r.createdAt,
+      }));
+    }
+
+    if (t === "cost_breakdown") {
+      const where: any = {};
+      if (from || to) {
+        where.costDate = {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lte: to } : {}),
+        };
+      }
+
+      const rows = await (this.prisma as any).fleetCost.findMany({
+        where,
+        select: { category: true, amount: true },
+        take: 100000,
+      });
+
+      const byCategory: Record<string, number> = {};
+      let total = 0;
+      for (const r of rows) {
+        const cat = String(r.category);
+        const amt = this.toNumberOrZero(r.amount);
+        byCategory[cat] = (byCategory[cat] || 0) + amt;
+        total += amt;
+      }
+
+      return Object.entries(byCategory)
+        .map(([category, amount]) => ({
+          from: from?.toISOString?.(),
+          to: to?.toISOString?.(),
+          category,
+          amount: String(amount),
+          total: String(total),
+        }))
+        .sort((a, b) => Number(b.amount) - Number(a.amount));
+    }
+
+    if (t === "utilization_by_type" || t === "utilization_by_site") {
+      if (!from || !to) {
+        throw new BadRequestException(
+          "from and to are required for utilization export",
+        );
+      }
+      const periodHours = (to.getTime() - from.getTime()) / (1000 * 60 * 60);
+      const [assets, usage] = await Promise.all([
+        (this.prisma as any).fleetAsset.findMany({
+          select: { id: true, type: true },
+        }),
+        (this.prisma as any).usageLog.findMany({
+          where: { date: { gte: from, lte: to } },
+          select: { assetId: true, operatingHours: true, siteLocation: true },
+          take: 200000,
+        }),
+      ]);
+
+      if (t === "utilization_by_site") {
+        const bySite: Record<string, number> = {};
+        for (const u of usage) {
+          const site = String(u.siteLocation || "Unknown");
+          bySite[site] =
+            (bySite[site] || 0) + this.toNumberOrZero(u.operatingHours);
+        }
+        const assetCount = assets.length;
+        const denom = Math.max(1, assetCount) * Math.max(1, periodHours);
+        return Object.entries(bySite).map(([site, hours]) => ({
+          from: from.toISOString(),
+          to: to.toISOString(),
+          site,
+          hours: String(hours),
+          utilization: String(
+            Math.max(0, Math.min(1, denom > 0 ? hours / denom : 0)),
+          ),
+        }));
+      }
+
+      const opByAsset: Record<string, number> = {};
+      for (const u of usage) {
+        const assetId = String(u.assetId);
+        opByAsset[assetId] =
+          (opByAsset[assetId] || 0) + this.toNumberOrZero(u.operatingHours);
+      }
+      const byType: Record<string, number> = {};
+      const countByType: Record<string, number> = {};
+      for (const a of assets) {
+        const type = String(a.type);
+        countByType[type] = (countByType[type] || 0) + 1;
+        byType[type] = (byType[type] || 0) + (opByAsset[String(a.id)] || 0);
+      }
+
+      return Object.entries(byType).map(([type, hours]) => {
+        const denom =
+          Math.max(1, countByType[type] || 0) * Math.max(1, periodHours);
+        return {
+          from: from.toISOString(),
+          to: to.toISOString(),
+          type,
+          hours: String(hours),
+          utilization: String(
+            Math.max(0, Math.min(1, denom > 0 ? hours / denom : 0)),
+          ),
+        };
+      });
+    }
+
+    if (t === "performance_assets") {
+      if (!from || !to) {
+        throw new BadRequestException(
+          "from and to are required for performance export",
+        );
+      }
+      const periodHours = (to.getTime() - from.getTime()) / (1000 * 60 * 60);
+      const [assets, breakdowns] = await Promise.all([
+        (this.prisma as any).fleetAsset.findMany({
+          select: { id: true, assetCode: true, name: true },
+        }),
+        (this.prisma as any).breakdownLog.findMany({
+          where: { breakdownDate: { gte: from, lte: to } },
+          select: { assetId: true, actualDowntime: true },
+          take: 200000,
+        }),
+      ]);
+
+      const failures: Record<string, number> = {};
+      const downtime: Record<string, number> = {};
+      for (const b of breakdowns) {
+        const id = String(b.assetId);
+        failures[id] = (failures[id] || 0) + 1;
+        downtime[id] =
+          (downtime[id] || 0) + this.toNumberOrZero(b.actualDowntime);
+      }
+
+      return assets.map((a: any) => {
+        const f = failures[a.id] || 0;
+        const dt = downtime[a.id] || 0;
+        const mtbf = f > 0 ? periodHours / f : periodHours;
+        const mttr = f > 0 ? dt / f : 0;
+        const availability = Math.max(
+          0,
+          Math.min(1, periodHours > 0 ? 1 - dt / periodHours : 1),
+        );
+        return {
+          from: from.toISOString(),
+          to: to.toISOString(),
+          assetId: a.id,
+          assetCode: a.assetCode,
+          assetName: a.name,
+          failures: String(f),
+          downtimeHours: String(dt),
+          mtbfHours: String(mtbf),
+          mttrHours: String(mttr),
+          availabilityRate: String(availability),
+        };
+      });
+    }
+
+    if (t === "tco") {
+      const assetId = String(ctx?.assetId || filters?.assetId || "").trim();
+      const assets = await (this.prisma as any).fleetAsset.findMany({
+        where: assetId ? { id: assetId } : undefined,
+        select: {
+          id: true,
+          assetCode: true,
+          name: true,
+          purchasePrice: true,
+          currentValue: true,
+        },
+        take: 20000,
+      });
+
+      const [fuel, maintenance, repairs, other] = await Promise.all([
+        (this.prisma as any).fuelRecord.groupBy({
+          by: ["assetId"],
+          _sum: { totalCost: true },
+          where: assetId ? { assetId } : undefined,
+        }),
+        (this.prisma as any).maintenanceRecord.groupBy({
+          by: ["assetId"],
+          _sum: { totalCost: true },
+          where: { ...(assetId ? { assetId } : {}), status: "COMPLETED" },
+        }),
+        (this.prisma as any).breakdownLog.groupBy({
+          by: ["assetId"],
+          _sum: { repairCost: true },
+          where: assetId ? { assetId } : undefined,
+        }),
+        (this.prisma as any).fleetCost.groupBy({
+          by: ["assetId"],
+          _sum: { amount: true },
+          where: assetId ? { assetId } : undefined,
+        }),
+      ]);
+
+      const fuelMap: Record<string, number> = {};
+      for (const r of fuel)
+        fuelMap[String(r.assetId)] = this.toNumberOrZero(r._sum?.totalCost);
+      const maintMap: Record<string, number> = {};
+      for (const r of maintenance)
+        maintMap[String(r.assetId)] = this.toNumberOrZero(r._sum?.totalCost);
+      const repairsMap: Record<string, number> = {};
+      for (const r of repairs)
+        repairsMap[String(r.assetId)] = this.toNumberOrZero(r._sum?.repairCost);
+      const otherMap: Record<string, number> = {};
+      for (const r of other)
+        otherMap[String(r.assetId)] = this.toNumberOrZero(r._sum?.amount);
+
+      return assets.map((a: any) => {
+        const purchase = this.toNumberOrZero(a.purchasePrice);
+        const current =
+          a.currentValue !== null && a.currentValue !== undefined
+            ? this.toNumberOrZero(a.currentValue)
+            : purchase;
+        const depreciation = purchase - current;
+        const fuelCost = fuelMap[a.id] || 0;
+        const maintCost = maintMap[a.id] || 0;
+        const repairCost = repairsMap[a.id] || 0;
+        const otherCost = otherMap[a.id] || 0;
+        const total =
+          fuelCost + maintCost + repairCost + otherCost + depreciation;
+        return {
+          assetId: a.id,
+          assetCode: a.assetCode,
+          assetName: a.name,
+          fuel: String(fuelCost),
+          maintenance: String(maintCost),
+          repairs: String(repairCost),
+          other: String(otherCost),
+          depreciation: String(depreciation),
+          total: String(total),
+        };
+      });
+    }
+
+    throw new BadRequestException(
+      `Unsupported fleet exportType: ${exportType}`,
+    );
   }
 
   private pickColumns(row: any, columns: string[]) {

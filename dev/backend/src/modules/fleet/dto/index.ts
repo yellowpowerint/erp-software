@@ -13,3 +13,5 @@ export * from "./fleet-inspection.dto";
 
 export * from "./fuel.dto";
 export * from "./fuel-tank.dto";
+
+export * from "./fleet-cost.dto";

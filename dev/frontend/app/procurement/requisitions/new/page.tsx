@@ -363,7 +363,7 @@ function NewRequisitionContent() {
               </div>
 
               {items.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No items added yet. Click "Add Item" to get started.</p>
+                <p className="text-gray-500 text-center py-8">No items added yet. Click &quot;Add Item&quot; to get started.</p>
               ) : (
                 <div className="space-y-3">
                   {items.map((item, index) => (

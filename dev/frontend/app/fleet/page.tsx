@@ -26,9 +26,19 @@ type FleetAlerts = {
   };
 };
 
+type FleetAnalyticsDashboard = {
+  totalCostMTD: string;
+  totalCostYTD: string;
+  lowFuelTanks: number;
+  overdueMaintenance: number;
+  upcomingMaintenance: number;
+  activeBreakdowns: number;
+};
+
 function FleetDashboardContent() {
   const [dashboard, setDashboard] = useState<FleetDashboard | null>(null);
   const [alerts, setAlerts] = useState<FleetAlerts | null>(null);
+  const [analytics, setAnalytics] = useState<FleetAnalyticsDashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +51,14 @@ function FleetDashboardContent() {
         ]);
         setDashboard(dashRes.data);
         setAlerts(alertsRes.data);
+
+        try {
+          const aRes = await api.get('/fleet/analytics/dashboard');
+          setAnalytics(aRes.data);
+        } catch (e) {
+          // non-blocking; dashboard must still render if analytics is unavailable
+          setAnalytics(null);
+        }
       } catch (e) {
         console.error('Failed to load fleet dashboard:', e);
       } finally {
@@ -124,6 +142,12 @@ function FleetDashboardContent() {
                 <Link className="block text-indigo-600 hover:text-indigo-800" href="/fleet/assignments">
                   Current Assignments
                 </Link>
+                <Link className="block text-indigo-600 hover:text-indigo-800" href="/fleet/analytics">
+                  Analytics
+                </Link>
+                <Link className="block text-indigo-600 hover:text-indigo-800" href="/fleet/reports">
+                  Reports
+                </Link>
               </div>
             </div>
 
@@ -163,11 +187,32 @@ function FleetDashboardContent() {
                 <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
               </div>
               <p className="text-sm text-gray-600">
-                Session 19.1 focuses on the fleet registry, assignments, and expiring compliance items. Maintenance,
-                breakdown logging, fuel, and analytics will appear in later sessions.
+                Session 19.5 adds cost analysis, reporting, and dashboard analytics. Use Analytics for KPIs and trend
+                views, and Reports for cost records and exports.
               </p>
             </div>
           </div>
+
+          {analytics && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+              <div className="bg-white rounded-lg shadow p-4">
+                <p className="text-sm text-gray-600">Total Cost (MTD)</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">₵{Number(analytics.totalCostMTD || 0).toLocaleString()}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <p className="text-sm text-gray-600">Total Cost (YTD)</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">₵{Number(analytics.totalCostYTD || 0).toLocaleString()}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <p className="text-sm text-gray-600">Overdue Maintenance</p>
+                <p className="text-2xl font-bold text-orange-600 mt-1">{analytics.overdueMaintenance ?? 0}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <p className="text-sm text-gray-600">Low Fuel Tanks</p>
+                <p className="text-2xl font-bold text-orange-600 mt-1">{analytics.lowFuelTanks ?? 0}</p>
+              </div>
+            </div>
+          )}
         </>
       )}
     </DashboardLayout>
