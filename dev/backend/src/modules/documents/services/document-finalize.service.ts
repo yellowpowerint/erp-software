@@ -262,7 +262,10 @@ export class DocumentFinalizeService {
 
     const options: FinalizeJobOptions = (job.options as any) || {};
 
-    const localPath = await this.storageService.getLocalPath(document.fileUrl);
+    const localPath = await this.storageService.getLocalPath(
+      document.fileUrl,
+      document.fileName,
+    );
     if (!localPath) {
       await (this.prisma as any).documentFinalizeJob.update({
         where: { id: jobId },

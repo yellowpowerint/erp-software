@@ -33,6 +33,7 @@ export class StorageService {
   private provider: StorageProvider;
   private readonly s3Client: S3Client | null = null;
   private readonly localStoragePath: string;
+  private readonly s3Endpoint?: string;
 
   constructor(private configService: ConfigService) {
     const configuredProvider = this.configService.get<StorageProvider>(
@@ -58,6 +59,7 @@ export class StorageService {
         "AWS_SECRET_ACCESS_KEY",
       );
       const endpoint = this.configService.get<string>("S3_ENDPOINT");
+      this.s3Endpoint = endpoint;
 
       if (region && accessKeyId && secretAccessKey) {
         const s3Config: any = {
@@ -71,6 +73,7 @@ export class StorageService {
         // Support for S3-compatible services (Cloudflare R2, Backblaze B2, etc.)
         if (endpoint) {
           s3Config.endpoint = endpoint;
+          s3Config.forcePathStyle = true;
           this.logger.log(`S3-compatible storage initialized with endpoint: ${endpoint}`);
         } else {
           this.logger.log("AWS S3 storage initialized");
@@ -216,7 +219,7 @@ export class StorageService {
 
     await this.s3Client.send(command);
 
-    const url = `https://${bucket}.s3.amazonaws.com/${key}`;
+    const url = this.buildS3ObjectUrl(bucket, key);
 
     this.logger.log(`File uploaded to S3: ${key}`);
 
@@ -250,7 +253,7 @@ export class StorageService {
 
     await this.s3Client.send(command);
 
-    const url = `https://${bucket}.s3.amazonaws.com/${key}`;
+    const url = this.buildS3ObjectUrl(bucket, key);
 
     this.logger.log(`File uploaded to S3: ${key}`);
 
@@ -337,6 +340,41 @@ export class StorageService {
     return `${baseUrl}/api/documents/files/${key}`;
   }
 
+  getProvider(): StorageProvider {
+    return this.provider;
+  }
+
+  isLocalFileUrl(fileUrl: string): boolean {
+    return fileUrl.includes("/api/documents/files/");
+  }
+
+  resolveProviderForDocument(fileUrl: string): StorageProvider {
+    // Local-storage URLs are always served through the backend
+    if (this.isLocalFileUrl(fileUrl)) {
+      return StorageProvider.LOCAL;
+    }
+
+    // If the app is configured to use S3-compatible storage (R2/B2/AWS), treat
+    // any non-local URL as S3.
+    if (this.provider === StorageProvider.S3) {
+      return StorageProvider.S3;
+    }
+
+    return StorageProvider.LOCAL;
+  }
+
+  private buildS3ObjectUrl(bucket: string, key: string): string {
+    // For S3-compatible services (Cloudflare R2, Backblaze B2, etc.)
+    // we typically use a path-style URL: <endpoint>/<bucket>/<key>
+    if (this.s3Endpoint) {
+      const normalized = this.s3Endpoint.replace(/\/$/, "");
+      return `${normalized}/${bucket}/${key}`;
+    }
+
+    // Default AWS S3 virtual-hosted-style URL
+    return `https://${bucket}.s3.amazonaws.com/${key}`;
+  }
+
   getLocalFilePath(key: string): string {
     return path.join(this.localStoragePath, key);
   }
@@ -345,15 +383,15 @@ export class StorageService {
    * Resolve a file path for OCR processing
    * Handles both local files and remote S3 files by downloading to temp
    */
-  async getLocalPath(fileUrl: string): Promise<string | null> {
+  async getLocalPath(fileUrl: string, key?: string): Promise<string | null> {
     try {
       // Check if it's a local file URL
       if (fileUrl.includes("/api/documents/files/")) {
         // Extract the key from the URL
         const urlParts = fileUrl.split("/api/documents/files/");
         if (urlParts.length > 1) {
-          const key = urlParts[1];
-          const localPath = this.getLocalFilePath(key);
+          const localKey = urlParts[1];
+          const localPath = this.getLocalFilePath(localKey);
 
           // Verify file exists
           if (fs.existsSync(localPath)) {
@@ -362,12 +400,20 @@ export class StorageService {
         }
       }
 
-      // Check if it's an S3 URL
-      if (
-        fileUrl.includes("s3.amazonaws.com") ||
-        fileUrl.includes("amazonaws.com")
-      ) {
-        return await this.downloadS3FileToTemp(fileUrl);
+      // If we're configured for S3-compatible storage, download the object to a
+      // temporary local path for processing.
+      if (this.provider === StorageProvider.S3) {
+        const resolvedKey =
+          key || this.tryInferS3KeyFromUrl(fileUrl) || undefined;
+
+        if (!resolvedKey) {
+          this.logger.warn(
+            "S3 storage configured but no object key could be resolved to download",
+          );
+          return null;
+        }
+
+        return await this.downloadS3ObjectToTemp(resolvedKey);
       }
 
       // If it's a direct path, verify it exists
@@ -386,7 +432,7 @@ export class StorageService {
   /**
    * Download S3 file to temporary location for processing
    */
-  private async downloadS3FileToTemp(s3Url: string): Promise<string> {
+  private async downloadS3ObjectToTemp(key: string): Promise<string> {
     if (!this.s3Client) {
       throw new Error("S3 client not initialized");
     }
@@ -395,13 +441,6 @@ export class StorageService {
     if (!bucket) {
       throw new Error("AWS_S3_BUCKET not configured");
     }
-
-    // Extract key from S3 URL
-    const urlParts = s3Url.split(`${bucket}.s3.amazonaws.com/`);
-    if (urlParts.length < 2) {
-      throw new Error("Invalid S3 URL format");
-    }
-    const key = urlParts[1];
 
     // Create temp directory if it doesn't exist
     const tempDir = path.join(this.localStoragePath, "temp");
@@ -430,6 +469,33 @@ export class StorageService {
 
     this.logger.log(`Downloaded S3 file to temp: ${tempFilePath}`);
     return tempFilePath;
+  }
+
+  private tryInferS3KeyFromUrl(fileUrl: string): string | null {
+    try {
+      const bucket = this.configService.get<string>("AWS_S3_BUCKET");
+      if (!bucket) {
+        return null;
+      }
+
+      const url = new URL(fileUrl);
+      const pathParts = url.pathname.split("/").filter(Boolean);
+
+      // Path-style: https://<endpoint>/<bucket>/<key>
+      if (pathParts.length >= 2 && pathParts[0] === bucket) {
+        return pathParts.slice(1).join("/");
+      }
+
+      // Virtual-hosted-style: https://<bucket>.s3.amazonaws.com/<key>
+      // Or similar patterns where the bucket is in the hostname.
+      if (url.hostname.startsWith(`${bucket}.`)) {
+        return pathParts.join("/");
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**

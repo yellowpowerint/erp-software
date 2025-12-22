@@ -54,7 +54,10 @@ export class DocumentFormsService {
   private async readDocumentPdfBuffer(
     document: any,
   ): Promise<{ buffer: Buffer; tempPath?: string }> {
-    const tempPath = await this.storageService.getLocalPath(document.fileUrl);
+    const tempPath = await this.storageService.getLocalPath(
+      document.fileUrl,
+      document.fileName,
+    );
     if (!tempPath) {
       throw new BadRequestException("Document file not accessible");
     }

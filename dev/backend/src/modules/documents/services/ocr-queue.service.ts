@@ -61,7 +61,10 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
       throw new Error("Document not found");
     }
 
-    const filePath = await this.storageService.getLocalPath(document.fileUrl);
+    const filePath = await this.storageService.getLocalPath(
+      document.fileUrl,
+      document.fileName,
+    );
     if (!filePath) {
       throw new Error("Document file not accessible");
     }
@@ -204,6 +207,7 @@ export class OCRQueueService implements OnModuleInit, OnModuleDestroy {
 
         const filePath = await this.storageService.getLocalPath(
           document.fileUrl,
+          document.fileName,
         );
         if (filePath) {
           this.queue.push({

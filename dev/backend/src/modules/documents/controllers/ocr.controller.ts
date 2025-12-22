@@ -68,7 +68,10 @@ export class OCRController {
     }
 
     // Get file path from storage
-    const filePath = await this.storageService.getLocalPath(document.fileUrl);
+    const filePath = await this.storageService.getLocalPath(
+      document.fileUrl,
+      document.fileName,
+    );
 
     if (!filePath) {
       throw new BadRequestException("Document file not accessible");
@@ -461,7 +464,10 @@ export class OCRController {
         throw new NotFoundException("Document not found");
       }
 
-      const filePath = await this.storageService.getLocalPath(document.fileUrl);
+      const filePath = await this.storageService.getLocalPath(
+        document.fileUrl,
+        document.fileName,
+      );
 
       if (!filePath) {
         throw new BadRequestException("Document file not accessible");

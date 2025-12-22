@@ -1204,7 +1204,10 @@ export class CsvService {
     }
 
     // S3: download to temp via getLocalPath using the URL
-    const localPath = await this.storageService.getLocalPath(job.fileUrl);
+    const localPath = await this.storageService.getLocalPath(
+      job.fileUrl,
+      job.fileName,
+    );
     if (!localPath) {
       throw new BadRequestException("Unable to resolve job file");
     }

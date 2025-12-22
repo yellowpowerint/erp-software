@@ -453,9 +453,7 @@ export class DocumentsService {
     // Delete file from storage
     await this.storageService.deleteFile(
       document.fileName,
-      document.fileUrl.includes("s3.amazonaws.com")
-        ? ("s3" as any)
-        : ("local" as any),
+      this.storageService.resolveProviderForDocument(document.fileUrl) as any,
     );
 
     // Delete document and related records (cascade)
@@ -486,9 +484,9 @@ export class DocumentsService {
       }
     }
 
-    const provider = document.fileUrl.includes("s3.amazonaws.com")
-      ? "s3"
-      : "local";
+    const provider = this.storageService.resolveProviderForDocument(
+      document.fileUrl,
+    );
     const url = await this.storageService.getSignedDownloadUrl(
       document.fileName,
       provider as any,
@@ -965,6 +963,7 @@ export class DocumentsService {
     try {
       const localPath = await this.storageService.getLocalPath(
         versionToRestore.fileUrl,
+        versionToRestore.fileName,
       );
       if (localPath) {
         const buffer = await fs.readFile(localPath);

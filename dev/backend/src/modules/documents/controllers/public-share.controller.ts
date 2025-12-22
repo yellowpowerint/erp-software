@@ -55,9 +55,7 @@ export class PublicShareController {
 
     const doc = share.document;
 
-    const provider = doc.fileUrl.includes("s3.amazonaws.com")
-      ? StorageProvider.S3
-      : StorageProvider.LOCAL;
+    const provider = this.storageService.resolveProviderForDocument(doc.fileUrl);
 
     if (provider === StorageProvider.S3) {
       const url = await this.storageService.getSignedDownloadUrl(

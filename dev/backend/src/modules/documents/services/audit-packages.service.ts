@@ -65,7 +65,10 @@ export class AuditPackagesService {
       );
     }
 
-    const tempPath = await this.storageService.getLocalPath(doc.fileUrl);
+    const tempPath = await this.storageService.getLocalPath(
+      doc.fileUrl,
+      doc.fileName,
+    );
     if (!tempPath) {
       throw new BadRequestException("Document file not accessible");
     }

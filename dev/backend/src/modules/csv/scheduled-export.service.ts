@@ -258,6 +258,7 @@ export class ScheduledExportService implements OnModuleInit, OnModuleDestroy {
 
       const localPath = await this.storageService.getLocalPath(
         updatedJob.fileUrl,
+        updatedJob.fileName,
       );
       if (!localPath) {
         throw new BadRequestException(

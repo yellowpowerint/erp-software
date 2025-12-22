@@ -311,6 +311,7 @@ export class DocumentConversionService {
     if (provider === DocumentConversionProvider.LOCAL) {
       const localPath = await this.storageService.getLocalPath(
         document.fileUrl,
+        document.fileName,
       );
       if (!localPath) {
         throw new BadRequestException("Document file not accessible");
@@ -423,13 +424,9 @@ export class DocumentConversionService {
       throw new BadRequestException("CLOUDCONVERT_API_KEY not configured");
     }
 
-    const fileUrl = document.fileUrl || "";
-    const isS3 =
-      fileUrl.includes("s3.amazonaws.com") || fileUrl.includes("amazonaws.com");
-
-    if (!isS3) {
+    if (this.storageService.getProvider() !== StorageProvider.S3) {
       throw new BadRequestException(
-        "CloudConvert conversion requires S3 storage or a publicly accessible file URL",
+        "CloudConvert conversion requires S3-compatible storage (Cloudflare R2, Backblaze B2, AWS S3)",
       );
     }
 

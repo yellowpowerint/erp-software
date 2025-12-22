@@ -73,7 +73,10 @@ export class PdfManipulatorController {
           throw new BadRequestException(`Document ${documentId} is not a PDF`);
         }
 
-        const localPath = await this.storageService.getLocalPath(doc.fileUrl);
+        const localPath = await this.storageService.getLocalPath(
+          doc.fileUrl,
+          doc.fileName,
+        );
         if (!localPath) {
           throw new BadRequestException(
             `Document file not accessible: ${documentId}`,
@@ -208,7 +211,10 @@ export class PdfManipulatorController {
       throw new BadRequestException("Document is not a PDF");
     }
 
-    const localPath = await this.storageService.getLocalPath(doc.fileUrl);
+    const localPath = await this.storageService.getLocalPath(
+      doc.fileUrl,
+      doc.fileName,
+    );
     if (!localPath) {
       throw new BadRequestException("Document file not accessible");
     }
@@ -1050,7 +1056,10 @@ export class PdfManipulatorController {
       throw new BadRequestException("Document is not a PDF");
     }
 
-    const localPath = await this.storageService.getLocalPath(doc.fileUrl);
+    const localPath = await this.storageService.getLocalPath(
+      doc.fileUrl,
+      doc.fileName,
+    );
     if (!localPath) {
       throw new BadRequestException("Document file not accessible");
     }

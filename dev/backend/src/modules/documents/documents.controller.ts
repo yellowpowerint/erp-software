@@ -92,7 +92,10 @@ export class DocumentsController {
       throw new NotFoundException("Document not found");
     }
 
-    const filePath = await this.storageService.getLocalPath(document.fileUrl);
+    const filePath = await this.storageService.getLocalPath(
+      document.fileUrl,
+      document.fileName,
+    );
     if (!filePath) {
       throw new BadRequestException("Document file not accessible");
     }
@@ -260,7 +263,10 @@ export class DocumentsController {
         throw new NotFoundException("Document not found");
       }
 
-      const filePath = await this.storageService.getLocalPath(document.fileUrl);
+      const filePath = await this.storageService.getLocalPath(
+        document.fileUrl,
+        document.fileName,
+      );
       if (!filePath) {
         throw new BadRequestException("Document file not accessible");
       }
@@ -754,9 +760,9 @@ export class DocumentsController {
 
     for (const doc of documents) {
       try {
-        const provider = doc.fileUrl.includes("s3.amazonaws.com")
-          ? StorageProvider.S3
-          : StorageProvider.LOCAL;
+        const provider = this.storageService.resolveProviderForDocument(
+          doc.fileUrl,
+        );
 
         if (provider === StorageProvider.LOCAL) {
           const filePath = this.storageService.getLocalFilePath(doc.fileName);
