@@ -10,3 +10,6 @@ export * from "./maintenance-checklist.dto";
 export * from "./breakdown.dto";
 export * from "./usage.dto";
 export * from "./fleet-inspection.dto";
+
+export * from "./fuel.dto";
+export * from "./fuel-tank.dto";

@@ -213,6 +213,9 @@ model User {
   breakdownsResolved   BreakdownLog[]   @relation("BreakdownResolver")
   usageLogs            UsageLog[]       @relation("UsageOperator")
   fleetInspections     FleetInspection[] @relation("FleetInspector")
+  fuelRecordsFilled    FuelRecord[]     @relation("FuelFiller")
+  fuelRecordsApproved  FuelRecord[]     @relation("FuelApprover")
+  fuelTankTransactions FuelTankTransaction[] @relation("TankTransactor")
 
   @@map("users")
 }
@@ -1528,6 +1531,8 @@ model FleetAsset {
   breakdownLogs      BreakdownLog[]
   usageLogs          UsageLog[]
   inspections        FleetInspection[]
+  fuelRecords        FuelRecord[]
+  fuelTankTransactions FuelTankTransaction[]
 
   createdById        String
   createdBy          User               @relation("FleetCreator", fields: [createdById], references: [id])
@@ -1843,6 +1848,105 @@ model UsageLog {
   @@index([operatorId])
   @@index([siteLocation])
   @@map("usage_logs")
+}
+
+enum FuelTransactionType {
+  FILL_UP
+  PARTIAL_FILL
+  TANK_DISPENSE
+  EXTERNAL
+}
+
+enum FuelTankTransactionType {
+  REFILL
+  DISPENSE
+  ADJUSTMENT
+}
+
+model FuelRecord {
+  id                String              @id @default(uuid())
+  assetId           String
+  asset             FleetAsset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  transactionDate   DateTime
+  transactionType   FuelTransactionType
+
+  fuelType          FuelType
+  quantity          Decimal             @db.Decimal(10, 2)
+  unitPrice         Decimal             @db.Decimal(10, 4)
+  totalCost         Decimal             @db.Decimal(15, 2)
+
+  odometerReading   Decimal?            @db.Decimal(12, 2)
+  hoursReading      Decimal?            @db.Decimal(12, 2)
+
+  distanceSinceLast Decimal?            @db.Decimal(10, 2)
+  hoursSinceLast    Decimal?            @db.Decimal(10, 2)
+  fuelEfficiency    Decimal?            @db.Decimal(10, 4)
+
+  fuelStation       String?
+  receiptNumber     String?
+  siteLocation      String
+
+  filledById        String
+  filledBy          User                @relation("FuelFiller", fields: [filledById], references: [id])
+  approvedById      String?
+  approvedBy        User?               @relation("FuelApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  notes             String?
+  receiptImage      String?
+
+  createdAt         DateTime            @default(now())
+
+  @@index([assetId])
+  @@index([transactionDate])
+  @@index([siteLocation])
+  @@index([fuelType])
+  @@map("fuel_records")
+}
+
+model FuelTank {
+  id             String      @id @default(uuid())
+  name           String
+  location       String
+  fuelType       FuelType
+  capacity       Decimal     @db.Decimal(12, 2)
+  currentLevel   Decimal     @db.Decimal(12, 2)
+  reorderLevel   Decimal     @db.Decimal(12, 2)
+  lastRefillDate DateTime?
+  lastRefillQty  Decimal?    @db.Decimal(12, 2)
+  status         String      @default("ACTIVE")
+
+  transactions   FuelTankTransaction[]
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([location])
+  @@index([fuelType])
+  @@index([status])
+  @@map("fuel_tanks")
+}
+
+model FuelTankTransaction {
+  id              String                   @id @default(uuid())
+  tankId          String
+  tank            FuelTank                 @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  transactionType FuelTankTransactionType
+  quantity        Decimal                  @db.Decimal(12, 2)
+  balanceBefore   Decimal                  @db.Decimal(12, 2)
+  balanceAfter    Decimal                  @db.Decimal(12, 2)
+  assetId         String?
+  asset           FleetAsset?              @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  reference       String?
+  performedById   String
+  performedBy     User                     @relation("TankTransactor", fields: [performedById], references: [id])
+  transactionDate DateTime                 @default(now())
+  notes           String?
+
+  @@index([tankId])
+  @@index([transactionDate])
+  @@index([transactionType])
+  @@map("fuel_tank_transactions")
 }
 
 enum FleetInspectionType {
