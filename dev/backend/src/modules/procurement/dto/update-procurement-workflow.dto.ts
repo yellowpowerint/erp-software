@@ -8,9 +8,7 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { RequisitionType } from "@prisma/client";
-import {
-  CreateProcurementWorkflowStageDto,
-} from "./create-procurement-workflow.dto";
+import { CreateProcurementWorkflowStageDto } from "./create-procurement-workflow.dto";
 
 export class UpdateProcurementWorkflowDto {
   @IsOptional()

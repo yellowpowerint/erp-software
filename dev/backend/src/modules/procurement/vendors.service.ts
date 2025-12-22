@@ -74,7 +74,10 @@ export class VendorsService {
     return `${prefix}${String(count + 1).padStart(4, "0")}`;
   }
 
-  async createVendor(dto: CreateVendorDto, user: { userId: string; role: UserRole }) {
+  async createVendor(
+    dto: CreateVendorDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
     if (!dto.category?.length) {
@@ -121,11 +124,15 @@ export class VendorsService {
           environmentalCert: dto.environmentalCert,
           safetyCompliance: dto.safetyCompliance ?? false,
           insuranceCert: dto.insuranceCert,
-          insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : null,
+          insuranceExpiry: dto.insuranceExpiry
+            ? new Date(dto.insuranceExpiry)
+            : null,
           createdById: user.userId,
         },
         include: {
-          createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+          createdBy: {
+            select: { id: true, firstName: true, lastName: true, role: true },
+          },
         },
       });
     });
@@ -172,8 +179,17 @@ export class VendorsService {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
-        _count: { select: { contacts: true, documents: true, products: true, evaluations: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+        _count: {
+          select: {
+            contacts: true,
+            documents: true,
+            products: true,
+            evaluations: true,
+          },
+        },
       },
     });
 
@@ -186,11 +202,28 @@ export class VendorsService {
     const vendor = await this.prisma.vendor.findUnique({
       where: { id },
       include: {
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
         contacts: { orderBy: { isPrimary: "desc" } },
-        documents: { orderBy: { uploadedAt: "desc" }, include: { uploadedBy: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+        documents: {
+          orderBy: { uploadedAt: "desc" },
+          include: {
+            uploadedBy: {
+              select: { id: true, firstName: true, lastName: true, role: true },
+            },
+          },
+        },
         products: { orderBy: { productName: "asc" } },
-        evaluations: { orderBy: { evaluatedAt: "desc" }, take: 50, include: { evaluator: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+        evaluations: {
+          orderBy: { evaluatedAt: "desc" },
+          take: 50,
+          include: {
+            evaluator: {
+              select: { id: true, firstName: true, lastName: true, role: true },
+            },
+          },
+        },
       },
     });
 
@@ -198,13 +231,23 @@ export class VendorsService {
     return vendor;
   }
 
-  async updateVendor(id: string, dto: UpdateVendorDto, user: { userId: string; role: UserRole }) {
+  async updateVendor(
+    id: string,
+    dto: UpdateVendorDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
-    const existing = await this.prisma.vendor.findUnique({ where: { id }, select: { id: true } });
+    const existing = await this.prisma.vendor.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     if (!existing) throw new NotFoundException("Vendor not found");
 
-    const creditLimit = dto.creditLimit !== undefined ? this.toDecimalOrNull(dto.creditLimit) : undefined;
+    const creditLimit =
+      dto.creditLimit !== undefined
+        ? this.toDecimalOrNull(dto.creditLimit)
+        : undefined;
 
     return this.prisma.vendor.update({
       where: { id },
@@ -227,7 +270,12 @@ export class VendorsService {
         taxId: dto.taxId,
         businessRegNo: dto.businessRegNo,
         vatRegistered: dto.vatRegistered,
-        vatNumber: dto.vatRegistered === true ? dto.vatNumber : dto.vatRegistered === false ? null : undefined,
+        vatNumber:
+          dto.vatRegistered === true
+            ? dto.vatNumber
+            : dto.vatRegistered === false
+              ? null
+              : undefined,
         bankName: dto.bankName,
         bankBranch: dto.bankBranch,
         accountNumber: dto.accountNumber,
@@ -241,7 +289,11 @@ export class VendorsService {
         environmentalCert: dto.environmentalCert,
         safetyCompliance: dto.safetyCompliance,
         insuranceCert: dto.insuranceCert,
-        insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : dto.insuranceExpiry === null ? null : undefined,
+        insuranceExpiry: dto.insuranceExpiry
+          ? new Date(dto.insuranceExpiry)
+          : dto.insuranceExpiry === null
+            ? null
+            : undefined,
       },
     });
   }
@@ -249,14 +301,21 @@ export class VendorsService {
   async deleteVendor(id: string, user: { userId: string; role: UserRole }) {
     this.assertCanManage(user.role);
 
-    const existing = await this.prisma.vendor.findUnique({ where: { id }, select: { id: true } });
+    const existing = await this.prisma.vendor.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     if (!existing) throw new NotFoundException("Vendor not found");
 
     await this.prisma.vendor.delete({ where: { id } });
     return { success: true };
   }
 
-  async approveVendor(id: string, dto: VendorStatusActionDto, user: { userId: string; role: UserRole }) {
+  async approveVendor(
+    id: string,
+    dto: VendorStatusActionDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
     return this.prisma.vendor.update({
@@ -265,12 +324,17 @@ export class VendorsService {
         status: VendorStatus.APPROVED,
         isBlacklisted: false,
         blacklistReason: null,
-        isPreferred: dto.isPreferred === undefined ? undefined : dto.isPreferred,
+        isPreferred:
+          dto.isPreferred === undefined ? undefined : dto.isPreferred,
       },
     });
   }
 
-  async suspendVendor(id: string, _dto: VendorStatusActionDto, user: { userId: string; role: UserRole }) {
+  async suspendVendor(
+    id: string,
+    _dto: VendorStatusActionDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
     return this.prisma.vendor.update({
@@ -281,7 +345,11 @@ export class VendorsService {
     });
   }
 
-  async blacklistVendor(id: string, dto: VendorStatusActionDto, user: { userId: string; role: UserRole }) {
+  async blacklistVendor(
+    id: string,
+    dto: VendorStatusActionDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
     if (!dto.reason?.trim()) {
@@ -294,12 +362,17 @@ export class VendorsService {
         status: VendorStatus.BLACKLISTED,
         isBlacklisted: true,
         blacklistReason: dto.reason,
-        isPreferred: dto.isPreferred === undefined ? undefined : dto.isPreferred,
+        isPreferred:
+          dto.isPreferred === undefined ? undefined : dto.isPreferred,
       },
     });
   }
 
-  async reactivateVendor(id: string, dto: VendorStatusActionDto, user: { userId: string; role: UserRole }) {
+  async reactivateVendor(
+    id: string,
+    dto: VendorStatusActionDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
     return this.prisma.vendor.update({
@@ -308,24 +381,37 @@ export class VendorsService {
         status: VendorStatus.APPROVED,
         isBlacklisted: false,
         blacklistReason: null,
-        isPreferred: dto.isPreferred === undefined ? undefined : dto.isPreferred,
+        isPreferred:
+          dto.isPreferred === undefined ? undefined : dto.isPreferred,
       },
     });
   }
 
-  async addContact(vendorId: string, dto: CreateVendorContactDto, user: { userId: string; role: UserRole }) {
+  async addContact(
+    vendorId: string,
+    dto: CreateVendorContactDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
-    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
     if (!vendor) throw new NotFoundException("Vendor not found");
 
     return this.prisma.$transaction(async (tx) => {
-      const existingCount = await tx.vendorContact.count({ where: { vendorId } });
+      const existingCount = await tx.vendorContact.count({
+        where: { vendorId },
+      });
 
       const isPrimary = dto.isPrimary ?? existingCount === 0;
 
       if (isPrimary) {
-        await tx.vendorContact.updateMany({ where: { vendorId }, data: { isPrimary: false } });
+        await tx.vendorContact.updateMany({
+          where: { vendorId },
+          data: { isPrimary: false },
+        });
       }
 
       return tx.vendorContact.create({
@@ -349,7 +435,10 @@ export class VendorsService {
   ) {
     this.assertCanManage(user.role);
 
-    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
     if (!vendor) throw new NotFoundException("Vendor not found");
 
     const uploadResult = await this.storageService.uploadFile(file, "vendors");
@@ -364,30 +453,47 @@ export class VendorsService {
         uploadedById: user.userId,
       },
       include: {
-        uploadedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        uploadedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
   }
 
-  async listDocuments(vendorId: string, user: { userId: string; role: UserRole }) {
+  async listDocuments(
+    vendorId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!user?.role) throw new ForbiddenException("Not allowed");
 
-    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
     if (!vendor) throw new NotFoundException("Vendor not found");
 
     return this.prisma.vendorDocument.findMany({
       where: { vendorId },
       orderBy: { uploadedAt: "desc" },
       include: {
-        uploadedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        uploadedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
   }
 
-  async addProduct(vendorId: string, dto: CreateVendorProductDto, user: { userId: string; role: UserRole }) {
+  async addProduct(
+    vendorId: string,
+    dto: CreateVendorProductDto,
+    user: { userId: string; role: UserRole },
+  ) {
     this.assertCanManage(user.role);
 
-    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
     if (!vendor) throw new NotFoundException("Vendor not found");
 
     return this.prisma.vendorProduct.create({
@@ -404,10 +510,16 @@ export class VendorsService {
     });
   }
 
-  async listProducts(vendorId: string, user: { userId: string; role: UserRole }) {
+  async listProducts(
+    vendorId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!user?.role) throw new ForbiddenException("Not allowed");
 
-    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
     if (!vendor) throw new NotFoundException("Vendor not found");
 
     return this.prisma.vendorProduct.findMany({
@@ -441,8 +553,14 @@ export class VendorsService {
         description: dto.description,
         unitPrice: dto.unitPrice ? this.toDecimal(dto.unitPrice) : undefined,
         unit: dto.unit,
-        leadTimeDays: dto.leadTimeDays === undefined ? undefined : dto.leadTimeDays,
-        minOrderQty: dto.minOrderQty === undefined ? undefined : dto.minOrderQty ? this.toDecimal(dto.minOrderQty) : null,
+        leadTimeDays:
+          dto.leadTimeDays === undefined ? undefined : dto.leadTimeDays,
+        minOrderQty:
+          dto.minOrderQty === undefined
+            ? undefined
+            : dto.minOrderQty
+              ? this.toDecimal(dto.minOrderQty)
+              : null,
       },
     });
   }
@@ -458,21 +576,30 @@ export class VendorsService {
     return new Prisma.Decimal(avg.toFixed(2));
   }
 
-  async evaluateVendor(vendorId: string, dto: CreateVendorEvaluationDto, user: { userId: string; role: UserRole }) {
-    if (!(
-      [
-        UserRole.SUPER_ADMIN,
-        UserRole.CEO,
-        UserRole.CFO,
-        UserRole.PROCUREMENT_OFFICER,
-        UserRole.OPERATIONS_MANAGER,
-        UserRole.SAFETY_OFFICER,
-      ] as UserRole[]
-    ).includes(user.role)) {
+  async evaluateVendor(
+    vendorId: string,
+    dto: CreateVendorEvaluationDto,
+    user: { userId: string; role: UserRole },
+  ) {
+    if (
+      !(
+        [
+          UserRole.SUPER_ADMIN,
+          UserRole.CEO,
+          UserRole.CFO,
+          UserRole.PROCUREMENT_OFFICER,
+          UserRole.OPERATIONS_MANAGER,
+          UserRole.SAFETY_OFFICER,
+        ] as UserRole[]
+      ).includes(user.role)
+    ) {
       throw new ForbiddenException("Not allowed");
     }
 
-    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
     if (!vendor) throw new NotFoundException("Vendor not found");
 
     const overallScore = this.computeOverallScore(dto);
@@ -492,7 +619,9 @@ export class VendorsService {
         recommendation: dto.recommendation,
       },
       include: {
-        evaluator: { select: { id: true, firstName: true, lastName: true, role: true } },
+        evaluator: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
 
@@ -501,17 +630,25 @@ export class VendorsService {
     return evaluation;
   }
 
-  async listEvaluations(vendorId: string, user: { userId: string; role: UserRole }) {
+  async listEvaluations(
+    vendorId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!user?.role) throw new ForbiddenException("Not allowed");
 
-    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
     if (!vendor) throw new NotFoundException("Vendor not found");
 
     return this.prisma.vendorEvaluation.findMany({
       where: { vendorId },
       orderBy: { evaluatedAt: "desc" },
       include: {
-        evaluator: { select: { id: true, firstName: true, lastName: true, role: true } },
+        evaluator: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
       take: 200,
     });
@@ -539,8 +676,12 @@ export class VendorsService {
       evals.reduce((acc, e) => acc + e.qualityScore, 0) / evals.length;
 
     const rating = new Prisma.Decimal(avgOverall.toFixed(2));
-    const onTimeDeliveryPct = new Prisma.Decimal(((avgDelivery / 5) * 100).toFixed(2));
-    const qualityScorePct = new Prisma.Decimal(((avgQuality / 5) * 100).toFixed(2));
+    const onTimeDeliveryPct = new Prisma.Decimal(
+      ((avgDelivery / 5) * 100).toFixed(2),
+    );
+    const qualityScorePct = new Prisma.Decimal(
+      ((avgQuality / 5) * 100).toFixed(2),
+    );
 
     await this.prisma.vendor.update({
       where: { id: vendorId },
@@ -552,7 +693,10 @@ export class VendorsService {
     });
   }
 
-  async getPerformance(vendorId: string, user: { userId: string; role: UserRole }) {
+  async getPerformance(
+    vendorId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!user?.role) throw new ForbiddenException("Not allowed");
 
     const vendor = await this.prisma.vendor.findUnique({
@@ -611,7 +755,10 @@ export class VendorsService {
     });
   }
 
-  async expiringDocuments(user: { userId: string; role: UserRole }, days: number = 30) {
+  async expiringDocuments(
+    user: { userId: string; role: UserRole },
+    days: number = 30,
+  ) {
     if (!user?.role) throw new ForbiddenException("Not allowed");
 
     const now = new Date();
@@ -626,7 +773,15 @@ export class VendorsService {
       },
       orderBy: { expiryDate: "asc" },
       include: {
-        vendor: { select: { id: true, vendorCode: true, companyName: true, status: true, isBlacklisted: true } },
+        vendor: {
+          select: {
+            id: true,
+            vendorCode: true,
+            companyName: true,
+            status: true,
+            isBlacklisted: true,
+          },
+        },
       },
       take: 200,
     });
@@ -646,8 +801,12 @@ export class VendorsService {
       byStatus[String(row.status)] = row._count._all;
     }
 
-    const preferred = await this.prisma.vendor.count({ where: { isPreferred: true } });
-    const blacklisted = await this.prisma.vendor.count({ where: { isBlacklisted: true } });
+    const preferred = await this.prisma.vendor.count({
+      where: { isPreferred: true },
+    });
+    const blacklisted = await this.prisma.vendor.count({
+      where: { isBlacklisted: true },
+    });
     const expiringDocs30 = await this.expiringDocuments(user, 30);
 
     return {

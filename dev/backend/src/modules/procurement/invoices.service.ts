@@ -41,15 +41,22 @@ export class InvoicesService {
     return new Prisma.Decimal(n);
   }
 
-  async createInvoice(dto: CreateVendorInvoiceDto, user: { userId: string; role: UserRole }) {
-    if (!this.canManageInvoices(user.role)) throw new ForbiddenException("Not allowed");
+  async createInvoice(
+    dto: CreateVendorInvoiceDto,
+    user: { userId: string; role: UserRole },
+  ) {
+    if (!this.canManageInvoices(user.role))
+      throw new ForbiddenException("Not allowed");
 
     if (!dto.items?.length) {
       throw new BadRequestException("Invoice must have at least one item");
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const vendor = await tx.vendor.findUnique({ where: { id: dto.vendorId }, select: { id: true } });
+      const vendor = await tx.vendor.findUnique({
+        where: { id: dto.vendorId },
+        select: { id: true },
+      });
       if (!vendor) throw new BadRequestException("Invalid vendorId");
 
       let po: any | null = null;
@@ -70,7 +77,9 @@ export class InvoicesService {
           vendorId: dto.vendorId,
           purchaseOrderId: dto.purchaseOrderId ?? null,
           subtotal: this.toDecimal(dto.subtotal),
-          taxAmount: dto.taxAmount ? this.toDecimal(dto.taxAmount) : new Prisma.Decimal(0),
+          taxAmount: dto.taxAmount
+            ? this.toDecimal(dto.taxAmount)
+            : new Prisma.Decimal(0),
           totalAmount: this.toDecimal(dto.totalAmount),
           currency: dto.currency ?? "GHS",
           invoiceDate: new Date(dto.invoiceDate),
@@ -85,7 +94,9 @@ export class InvoicesService {
               description: i.description,
               quantity: this.toDecimal(i.quantity),
               unitPrice: this.toDecimal(i.unitPrice),
-              totalPrice: this.toDecimal(i.quantity).mul(this.toDecimal(i.unitPrice)),
+              totalPrice: this.toDecimal(i.quantity).mul(
+                this.toDecimal(i.unitPrice),
+              ),
               poItemId: i.poItemId ?? null,
             })),
           },
@@ -97,19 +108,25 @@ export class InvoicesService {
     });
   }
 
-  async listInvoices(query: any, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async listInvoices(
+    query: any,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     const where: any = {};
 
     if (user.role === UserRole.VENDOR) {
-      if (!user.vendorId) throw new ForbiddenException("Vendor account not linked");
+      if (!user.vendorId)
+        throw new ForbiddenException("Vendor account not linked");
       where.vendorId = user.vendorId;
     } else {
-      if (!this.canManageInvoices(user.role)) throw new ForbiddenException("Not allowed");
+      if (!this.canManageInvoices(user.role))
+        throw new ForbiddenException("Not allowed");
     }
 
     if (query.matchStatus) where.matchStatus = String(query.matchStatus);
     if (query.paymentStatus) where.paymentStatus = String(query.paymentStatus);
-    if (query.vendorId && user.role !== UserRole.VENDOR) where.vendorId = String(query.vendorId);
+    if (query.vendorId && user.role !== UserRole.VENDOR)
+      where.vendorId = String(query.vendorId);
 
     return (this.prisma as any).vendorInvoice.findMany({
       where,
@@ -123,34 +140,58 @@ export class InvoicesService {
     });
   }
 
-  async getInvoiceById(id: string, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async getInvoiceById(
+    id: string,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     const inv = await (this.prisma as any).vendorInvoice.findUnique({
       where: { id },
       include: {
-        vendor: { select: { id: true, vendorCode: true, companyName: true, email: true, phone: true } },
+        vendor: {
+          select: {
+            id: true,
+            vendorCode: true,
+            companyName: true,
+            email: true,
+            phone: true,
+          },
+        },
         purchaseOrder: {
           include: {
-            vendor: { select: { id: true, vendorCode: true, companyName: true } },
+            vendor: {
+              select: { id: true, vendorCode: true, companyName: true },
+            },
             items: true,
           },
         },
         items: { include: { poItem: true } },
         payments: {
-          include: { processedBy: { select: { id: true, firstName: true, lastName: true, role: true } } },
+          include: {
+            processedBy: {
+              select: { id: true, firstName: true, lastName: true, role: true },
+            },
+          },
           orderBy: { paymentDate: "desc" },
         },
-        matchedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
-        approvedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        matchedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+        approvedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
 
     if (!inv) throw new NotFoundException("Invoice not found");
 
     if (user.role === UserRole.VENDOR) {
-      if (!user.vendorId) throw new ForbiddenException("Vendor account not linked");
-      if (inv.vendorId !== user.vendorId) throw new ForbiddenException("Not allowed");
+      if (!user.vendorId)
+        throw new ForbiddenException("Vendor account not linked");
+      if (inv.vendorId !== user.vendorId)
+        throw new ForbiddenException("Not allowed");
     } else {
-      if (!this.canManageInvoices(user.role)) throw new ForbiddenException("Not allowed");
+      if (!this.canManageInvoices(user.role))
+        throw new ForbiddenException("Not allowed");
     }
 
     return inv;
@@ -161,11 +202,15 @@ export class InvoicesService {
     dto: MatchVendorInvoiceDto,
     user: { userId: string; role: UserRole },
   ) {
-    if (!this.canManageInvoices(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageInvoices(user.role))
+      throw new ForbiddenException("Not allowed");
 
     const tolerancePercent = dto.tolerancePercent ?? 2;
 
-    const result = await this.threeWayMatching.performThreeWayMatch(invoiceId, tolerancePercent);
+    const result = await this.threeWayMatching.performThreeWayMatch(
+      invoiceId,
+      tolerancePercent,
+    );
 
     const priceVariance = result.variances.priceVariance;
     const quantityVariance = result.variances.quantityVariance;
@@ -238,7 +283,8 @@ export class InvoicesService {
     dto: DisputeVendorInvoiceDto,
     user: { userId: string; role: UserRole },
   ) {
-    if (!this.canManageInvoices(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageInvoices(user.role))
+      throw new ForbiddenException("Not allowed");
 
     const inv = await (this.prisma as any).vendorInvoice.findUnique({
       where: { id: invoiceId },
@@ -257,7 +303,8 @@ export class InvoicesService {
   }
 
   async pendingMatch(user: { userId: string; role: UserRole }) {
-    if (!this.canManageInvoices(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageInvoices(user.role))
+      throw new ForbiddenException("Not allowed");
 
     return (this.prisma as any).vendorInvoice.findMany({
       where: { matchStatus: "PENDING" },
@@ -271,7 +318,8 @@ export class InvoicesService {
   }
 
   async discrepancies(user: { userId: string; role: UserRole }) {
-    if (!this.canManageInvoices(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageInvoices(user.role))
+      throw new ForbiddenException("Not allowed");
 
     return (this.prisma as any).vendorInvoice.findMany({
       where: { matchStatus: { in: ["MISMATCH", "PARTIAL_MATCH", "DISPUTED"] } },

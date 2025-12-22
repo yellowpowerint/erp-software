@@ -39,7 +39,10 @@ export class FleetMaintenanceController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  createSchedule(@Body() dto: CreateMaintenanceScheduleDto, @CurrentUser() user: any) {
+  createSchedule(
+    @Body() dto: CreateMaintenanceScheduleDto,
+    @CurrentUser() user: any,
+  ) {
     return this.maintenanceService.createSchedule(dto, user);
   }
 
@@ -79,7 +82,11 @@ export class FleetMaintenanceController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  updateSchedule(@Param("id") id: string, @Body() dto: UpdateMaintenanceScheduleDto, @CurrentUser() user: any) {
+  updateSchedule(
+    @Param("id") id: string,
+    @Body() dto: UpdateMaintenanceScheduleDto,
+    @CurrentUser() user: any,
+  ) {
     return this.maintenanceService.updateSchedule(id, dto, user);
   }
 
@@ -111,7 +118,10 @@ export class FleetMaintenanceController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  createRecord(@Body() dto: CreateMaintenanceRecordDto, @CurrentUser() user: any) {
+  createRecord(
+    @Body() dto: CreateMaintenanceRecordDto,
+    @CurrentUser() user: any,
+  ) {
     return this.maintenanceService.createMaintenanceRecord(dto, user);
   }
 
@@ -151,7 +161,11 @@ export class FleetMaintenanceController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  updateRecord(@Param("id") id: string, @Body() dto: UpdateMaintenanceRecordDto, @CurrentUser() user: any) {
+  updateRecord(
+    @Param("id") id: string,
+    @Body() dto: UpdateMaintenanceRecordDto,
+    @CurrentUser() user: any,
+  ) {
     return this.maintenanceService.updateMaintenanceRecord(id, dto, user);
   }
 
@@ -163,7 +177,11 @@ export class FleetMaintenanceController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  complete(@Param("id") id: string, @Body() dto: CompleteMaintenanceRecordDto, @CurrentUser() user: any) {
+  complete(
+    @Param("id") id: string,
+    @Body() dto: CompleteMaintenanceRecordDto,
+    @CurrentUser() user: any,
+  ) {
     return this.maintenanceService.completeMaintenanceRecord(id, dto, user);
   }
 
@@ -175,7 +193,11 @@ export class FleetMaintenanceController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  cancel(@Param("id") id: string, @Body() dto: CancelMaintenanceRecordDto, @CurrentUser() user: any) {
+  cancel(
+    @Param("id") id: string,
+    @Body() dto: CancelMaintenanceRecordDto,
+    @CurrentUser() user: any,
+  ) {
     return this.maintenanceService.cancelMaintenanceRecord(id, dto, user);
   }
 
@@ -269,13 +291,16 @@ export class FleetMaintenanceController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  createChecklist(@Body() dto: CreateMaintenanceChecklistDto, @CurrentUser() user: any) {
+  createChecklist(
+    @Body() dto: CreateMaintenanceChecklistDto,
+    @CurrentUser() user: any,
+  ) {
     return this.maintenanceService.createChecklist(dto, user);
   }
 
   @Post("maintenance/reminders/run")
   @Roles(UserRole.SUPER_ADMIN, UserRole.CEO)
-  runReminders(@CurrentUser() user: any) {
+  runReminders(@CurrentUser() _user: any) {
     return this.maintenanceService.sendMaintenanceReminders();
   }
 }

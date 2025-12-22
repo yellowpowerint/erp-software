@@ -134,9 +134,16 @@ export class RequisitionsService {
     const isDelegateApprover =
       !isApprover &&
       delegatorIds.length > 0 &&
-      requisition.approvalHistory.some((a) => delegatorIds.includes(a.approverId));
+      requisition.approvalHistory.some((a) =>
+        delegatorIds.includes(a.approverId),
+      );
 
-    if (!this.canSeeAll(role) && !isOwner && !isApprover && !isDelegateApprover) {
+    if (
+      !this.canSeeAll(role) &&
+      !isOwner &&
+      !isApprover &&
+      !isDelegateApprover
+    ) {
       throw new ForbiddenException(
         "You do not have access to this requisition",
       );
@@ -248,7 +255,8 @@ export class RequisitionsService {
   private async mapApproverIdsToNotificationRecipients(approverIds: string[]) {
     const out: string[] = [];
     for (const approverId of approverIds) {
-      const delegateId = await this.delegationsService.resolveDelegate(approverId);
+      const delegateId =
+        await this.delegationsService.resolveDelegate(approverId);
       out.push(delegateId ?? approverId);
     }
     return Array.from(new Set(out));
@@ -259,9 +267,8 @@ export class RequisitionsService {
     requisition: { id: string; requisitionNo: string; title: string },
     creatorName: string,
   ) {
-    const recipients = await this.mapApproverIdsToNotificationRecipients(
-      approverIds,
-    );
+    const recipients =
+      await this.mapApproverIdsToNotificationRecipients(approverIds);
 
     await this.notificationsService.createBulkNotifications(
       recipients.map((id) => ({
@@ -632,7 +639,9 @@ export class RequisitionsService {
       } else {
         const approver = await this.pickStage1Approver(requisition.department);
         if (!approver) {
-          throw new BadRequestException("No approver found for this requisition");
+          throw new BadRequestException(
+            "No approver found for this requisition",
+          );
         }
         stage1ApproverIds = [approver.id];
       }
@@ -687,7 +696,11 @@ export class RequisitionsService {
 
     await this.notifyApprovers(
       stage1Approvals.map((a) => a.approverId),
-      { id: updated.id, requisitionNo: updated.requisitionNo, title: updated.title },
+      {
+        id: updated.id,
+        requisitionNo: updated.requisitionNo,
+        title: updated.title,
+      },
       creatorName,
     );
 
@@ -735,7 +748,9 @@ export class RequisitionsService {
     });
 
     if (!approvalRow) {
-      throw new ForbiddenException("You are not an approver for the current stage");
+      throw new ForbiddenException(
+        "You are not an approver for the current stage",
+      );
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -971,7 +986,9 @@ export class RequisitionsService {
     });
 
     if (!approvalRow) {
-      throw new ForbiddenException("You are not an approver for the current stage");
+      throw new ForbiddenException(
+        "You are not an approver for the current stage",
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -1059,7 +1076,9 @@ export class RequisitionsService {
     });
 
     if (!hasApproval) {
-      throw new ForbiddenException("You are not an approver for the current stage");
+      throw new ForbiddenException(
+        "You are not an approver for the current stage",
+      );
     }
 
     await this.notificationsService.createNotification({
@@ -1074,7 +1093,11 @@ export class RequisitionsService {
     return { success: true };
   }
 
-  async escalateRequisition(requisitionId: string, userId: string, role: UserRole) {
+  async escalateRequisition(
+    requisitionId: string,
+    userId: string,
+    role: UserRole,
+  ) {
     await this.assertAccess(requisitionId, userId, role);
 
     const requisition = await this.prisma.requisition.findUnique({
@@ -1095,7 +1118,9 @@ export class RequisitionsService {
       throw new BadRequestException("Requisition is not pending approval");
     }
     if (!requisition.workflowId) {
-      throw new BadRequestException("No workflow configured for this requisition");
+      throw new BadRequestException(
+        "No workflow configured for this requisition",
+      );
     }
 
     const delegatorIds = await this.getActiveDelegatorIds(userId);
@@ -1124,7 +1149,9 @@ export class RequisitionsService {
     });
 
     if (!stage?.escalateToId) {
-      throw new BadRequestException("No escalation target configured for this stage");
+      throw new BadRequestException(
+        "No escalation target configured for this stage",
+      );
     }
 
     await this.prisma.requisitionApproval.createMany({
@@ -1179,7 +1206,10 @@ export class RequisitionsService {
 
     if (
       (
-        [RequisitionStatus.CANCELLED, RequisitionStatus.COMPLETED] as RequisitionStatus[]
+        [
+          RequisitionStatus.CANCELLED,
+          RequisitionStatus.COMPLETED,
+        ] as RequisitionStatus[]
       ).includes(requisition.status)
     ) {
       throw new BadRequestException("Requisition cannot be cancelled");

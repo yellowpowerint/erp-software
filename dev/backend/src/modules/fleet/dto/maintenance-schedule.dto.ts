@@ -1,4 +1,12 @@
-import { IsBoolean, IsEnum, IsInt, IsNumberString, IsOptional, IsString, Min } from "class-validator";
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  Min,
+} from "class-validator";
 
 export enum MaintenanceType {
   PREVENTIVE = "PREVENTIVE",

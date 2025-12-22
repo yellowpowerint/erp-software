@@ -3,7 +3,9 @@ import { ConfigService } from "@nestjs/config";
 import { FleetMaintenanceService } from "./fleet-maintenance.service";
 
 @Injectable()
-export class FleetMaintenanceReminderService implements OnModuleInit, OnModuleDestroy {
+export class FleetMaintenanceReminderService
+  implements OnModuleInit, OnModuleDestroy
+{
   private timer: NodeJS.Timeout | null = null;
   private lastRunAt: number | null = null;
   private running = false;
@@ -15,7 +17,10 @@ export class FleetMaintenanceReminderService implements OnModuleInit, OnModuleDe
 
   async onModuleInit() {
     const enabled =
-      this.configService.get<string>("FLEET_MAINTENANCE_REMINDERS_ENABLED", "true") === "true";
+      this.configService.get<string>(
+        "FLEET_MAINTENANCE_REMINDERS_ENABLED",
+        "true",
+      ) === "true";
     if (!enabled) return;
 
     this.timer = setInterval(() => {

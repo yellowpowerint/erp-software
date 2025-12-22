@@ -1,5 +1,11 @@
 import { Type } from "class-transformer";
-import { IsArray, IsOptional, IsString, MinLength, ValidateNested } from "class-validator";
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from "class-validator";
 
 class RejectGoodsReceiptItemDto {
   @IsString()

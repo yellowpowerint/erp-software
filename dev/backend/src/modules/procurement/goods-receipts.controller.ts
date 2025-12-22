@@ -59,7 +59,11 @@ export class GoodsReceiptsController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  update(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: UpdateGoodsReceiptDto) {
+  update(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: UpdateGoodsReceiptDto,
+  ) {
     return this.goodsReceiptsService.updateGRN(id, dto, user);
   }
 
@@ -90,7 +94,11 @@ export class GoodsReceiptsController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  accept(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: AcceptGoodsReceiptDto) {
+  accept(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: AcceptGoodsReceiptDto,
+  ) {
     return this.goodsReceiptsService.acceptGoods(id, dto, user);
   }
 
@@ -103,7 +111,11 @@ export class GoodsReceiptsController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  reject(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: RejectGoodsReceiptDto) {
+  reject(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: RejectGoodsReceiptDto,
+  ) {
     return this.goodsReceiptsService.rejectGoods(id, dto, user);
   }
 }

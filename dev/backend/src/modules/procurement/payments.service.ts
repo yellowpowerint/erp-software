@@ -26,7 +26,12 @@ export class PaymentsService {
 
   private canProcessPayments(role: UserRole): boolean {
     return (
-      [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.ACCOUNTANT] as UserRole[]
+      [
+        UserRole.SUPER_ADMIN,
+        UserRole.CEO,
+        UserRole.CFO,
+        UserRole.ACCOUNTANT,
+      ] as UserRole[]
     ).includes(role);
   }
 
@@ -38,7 +43,11 @@ export class PaymentsService {
     return new Prisma.Decimal(n);
   }
 
-  private computeInvoicePaymentStatus(total: Prisma.Decimal, paid: Prisma.Decimal, dueDate: Date) {
+  private computeInvoicePaymentStatus(
+    total: Prisma.Decimal,
+    paid: Prisma.Decimal,
+    dueDate: Date,
+  ) {
     if (paid.greaterThanOrEqualTo(total)) {
       return "PAID";
     }
@@ -90,7 +99,9 @@ export class PaymentsService {
       const remaining = total.sub(alreadyPaid);
 
       if (amount.greaterThan(remaining)) {
-        throw new BadRequestException("Payment amount exceeds remaining balance");
+        throw new BadRequestException(
+          "Payment amount exceeds remaining balance",
+        );
       }
 
       const payment = await (tx as any).vendorPayment.create({
@@ -106,7 +117,11 @@ export class PaymentsService {
       });
 
       const newPaidAmount = alreadyPaid.add(amount);
-      const status = this.computeInvoicePaymentStatus(total, newPaidAmount, new Date(invoice.dueDate));
+      const status = this.computeInvoicePaymentStatus(
+        total,
+        newPaidAmount,
+        new Date(invoice.dueDate),
+      );
 
       const updatedInvoice = await (tx as any).vendorInvoice.update({
         where: { id: invoiceId },
@@ -121,14 +136,19 @@ export class PaymentsService {
     });
   }
 
-  async listPayments(query: any, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async listPayments(
+    query: any,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     const where: any = {};
 
     if (user.role === UserRole.VENDOR) {
-      if (!user.vendorId) throw new ForbiddenException("Vendor account not linked");
+      if (!user.vendorId)
+        throw new ForbiddenException("Vendor account not linked");
       where.invoice = { vendorId: user.vendorId };
     } else {
-      if (!this.canManagePayments(user.role)) throw new ForbiddenException("Not allowed");
+      if (!this.canManagePayments(user.role))
+        throw new ForbiddenException("Not allowed");
     }
 
     if (query.invoiceId) where.invoiceId = String(query.invoiceId);
@@ -143,20 +163,27 @@ export class PaymentsService {
             invoiceNumber: true,
             totalAmount: true,
             currency: true,
-            vendor: { select: { id: true, vendorCode: true, companyName: true } },
+            vendor: {
+              select: { id: true, vendorCode: true, companyName: true },
+            },
           },
         },
-        processedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        processedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
       take: 200,
     });
   }
 
   async duePayments(query: any, user: { userId: string; role: UserRole }) {
-    if (!this.canManagePayments(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManagePayments(user.role))
+      throw new ForbiddenException("Not allowed");
 
     const days = query.days ? Number(query.days) : 30;
-    const windowDays = Number.isFinite(days) ? Math.max(1, Math.min(365, days)) : 30;
+    const windowDays = Number.isFinite(days)
+      ? Math.max(1, Math.min(365, days))
+      : 30;
 
     const now = new Date();
     const until = new Date(now.getTime() + windowDays * 24 * 60 * 60 * 1000);

@@ -208,6 +208,12 @@ model User {
   maintenanceApproved  MaintenanceRecord[] @relation("MaintenanceApprover")
   maintenanceCreated   MaintenanceRecord[] @relation("MaintenanceCreator")
 
+  breakdownsReported   BreakdownLog[]   @relation("BreakdownReporter")
+  breakdownsAssigned   BreakdownLog[]   @relation("BreakdownAssignee")
+  breakdownsResolved   BreakdownLog[]   @relation("BreakdownResolver")
+  usageLogs            UsageLog[]       @relation("UsageOperator")
+  fleetInspections     FleetInspection[] @relation("FleetInspector")
+
   @@map("users")
 }
 
@@ -1519,6 +1525,10 @@ model FleetAsset {
   maintenanceSchedules MaintenanceSchedule[]
   maintenanceRecords   MaintenanceRecord[]
 
+  breakdownLogs      BreakdownLog[]
+  usageLogs          UsageLog[]
+  inspections        FleetInspection[]
+
   createdById        String
   createdBy          User               @relation("FleetCreator", fields: [createdById], references: [id])
   createdAt          DateTime           @default(now())
@@ -1702,6 +1712,178 @@ model MaintenanceChecklist {
 
   @@index([assetType])
   @@map("maintenance_checklists")
+}
+
+enum BreakdownCategory {
+  MECHANICAL
+  ELECTRICAL
+  HYDRAULIC
+  ENGINE
+  TRANSMISSION
+  TIRES_TRACKS
+  STRUCTURAL
+  OPERATOR_ERROR
+  EXTERNAL_DAMAGE
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum BreakdownStatus {
+  REPORTED
+  ACKNOWLEDGED
+  DIAGNOSING
+  AWAITING_PARTS
+  IN_REPAIR
+  RESOLVED
+  CLOSED
+}
+
+model BreakdownLog {
+  id                String           @id @default(uuid())
+  assetId           String
+  asset             FleetAsset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  breakdownDate     DateTime
+  reportedDate      DateTime         @default(now())
+  location          String
+  siteLocation      String
+
+  title             String
+  description       String
+  category          BreakdownCategory
+  severity          Severity
+
+  operationalImpact String?
+  estimatedDowntime Decimal?         @db.Decimal(10, 2)
+  actualDowntime    Decimal?         @db.Decimal(10, 2)
+  productionLoss    Decimal?         @db.Decimal(15, 2)
+
+  status            BreakdownStatus  @default(REPORTED)
+  rootCause         String?
+  resolution        String?
+  resolvedDate      DateTime?
+
+  repairType        String?
+  repairCost        Decimal          @default(0) @db.Decimal(15, 2)
+  partsUsed         String?
+
+  reportedById      String
+  reportedBy        User             @relation("BreakdownReporter", fields: [reportedById], references: [id])
+  assignedToId      String?
+  assignedTo        User?            @relation("BreakdownAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedById      String?
+  resolvedBy        User?            @relation("BreakdownResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  photos            String[]
+  documents         String[]
+
+  maintenanceRecordId String?
+  maintenanceRecord   MaintenanceRecord? @relation(fields: [maintenanceRecordId], references: [id], onDelete: SetNull)
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([assetId])
+  @@index([status])
+  @@index([severity])
+  @@index([category])
+  @@map("breakdown_logs")
+}
+
+model UsageLog {
+  id              String      @id @default(uuid())
+  assetId         String
+  asset           FleetAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  date            DateTime
+  shiftId         String?
+  shift           String?
+
+  operatorId      String
+  operator        User        @relation("UsageOperator", fields: [operatorId], references: [id])
+
+  siteLocation    String
+  projectId       String?
+  project         Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  startOdometer   Decimal?    @db.Decimal(12, 2)
+  endOdometer     Decimal?    @db.Decimal(12, 2)
+  distanceCovered Decimal?    @db.Decimal(10, 2)
+
+  startHours      Decimal?    @db.Decimal(12, 2)
+  endHours        Decimal?    @db.Decimal(12, 2)
+  operatingHours  Decimal?    @db.Decimal(10, 2)
+
+  idleHours       Decimal?    @db.Decimal(10, 2)
+
+  workDescription String?
+  loadsCarried    Int?
+  materialMoved   Decimal?    @db.Decimal(15, 2)
+  tripsCompleted  Int?
+
+  preOpCheck      Boolean     @default(false)
+  postOpCheck     Boolean     @default(false)
+  issuesReported  String?
+
+  fuelAdded       Decimal?    @db.Decimal(10, 2)
+
+  notes           String?
+  createdAt       DateTime    @default(now())
+
+  @@index([assetId])
+  @@index([date])
+  @@index([operatorId])
+  @@index([siteLocation])
+  @@map("usage_logs")
+}
+
+enum FleetInspectionType {
+  PRE_OPERATION
+  POST_OPERATION
+  WEEKLY
+  MONTHLY
+  SAFETY
+  REGULATORY
+}
+
+model FleetInspection {
+  id               String           @id @default(uuid())
+  assetId          String
+  asset            FleetAsset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  type             FleetInspectionType
+  inspectionDate   DateTime
+
+  inspectorId      String
+  inspector        User             @relation("FleetInspector", fields: [inspectorId], references: [id])
+
+  overallResult    InspectionResult
+  score            Int?
+
+  checklistItems   Json
+  findings         String?
+  recommendations  String?
+  defectsFound     String[]
+
+  followUpRequired Boolean          @default(false)
+  followUpDate     DateTime?
+  followUpNotes    String?
+
+  photos           String[]
+  documents        String[]
+
+  createdAt        DateTime         @default(now())
+
+  @@index([assetId])
+  @@index([inspectionDate])
+  @@index([type])
+  @@map("fleet_inspections")
 }
 
 // Operations & Project Management System

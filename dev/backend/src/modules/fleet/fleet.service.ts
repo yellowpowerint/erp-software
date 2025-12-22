@@ -6,7 +6,10 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
-import { StorageProvider, StorageService } from "../documents/services/storage.service";
+import {
+  StorageProvider,
+  StorageService,
+} from "../documents/services/storage.service";
 import {
   AssignFleetOperatorDto,
   CreateFleetAssetDto,
@@ -22,7 +25,6 @@ import {
   FleetAssetCondition,
   FleetAssetStatus,
   FleetAssetType,
-  FuelType,
 } from "./dto/create-fleet-asset.dto";
 
 function toDecimalOrNull(value?: string): Prisma.Decimal | null {
@@ -45,7 +47,9 @@ export class FleetService {
     private readonly storageService: StorageService,
   ) {}
 
-  private async getOperatorDisplayName(operatorId: string): Promise<string | null> {
+  private async getOperatorDisplayName(
+    operatorId: string,
+  ): Promise<string | null> {
     const u = await this.prisma.user.findUnique({
       where: { id: operatorId },
       select: { firstName: true, lastName: true },
@@ -107,7 +111,10 @@ export class FleetService {
     return `${prefix}${String(count + 1).padStart(4, "0")}`;
   }
 
-  async createAsset(dto: CreateFleetAssetDto, user: { userId: string; role: string }) {
+  async createAsset(
+    dto: CreateFleetAssetDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
     const assetCode = dto.assetCode?.trim()
@@ -121,22 +128,30 @@ export class FleetService {
 
     const tankCapacity = toDecimalOrNull(dto.tankCapacity);
     const purchasePrice = toDecimalOrNull(dto.purchasePrice);
-    const salvageValue = toDecimalOrNull(dto.salvageValue) ?? new Prisma.Decimal(0);
-    const currentOdometer = dto.currentOdometer ? toDecimal(dto.currentOdometer) : new Prisma.Decimal(0);
-    const currentHours = dto.currentHours ? toDecimal(dto.currentHours) : new Prisma.Decimal(0);
+    const salvageValue =
+      toDecimalOrNull(dto.salvageValue) ?? new Prisma.Decimal(0);
+    const currentOdometer = dto.currentOdometer
+      ? toDecimal(dto.currentOdometer)
+      : new Prisma.Decimal(0);
+    const currentHours = dto.currentHours
+      ? toDecimal(dto.currentHours)
+      : new Prisma.Decimal(0);
 
     const insurancePremium = toDecimalOrNull(dto.insurancePremium);
 
     const usefulLifeYears = dto.usefulLifeYears ?? 10;
-    const depreciationMethod = dto.depreciationMethod?.trim() || "STRAIGHT_LINE";
+    const depreciationMethod =
+      dto.depreciationMethod?.trim() || "STRAIGHT_LINE";
 
-    const currentValue = purchasePrice ? await this.calculateDepreciationForValues({
-      purchasePrice,
-      salvageValue,
-      usefulLifeYears,
-      depreciationMethod,
-      purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
-    }) : null;
+    const currentValue = purchasePrice
+      ? await this.calculateDepreciationForValues({
+          purchasePrice,
+          salvageValue,
+          usefulLifeYears,
+          depreciationMethod,
+          purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
+        })
+      : null;
 
     return (this.prisma as any).fleetAsset.create({
       data: {
@@ -160,7 +175,9 @@ export class FleetService {
         purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
         purchasePrice,
         vendor: dto.vendor,
-        warrantyExpiry: dto.warrantyExpiry ? new Date(dto.warrantyExpiry) : null,
+        warrantyExpiry: dto.warrantyExpiry
+          ? new Date(dto.warrantyExpiry)
+          : null,
 
         status: FleetAssetStatus.ACTIVE as any,
         condition: FleetAssetCondition.GOOD as any,
@@ -170,7 +187,8 @@ export class FleetService {
 
         currentOdometer,
         currentHours,
-        lastOdometerUpdate: dto.currentOdometer || dto.currentHours ? new Date() : null,
+        lastOdometerUpdate:
+          dto.currentOdometer || dto.currentHours ? new Date() : null,
 
         depreciationMethod,
         usefulLifeYears,
@@ -179,22 +197,34 @@ export class FleetService {
 
         insuranceProvider: dto.insuranceProvider,
         insurancePolicyNo: dto.insurancePolicyNo,
-        insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : null,
+        insuranceExpiry: dto.insuranceExpiry
+          ? new Date(dto.insuranceExpiry)
+          : null,
         insurancePremium,
 
         miningPermit: dto.miningPermit,
         permitExpiry: dto.permitExpiry ? new Date(dto.permitExpiry) : null,
-        safetyInspection: dto.safetyInspection ? new Date(dto.safetyInspection) : null,
-        nextInspectionDue: dto.nextInspectionDue ? new Date(dto.nextInspectionDue) : null,
+        safetyInspection: dto.safetyInspection
+          ? new Date(dto.safetyInspection)
+          : null,
+        nextInspectionDue: dto.nextInspectionDue
+          ? new Date(dto.nextInspectionDue)
+          : null,
         emissionsCert: dto.emissionsCert,
-        emissionsExpiry: dto.emissionsExpiry ? new Date(dto.emissionsExpiry) : null,
+        emissionsExpiry: dto.emissionsExpiry
+          ? new Date(dto.emissionsExpiry)
+          : null,
 
         createdById: user.userId,
       },
     });
   }
 
-  async updateAsset(id: string, dto: UpdateFleetAssetDto, user: { userId: string; role: string }) {
+  async updateAsset(
+    id: string,
+    dto: UpdateFleetAssetDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
     await this.getAssetById(id, user);
@@ -212,17 +242,28 @@ export class FleetService {
       year: dto.year,
       capacity: dto.capacity,
       fuelType: dto.fuelType as any,
-      tankCapacity: dto.tankCapacity !== undefined ? toDecimalOrNull(dto.tankCapacity) : undefined,
+      tankCapacity:
+        dto.tankCapacity !== undefined
+          ? toDecimalOrNull(dto.tankCapacity)
+          : undefined,
       purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
-      purchasePrice: dto.purchasePrice !== undefined ? toDecimalOrNull(dto.purchasePrice) : undefined,
+      purchasePrice:
+        dto.purchasePrice !== undefined
+          ? toDecimalOrNull(dto.purchasePrice)
+          : undefined,
       vendor: dto.vendor,
-      warrantyExpiry: dto.warrantyExpiry ? new Date(dto.warrantyExpiry) : undefined,
+      warrantyExpiry: dto.warrantyExpiry
+        ? new Date(dto.warrantyExpiry)
+        : undefined,
       status: dto.status as any,
       condition: dto.condition as any,
       currentLocation: dto.currentLocation,
-      operatorId: dto.operatorId !== undefined ? (dto.operatorId || null) : undefined,
+      operatorId:
+        dto.operatorId !== undefined ? dto.operatorId || null : undefined,
       currentOperator: dto.currentOperator,
-      currentOdometer: dto.currentOdometer ? toDecimal(dto.currentOdometer) : undefined,
+      currentOdometer: dto.currentOdometer
+        ? toDecimal(dto.currentOdometer)
+        : undefined,
       currentHours: dto.currentHours ? toDecimal(dto.currentHours) : undefined,
       lastOdometerUpdate:
         dto.currentOdometer || dto.currentHours ? new Date() : undefined,
@@ -231,17 +272,29 @@ export class FleetService {
       salvageValue: dto.salvageValue ? toDecimal(dto.salvageValue) : undefined,
       insuranceProvider: dto.insuranceProvider,
       insurancePolicyNo: dto.insurancePolicyNo,
-      insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : undefined,
-      insurancePremium: dto.insurancePremium ? toDecimal(dto.insurancePremium) : undefined,
+      insuranceExpiry: dto.insuranceExpiry
+        ? new Date(dto.insuranceExpiry)
+        : undefined,
+      insurancePremium: dto.insurancePremium
+        ? toDecimal(dto.insurancePremium)
+        : undefined,
       miningPermit: dto.miningPermit,
       permitExpiry: dto.permitExpiry ? new Date(dto.permitExpiry) : undefined,
-      safetyInspection: dto.safetyInspection ? new Date(dto.safetyInspection) : undefined,
-      nextInspectionDue: dto.nextInspectionDue ? new Date(dto.nextInspectionDue) : undefined,
+      safetyInspection: dto.safetyInspection
+        ? new Date(dto.safetyInspection)
+        : undefined,
+      nextInspectionDue: dto.nextInspectionDue
+        ? new Date(dto.nextInspectionDue)
+        : undefined,
       emissionsCert: dto.emissionsCert,
-      emissionsExpiry: dto.emissionsExpiry ? new Date(dto.emissionsExpiry) : undefined,
+      emissionsExpiry: dto.emissionsExpiry
+        ? new Date(dto.emissionsExpiry)
+        : undefined,
     };
 
-    Object.keys(data).forEach((k) => (data[k] === undefined ? delete data[k] : null));
+    Object.keys(data).forEach((k) =>
+      data[k] === undefined ? delete data[k] : null,
+    );
 
     const updated = await (this.prisma as any).fleetAsset.update({
       where: { id },
@@ -276,13 +329,45 @@ export class FleetService {
           orderBy: { startDate: "desc" },
           take: 20,
           include: {
-            operator: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+            operator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
             project: { select: { id: true, projectCode: true, name: true } },
-            assignedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+            assignedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
           },
         },
-        operator: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
-        createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        operator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -299,7 +384,8 @@ export class FleetService {
     if (query.type) where.type = query.type as any;
     if (query.status) where.status = query.status as any;
     if (query.condition) where.condition = query.condition as any;
-    if (query.location) where.currentLocation = { contains: query.location, mode: "insensitive" };
+    if (query.location)
+      where.currentLocation = { contains: query.location, mode: "insensitive" };
 
     if (query.search) {
       where.OR = [
@@ -319,7 +405,9 @@ export class FleetService {
         skip,
         take: pageSize,
         include: {
-          operator: { select: { id: true, firstName: true, lastName: true, role: true } },
+          operator: {
+            select: { id: true, firstName: true, lastName: true, role: true },
+          },
           _count: { select: { documents: true, assignments: true } },
         },
       }),
@@ -347,7 +435,11 @@ export class FleetService {
     });
   }
 
-  async transferAsset(id: string, dto: TransferFleetAssetDto, user: { userId: string; role: string }) {
+  async transferAsset(
+    id: string,
+    dto: TransferFleetAssetDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
     await this.getAssetById(id, user);
     return (this.prisma as any).fleetAsset.update({
@@ -356,7 +448,11 @@ export class FleetService {
     });
   }
 
-  async assignOperator(assetId: string, dto: AssignFleetOperatorDto, user: { userId: string; role: string }) {
+  async assignOperator(
+    assetId: string,
+    dto: AssignFleetOperatorDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
     const asset = await this.getAssetById(assetId, user);
@@ -411,11 +507,23 @@ export class FleetService {
           },
         },
         operator: {
-          select: { id: true, firstName: true, lastName: true, email: true, role: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
         },
         project: { select: { id: true, projectCode: true, name: true } },
         assignedBy: {
-          select: { id: true, firstName: true, lastName: true, email: true, role: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
         },
       },
     });
@@ -431,10 +539,35 @@ export class FleetService {
       where,
       orderBy: { startDate: "desc" },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, type: true, status: true, currentLocation: true } },
-        operator: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            type: true,
+            status: true,
+            currentLocation: true,
+          },
+        },
+        operator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
         project: { select: { id: true, projectCode: true, name: true } },
-        assignedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        assignedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
   }
@@ -444,10 +577,35 @@ export class FleetService {
       where: { status: "ACTIVE", endDate: null },
       orderBy: { startDate: "desc" },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, type: true, status: true, currentLocation: true } },
-        operator: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            type: true,
+            status: true,
+            currentLocation: true,
+          },
+        },
+        operator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
         project: { select: { id: true, projectCode: true, name: true } },
-        assignedBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+        assignedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
   }
@@ -455,7 +613,9 @@ export class FleetService {
   async endAssignment(id: string, user: { userId: string; role: string }) {
     this.assertCanManageFleet(user.role);
 
-    const existing = await (this.prisma as any).fleetAssignment.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).fleetAssignment.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException("Assignment not found");
 
     return (this.prisma as any).fleetAssignment.update({
@@ -464,7 +624,11 @@ export class FleetService {
     });
   }
 
-  async decommissionAsset(id: string, dto: DecommissionFleetAssetDto, user: { userId: string; role: string }) {
+  async decommissionAsset(
+    id: string,
+    dto: DecommissionFleetAssetDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
     await this.getAssetById(id, user);
@@ -491,7 +655,13 @@ export class FleetService {
     depreciationMethod: string;
     purchaseDate: Date | null;
   }): Promise<Prisma.Decimal> {
-    const { purchasePrice, salvageValue, usefulLifeYears, depreciationMethod, purchaseDate } = args;
+    const {
+      purchasePrice,
+      salvageValue,
+      usefulLifeYears,
+      depreciationMethod,
+      purchaseDate,
+    } = args;
 
     if (!purchaseDate) return purchasePrice;
 
@@ -500,18 +670,28 @@ export class FleetService {
     }
 
     const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
-    const yearsUsed = Math.max(0, (Date.now() - purchaseDate.getTime()) / msPerYear);
-    const annual = purchasePrice.sub(salvageValue).div(new Prisma.Decimal(Math.max(1, usefulLifeYears)));
+    const yearsUsed = Math.max(
+      0,
+      (Date.now() - purchaseDate.getTime()) / msPerYear,
+    );
+    const annual = purchasePrice
+      .sub(salvageValue)
+      .div(new Prisma.Decimal(Math.max(1, usefulLifeYears)));
     const depreciation = annual.mul(new Prisma.Decimal(yearsUsed));
     const value = purchasePrice.sub(depreciation);
     const minValue = salvageValue;
     return value.lessThan(minValue) ? minValue : value;
   }
 
-  async calculateDepreciation(assetId: string, user: { userId: string; role: string }) {
+  async calculateDepreciation(
+    assetId: string,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
-    const asset = await (this.prisma as any).fleetAsset.findUnique({ where: { id: assetId } });
+    const asset = await (this.prisma as any).fleetAsset.findUnique({
+      where: { id: assetId },
+    });
     if (!asset) throw new NotFoundException("Fleet asset not found");
 
     if (!asset.purchasePrice) {
@@ -573,10 +753,15 @@ export class FleetService {
   async deleteDocument(id: string, user: { userId: string; role: string }) {
     this.assertCanManageFleet(user.role);
 
-    const doc = await (this.prisma as any).fleetDocument.findUnique({ where: { id } });
+    const doc = await (this.prisma as any).fleetDocument.findUnique({
+      where: { id },
+    });
     if (!doc) throw new NotFoundException("Fleet document not found");
 
-    await this.storageService.deleteFile(doc.storageKey, doc.storageProvider as StorageProvider);
+    await this.storageService.deleteFile(
+      doc.storageKey,
+      doc.storageProvider as StorageProvider,
+    );
 
     return (this.prisma as any).fleetDocument.delete({ where: { id } });
   }
@@ -594,7 +779,15 @@ export class FleetService {
       },
       orderBy: { expiryDate: "asc" },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentLocation: true, status: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+            status: true,
+          },
+        },
       },
     });
   }
@@ -611,17 +804,35 @@ export class FleetService {
       (this.prisma as any).fleetAsset.findMany({
         where: { insuranceExpiry: this.expiringDateWhere(daysAhead) },
         orderBy: { insuranceExpiry: "asc" },
-        select: { id: true, assetCode: true, name: true, currentLocation: true, insuranceExpiry: true },
+        select: {
+          id: true,
+          assetCode: true,
+          name: true,
+          currentLocation: true,
+          insuranceExpiry: true,
+        },
       }),
       (this.prisma as any).fleetAsset.findMany({
         where: { permitExpiry: this.expiringDateWhere(daysAhead) },
         orderBy: { permitExpiry: "asc" },
-        select: { id: true, assetCode: true, name: true, currentLocation: true, permitExpiry: true },
+        select: {
+          id: true,
+          assetCode: true,
+          name: true,
+          currentLocation: true,
+          permitExpiry: true,
+        },
       }),
       (this.prisma as any).fleetAsset.findMany({
         where: { nextInspectionDue: this.expiringDateWhere(daysAhead) },
         orderBy: { nextInspectionDue: "asc" },
-        select: { id: true, assetCode: true, name: true, currentLocation: true, nextInspectionDue: true },
+        select: {
+          id: true,
+          assetCode: true,
+          name: true,
+          currentLocation: true,
+          nextInspectionDue: true,
+        },
       }),
     ]);
 
@@ -650,10 +861,18 @@ export class FleetService {
       expiringDocs,
     ] = await Promise.all([
       (this.prisma as any).fleetAsset.count(),
-      (this.prisma as any).fleetAsset.count({ where: { status: FleetAssetStatus.ACTIVE as any } }),
-      (this.prisma as any).fleetAsset.count({ where: { status: FleetAssetStatus.IN_MAINTENANCE as any } }),
-      (this.prisma as any).fleetAsset.count({ where: { status: FleetAssetStatus.BREAKDOWN as any } }),
-      (this.prisma as any).fleetAsset.count({ where: { condition: FleetAssetCondition.CRITICAL as any } }),
+      (this.prisma as any).fleetAsset.count({
+        where: { status: FleetAssetStatus.ACTIVE as any },
+      }),
+      (this.prisma as any).fleetAsset.count({
+        where: { status: FleetAssetStatus.IN_MAINTENANCE as any },
+      }),
+      (this.prisma as any).fleetAsset.count({
+        where: { status: FleetAssetStatus.BREAKDOWN as any },
+      }),
+      (this.prisma as any).fleetAsset.count({
+        where: { condition: FleetAssetCondition.CRITICAL as any },
+      }),
       (this.prisma as any).fleetDocument.count({
         where: {
           expiryDate: this.expiringDateWhere(30),

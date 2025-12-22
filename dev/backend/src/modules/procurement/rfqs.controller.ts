@@ -72,7 +72,11 @@ export class RFQsController {
     UserRole.PROCUREMENT_OFFICER,
     UserRole.OPERATIONS_MANAGER,
   )
-  update(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: UpdateRFQDto) {
+  update(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: UpdateRFQDto,
+  ) {
     return this.rfqsService.updateRFQ(id, dto, user);
   }
 
@@ -108,13 +112,21 @@ export class RFQsController {
     UserRole.PROCUREMENT_OFFICER,
     UserRole.OPERATIONS_MANAGER,
   )
-  invite(@Param("id") id: string, @Body() dto: InviteRFQVendorsDto, @CurrentUser() user: any) {
+  invite(
+    @Param("id") id: string,
+    @Body() dto: InviteRFQVendorsDto,
+    @CurrentUser() user: any,
+  ) {
     return this.rfqsService.inviteVendors(id, dto, user);
   }
 
   @Post(":id/respond")
   @Roles(UserRole.VENDOR)
-  respond(@Param("id") rfqId: string, @Body() dto: SubmitRFQResponseDto, @CurrentUser() user: any) {
+  respond(
+    @Param("id") rfqId: string,
+    @Body() dto: SubmitRFQResponseDto,
+    @CurrentUser() user: any,
+  ) {
     return this.rfqsService.submitResponse(rfqId, dto, user);
   }
 
@@ -136,7 +148,11 @@ export class RFQsController {
     UserRole.PROCUREMENT_OFFICER,
     UserRole.OPERATIONS_MANAGER,
   )
-  evaluate(@Param("id") rfqId: string, @Body() dto: EvaluateRFQDto, @CurrentUser() user: any) {
+  evaluate(
+    @Param("id") rfqId: string,
+    @Body() dto: EvaluateRFQDto,
+    @CurrentUser() user: any,
+  ) {
     return this.rfqsService.evaluateResponses(rfqId, dto, user);
   }
 
@@ -148,7 +164,11 @@ export class RFQsController {
     UserRole.PROCUREMENT_OFFICER,
     UserRole.OPERATIONS_MANAGER,
   )
-  award(@Param("id") rfqId: string, @Body() dto: AwardRFQDto, @CurrentUser() user: any) {
+  award(
+    @Param("id") rfqId: string,
+    @Body() dto: AwardRFQDto,
+    @CurrentUser() user: any,
+  ) {
     return this.rfqsService.awardRFQ(rfqId, dto, user);
   }
 }

@@ -30,7 +30,12 @@ import { ProcurementInventoryController } from "./procurement-inventory.controll
 import { InventoryIntegrationService } from "./inventory-integration.service";
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, DocumentsModule, InventoryModule],
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    DocumentsModule,
+    InventoryModule,
+  ],
   controllers: [
     RequisitionsController,
     ProcurementWorkflowsController,

@@ -57,7 +57,8 @@ export class InventoryIntegrationService {
       );
     }
 
-    if (rounded < 0) throw new BadRequestException("Quantity cannot be negative");
+    if (rounded < 0)
+      throw new BadRequestException("Quantity cannot be negative");
     return rounded;
   }
 
@@ -178,13 +179,17 @@ export class InventoryIntegrationService {
     return { processed, skippedAlreadySynced, skippedNotAccepted };
   }
 
-  async checkStockAvailability(items: Array<{ stockItemId?: string | null; quantity: any }>): Promise<AvailabilityResult> {
+  async checkStockAvailability(
+    items: Array<{ stockItemId?: string | null; quantity: any }>,
+  ): Promise<AvailabilityResult> {
     const lines: AvailabilityLine[] = [];
 
     for (const it of items) {
       if (!it.stockItemId) continue;
 
-      const requestedQty = this.toIntQuantityFromDecimalString(String(it.quantity));
+      const requestedQty = this.toIntQuantityFromDecimalString(
+        String(it.quantity),
+      );
 
       const stock = await this.prisma.stockItem.findUnique({
         where: { id: it.stockItemId },
@@ -203,7 +208,10 @@ export class InventoryIntegrationService {
         continue;
       }
 
-      const availableQty = Math.max(0, stock.currentQuantity - stock.reservedQuantity);
+      const availableQty = Math.max(
+        0,
+        stock.currentQuantity - stock.reservedQuantity,
+      );
 
       lines.push({
         stockItemId: stock.id,
@@ -218,7 +226,10 @@ export class InventoryIntegrationService {
     return { ok: lines.every((l) => l.isAvailable), lines };
   }
 
-  async reserveStockForRequisition(requisitionId: string, user: { userId: string; role: UserRole }) {
+  async reserveStockForRequisition(
+    requisitionId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageInventoryIntegration(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -232,7 +243,10 @@ export class InventoryIntegrationService {
       if (!req) throw new NotFoundException("Requisition not found");
 
       const availability = await this.checkStockAvailability(
-        req.items.map((i) => ({ stockItemId: i.stockItemId, quantity: i.quantity })),
+        req.items.map((i) => ({
+          stockItemId: i.stockItemId,
+          quantity: i.quantity,
+        })),
       );
 
       if (!availability.ok) {
@@ -254,7 +268,10 @@ export class InventoryIntegrationService {
     });
   }
 
-  async releaseReservedStock(requisitionId: string, user: { userId: string; role: UserRole }) {
+  async releaseReservedStock(
+    requisitionId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageInventoryIntegration(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -290,7 +307,10 @@ export class InventoryIntegrationService {
     });
   }
 
-  async generateReorderRequisition(stockItemId: string, user: { userId: string; role: UserRole }) {
+  async generateReorderRequisition(
+    stockItemId: string,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageInventoryIntegration(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -369,6 +389,8 @@ export class InventoryIntegrationService {
       take: 500,
     });
 
-    return items.filter((i) => i.currentQuantity <= i.reorderLevel).slice(0, 200);
+    return items
+      .filter((i) => i.currentQuantity <= i.reorderLevel)
+      .slice(0, 200);
   }
 }

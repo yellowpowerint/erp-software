@@ -184,14 +184,18 @@ export class PdfGeneratorService {
       doc.fontSize(10);
       doc.text(`Vendor: ${po.vendor?.companyName || "-"}`, 50, 350);
       doc.text(`Vendor Code: ${po.vendor?.vendorCode || "-"}`, 50, 365);
-      doc.text(`Delivery Address: ${po.deliveryAddress}`, 50, 380, { width: 500 });
+      doc.text(`Delivery Address: ${po.deliveryAddress}`, 50, 380, {
+        width: 500,
+      });
       doc.text(
         `Expected Delivery: ${new Date(po.expectedDelivery).toLocaleDateString()}`,
         50,
         410,
       );
       if (po.deliveryTerms) {
-        doc.text(`Delivery Terms: ${po.deliveryTerms}`, 50, 425, { width: 500 });
+        doc.text(`Delivery Terms: ${po.deliveryTerms}`, 50, 425, {
+          width: 500,
+        });
       }
 
       // Description
@@ -210,11 +214,31 @@ export class PdfGeneratorService {
       doc.fontSize(12).font("Helvetica");
       doc.text("Totals:", 50, 700, { underline: true });
       doc.fontSize(10);
-      doc.text(`Subtotal: ${po.currency} ${Number(po.subtotal).toFixed(2)}`, 50, 720);
-      doc.text(`Tax: ${po.currency} ${Number(po.taxAmount).toFixed(2)}`, 50, 735);
-      doc.text(`Discount: ${po.currency} ${Number(po.discountAmount).toFixed(2)}`, 50, 750);
-      doc.text(`Shipping: ${po.currency} ${Number(po.shippingCost).toFixed(2)}`, 300, 720);
-      doc.text(`Total: ${po.currency} ${Number(po.totalAmount).toFixed(2)}`, 300, 735);
+      doc.text(
+        `Subtotal: ${po.currency} ${Number(po.subtotal).toFixed(2)}`,
+        50,
+        720,
+      );
+      doc.text(
+        `Tax: ${po.currency} ${Number(po.taxAmount).toFixed(2)}`,
+        50,
+        735,
+      );
+      doc.text(
+        `Discount: ${po.currency} ${Number(po.discountAmount).toFixed(2)}`,
+        50,
+        750,
+      );
+      doc.text(
+        `Shipping: ${po.currency} ${Number(po.shippingCost).toFixed(2)}`,
+        300,
+        720,
+      );
+      doc.text(
+        `Total: ${po.currency} ${Number(po.totalAmount).toFixed(2)}`,
+        300,
+        735,
+      );
 
       // Supplier suggestion
       if (options.includeQRCode) {

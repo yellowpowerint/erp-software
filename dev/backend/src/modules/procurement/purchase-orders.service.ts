@@ -59,11 +59,14 @@ export class PurchaseOrdersService {
     return `${prefix}${String(count + 1).padStart(4, "0")}`;
   }
 
-  private computeTotals(items: Array<{ quantity: string; unitPrice: string }>, extras: {
-    taxAmount?: string;
-    discountAmount?: string;
-    shippingCost?: string;
-  }) {
+  private computeTotals(
+    items: Array<{ quantity: string; unitPrice: string }>,
+    extras: {
+      taxAmount?: string;
+      discountAmount?: string;
+      shippingCost?: string;
+    },
+  ) {
     const subtotal = items.reduce((acc, i) => {
       const qty = this.toDecimal(i.quantity);
       const unitPrice = this.toDecimal(i.unitPrice);
@@ -74,7 +77,10 @@ export class PurchaseOrdersService {
     const discountAmount = this.toDecimalOrZero(extras.discountAmount);
     const shippingCost = this.toDecimalOrZero(extras.shippingCost);
 
-    const totalAmount = subtotal.add(taxAmount).add(shippingCost).sub(discountAmount);
+    const totalAmount = subtotal
+      .add(taxAmount)
+      .add(shippingCost)
+      .sub(discountAmount);
 
     if (totalAmount.lessThan(0)) {
       throw new BadRequestException("Total amount cannot be negative");
@@ -83,7 +89,10 @@ export class PurchaseOrdersService {
     return { subtotal, taxAmount, discountAmount, shippingCost, totalAmount };
   }
 
-  async createPO(dto: CreatePurchaseOrderDto, user: { userId: string; role: UserRole }) {
+  async createPO(
+    dto: CreatePurchaseOrderDto,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManagePOs(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -93,11 +102,17 @@ export class PurchaseOrdersService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const vendor = await tx.vendor.findUnique({ where: { id: dto.vendorId }, select: { id: true } });
+      const vendor = await tx.vendor.findUnique({
+        where: { id: dto.vendorId },
+        select: { id: true },
+      });
       if (!vendor) throw new BadRequestException("Invalid vendorId");
 
       if (dto.requisitionId) {
-        const req = await tx.requisition.findUnique({ where: { id: dto.requisitionId }, select: { id: true } });
+        const req = await tx.requisition.findUnique({
+          where: { id: dto.requisitionId },
+          select: { id: true },
+        });
         if (!req) throw new BadRequestException("Invalid requisitionId");
       }
 
@@ -139,7 +154,9 @@ export class PurchaseOrdersService {
               quantity: this.toDecimal(i.quantity),
               unit: i.unit,
               unitPrice: this.toDecimal(i.unitPrice),
-              totalPrice: this.toDecimal(i.quantity).mul(this.toDecimal(i.unitPrice)),
+              totalPrice: this.toDecimal(i.quantity).mul(
+                this.toDecimal(i.unitPrice),
+              ),
               stockItemId: i.stockItemId ?? null,
             })),
           },
@@ -151,18 +168,24 @@ export class PurchaseOrdersService {
     });
   }
 
-  async listPOs(query: any, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async listPOs(
+    query: any,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     const where: any = {};
 
     if (user.role === UserRole.VENDOR) {
-      if (!user.vendorId) throw new ForbiddenException("Vendor account not linked");
+      if (!user.vendorId)
+        throw new ForbiddenException("Vendor account not linked");
       where.vendorId = user.vendorId;
     } else {
-      if (!this.canManagePOs(user.role)) throw new ForbiddenException("Not allowed");
+      if (!this.canManagePOs(user.role))
+        throw new ForbiddenException("Not allowed");
     }
 
     if (query.status) (where as any).status = query.status;
-    if (query.vendorId && user.role !== UserRole.VENDOR) where.vendorId = String(query.vendorId);
+    if (query.vendorId && user.role !== UserRole.VENDOR)
+      where.vendorId = String(query.vendorId);
 
     return (this.prisma as any).purchaseOrder.findMany({
       where,
@@ -175,37 +198,62 @@ export class PurchaseOrdersService {
     });
   }
 
-  async getPOById(id: string, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async getPOById(
+    id: string,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     const po = await (this.prisma as any).purchaseOrder.findUnique({
       where: { id },
       include: {
-        vendor: { select: { id: true, vendorCode: true, companyName: true, email: true, phone: true } },
+        vendor: {
+          select: {
+            id: true,
+            vendorCode: true,
+            companyName: true,
+            email: true,
+            phone: true,
+          },
+        },
         items: true,
         requisition: { select: { id: true, requisitionNo: true, title: true } },
         rfqResponse: {
           include: {
-            vendor: { select: { id: true, vendorCode: true, companyName: true } },
+            vendor: {
+              select: { id: true, vendorCode: true, companyName: true },
+            },
           },
         },
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
-        approvedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+        approvedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
 
     if (!po) throw new NotFoundException("Purchase order not found");
 
     if (user.role === UserRole.VENDOR) {
-      if (!user.vendorId) throw new ForbiddenException("Vendor account not linked");
-      if (po.vendorId !== user.vendorId) throw new ForbiddenException("Not allowed");
+      if (!user.vendorId)
+        throw new ForbiddenException("Vendor account not linked");
+      if (po.vendorId !== user.vendorId)
+        throw new ForbiddenException("Not allowed");
     } else {
-      if (!this.canManagePOs(user.role)) throw new ForbiddenException("Not allowed");
+      if (!this.canManagePOs(user.role))
+        throw new ForbiddenException("Not allowed");
     }
 
     return po;
   }
 
-  async updatePO(id: string, dto: UpdatePurchaseOrderDto, user: { userId: string; role: UserRole }) {
-    if (!this.canManagePOs(user.role)) throw new ForbiddenException("Not allowed");
+  async updatePO(
+    id: string,
+    dto: UpdatePurchaseOrderDto,
+    user: { userId: string; role: UserRole },
+  ) {
+    if (!this.canManagePOs(user.role))
+      throw new ForbiddenException("Not allowed");
 
     const existing = await (this.prisma as any).purchaseOrder.findUnique({
       where: { id },
@@ -214,7 +262,9 @@ export class PurchaseOrdersService {
 
     if (!existing) throw new NotFoundException("Purchase order not found");
     if (String(existing.status) !== "DRAFT") {
-      throw new BadRequestException("Only draft purchase orders can be updated");
+      throw new BadRequestException(
+        "Only draft purchase orders can be updated",
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -230,7 +280,9 @@ export class PurchaseOrdersService {
             quantity: this.toDecimal(i.quantity),
             unit: i.unit,
             unitPrice: this.toDecimal(i.unitPrice),
-            totalPrice: this.toDecimal(i.quantity).mul(this.toDecimal(i.unitPrice)),
+            totalPrice: this.toDecimal(i.quantity).mul(
+              this.toDecimal(i.unitPrice),
+            ),
             stockItemId: i.stockItemId ?? null,
           })),
           skipDuplicates: true,
@@ -238,11 +290,21 @@ export class PurchaseOrdersService {
       }
 
       const itemsForTotal = dto.items
-        ? dto.items.map((i) => ({ quantity: i.quantity, unitPrice: i.unitPrice }))
-        : await (tx as any).purchaseOrderItem.findMany({
-            where: { purchaseOrderId: id },
-            select: { quantity: true, unitPrice: true },
-          }).then((rows) => rows.map((r) => ({ quantity: String(r.quantity), unitPrice: String(r.unitPrice) })));
+        ? dto.items.map((i) => ({
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          }))
+        : await (tx as any).purchaseOrderItem
+            .findMany({
+              where: { purchaseOrderId: id },
+              select: { quantity: true, unitPrice: true },
+            })
+            .then((rows) =>
+              rows.map((r) => ({
+                quantity: String(r.quantity),
+                unitPrice: String(r.unitPrice),
+              })),
+            );
 
       const totals = this.computeTotals(itemsForTotal, dto);
 
@@ -250,8 +312,14 @@ export class PurchaseOrdersService {
         where: { id },
         data: {
           vendorId: dto.vendorId,
-          requisitionId: dto.requisitionId === undefined ? undefined : dto.requisitionId || null,
-          rfqResponseId: dto.rfqResponseId === undefined ? undefined : dto.rfqResponseId || null,
+          requisitionId:
+            dto.requisitionId === undefined
+              ? undefined
+              : dto.requisitionId || null,
+          rfqResponseId:
+            dto.rfqResponseId === undefined
+              ? undefined
+              : dto.rfqResponseId || null,
           currency: dto.currency,
           taxAmount: totals.taxAmount,
           discountAmount: totals.discountAmount,
@@ -260,7 +328,9 @@ export class PurchaseOrdersService {
           totalAmount: totals.totalAmount,
           deliveryAddress: dto.deliveryAddress,
           deliverySite: dto.deliverySite,
-          expectedDelivery: dto.expectedDelivery ? new Date(dto.expectedDelivery) : undefined,
+          expectedDelivery: dto.expectedDelivery
+            ? new Date(dto.expectedDelivery)
+            : undefined,
           deliveryTerms: dto.deliveryTerms,
           paymentTerms: dto.paymentTerms,
         },
@@ -270,12 +340,20 @@ export class PurchaseOrdersService {
   }
 
   async approvePO(id: string, user: { userId: string; role: UserRole }) {
-    if (!this.canManagePOs(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManagePOs(user.role))
+      throw new ForbiddenException("Not allowed");
 
-    const po = await (this.prisma as any).purchaseOrder.findUnique({ where: { id }, select: { id: true, status: true } });
+    const po = await (this.prisma as any).purchaseOrder.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
     if (!po) throw new NotFoundException("Purchase order not found");
-    if (![("DRAFT" as any), ("PENDING_APPROVAL" as any)].includes(po.status as any)) {
-      throw new BadRequestException("Purchase order cannot be approved in its current status");
+    if (
+      !["DRAFT" as any, "PENDING_APPROVAL" as any].includes(po.status as any)
+    ) {
+      throw new BadRequestException(
+        "Purchase order cannot be approved in its current status",
+      );
     }
 
     return (this.prisma as any).purchaseOrder.update({
@@ -289,12 +367,18 @@ export class PurchaseOrdersService {
   }
 
   async sendPO(id: string, user: { userId: string; role: UserRole }) {
-    if (!this.canManagePOs(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManagePOs(user.role))
+      throw new ForbiddenException("Not allowed");
 
-    const po = await (this.prisma as any).purchaseOrder.findUnique({ where: { id }, select: { id: true, status: true } });
+    const po = await (this.prisma as any).purchaseOrder.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
     if (!po) throw new NotFoundException("Purchase order not found");
     if (String(po.status) !== "APPROVED") {
-      throw new BadRequestException("Only approved purchase orders can be sent");
+      throw new BadRequestException(
+        "Only approved purchase orders can be sent",
+      );
     }
 
     return (this.prisma as any).purchaseOrder.update({
@@ -303,8 +387,13 @@ export class PurchaseOrdersService {
     });
   }
 
-  async cancelPO(id: string, _dto: CancelPurchaseOrderDto, user: { userId: string; role: UserRole }) {
-    if (!this.canManagePOs(user.role)) throw new ForbiddenException("Not allowed");
+  async cancelPO(
+    id: string,
+    _dto: CancelPurchaseOrderDto,
+    user: { userId: string; role: UserRole },
+  ) {
+    if (!this.canManagePOs(user.role))
+      throw new ForbiddenException("Not allowed");
 
     const po = await (this.prisma as any).purchaseOrder.findUnique({
       where: { id },
@@ -322,8 +411,12 @@ export class PurchaseOrdersService {
     });
   }
 
-  async createFromRFQResponse(responseId: string, user: { userId: string; role: UserRole }) {
-    if (!this.canManagePOs(user.role)) throw new ForbiddenException("Not allowed");
+  async createFromRFQResponse(
+    responseId: string,
+    user: { userId: string; role: UserRole },
+  ) {
+    if (!this.canManagePOs(user.role))
+      throw new ForbiddenException("Not allowed");
 
     const response = await (this.prisma as any).rFQResponse.findUnique({
       where: { id: responseId },
@@ -348,7 +441,11 @@ export class PurchaseOrdersService {
         stockItemId: null,
       }));
 
-      const totals = this.computeTotals(items, { taxAmount: "0", discountAmount: "0", shippingCost: "0" });
+      const totals = this.computeTotals(items, {
+        taxAmount: "0",
+        discountAmount: "0",
+        shippingCost: "0",
+      });
 
       return (tx as any).purchaseOrder.create({
         data: {
@@ -376,7 +473,9 @@ export class PurchaseOrdersService {
               quantity: this.toDecimal(i.quantity),
               unit: i.unit,
               unitPrice: this.toDecimal(i.unitPrice),
-              totalPrice: this.toDecimal(i.quantity).mul(this.toDecimal(i.unitPrice)),
+              totalPrice: this.toDecimal(i.quantity).mul(
+                this.toDecimal(i.unitPrice),
+              ),
               stockItemId: null,
             })),
           },
@@ -386,7 +485,10 @@ export class PurchaseOrdersService {
     });
   }
 
-  async generatePOPdf(poId: string, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async generatePOPdf(
+    poId: string,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     // Ensure access before generating
     await this.getPOById(poId, user);
     return this.pdfGeneratorService.generatePurchaseOrderPDF(poId, {

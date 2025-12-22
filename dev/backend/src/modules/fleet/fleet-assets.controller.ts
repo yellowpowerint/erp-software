@@ -83,7 +83,11 @@ export class FleetAssetsController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  updateAsset(@Param("id") id: string, @Body() dto: UpdateFleetAssetDto, @CurrentUser() user: any) {
+  updateAsset(
+    @Param("id") id: string,
+    @Body() dto: UpdateFleetAssetDto,
+    @CurrentUser() user: any,
+  ) {
     return this.fleetService.updateAsset(id, dto, user);
   }
 
@@ -117,7 +121,11 @@ export class FleetAssetsController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  transfer(@Param("id") id: string, @Body() dto: TransferFleetAssetDto, @CurrentUser() user: any) {
+  transfer(
+    @Param("id") id: string,
+    @Body() dto: TransferFleetAssetDto,
+    @CurrentUser() user: any,
+  ) {
     return this.fleetService.transferAsset(id, dto, user);
   }
 
@@ -129,7 +137,11 @@ export class FleetAssetsController {
     UserRole.OPERATIONS_MANAGER,
     UserRole.WAREHOUSE_MANAGER,
   )
-  assign(@Param("id") id: string, @Body() dto: AssignFleetOperatorDto, @CurrentUser() user: any) {
+  assign(
+    @Param("id") id: string,
+    @Body() dto: AssignFleetOperatorDto,
+    @CurrentUser() user: any,
+  ) {
     return this.fleetService.assignOperator(id, dto, user);
   }
 
@@ -176,7 +188,12 @@ export class FleetAssetsController {
   }
 
   @Delete("documents/:id")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.OPERATIONS_MANAGER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.OPERATIONS_MANAGER,
+  )
   deleteDocument(@Param("id") id: string, @CurrentUser() user: any) {
     return this.fleetService.deleteDocument(id, user);
   }

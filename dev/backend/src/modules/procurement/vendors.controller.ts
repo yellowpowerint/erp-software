@@ -36,7 +36,12 @@ export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
   create(@Body() dto: CreateVendorDto, @CurrentUser() user: any) {
     return this.vendorsService.createVendor(dto, user);
   }
@@ -112,11 +117,19 @@ export class VendorsController {
   )
   expiringDocs(@Query("days") days: string, @CurrentUser() user: any) {
     const num = days ? Number(days) : 30;
-    return this.vendorsService.expiringDocuments(user, Number.isFinite(num) ? num : 30);
+    return this.vendorsService.expiringDocuments(
+      user,
+      Number.isFinite(num) ? num : 30,
+    );
   }
 
   @Get("stats")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
   stats(@CurrentUser() user: any) {
     return this.vendorsService.stats(user);
   }
@@ -137,43 +150,98 @@ export class VendorsController {
   }
 
   @Put(":id")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
-  update(@Param("id") id: string, @Body() dto: UpdateVendorDto, @CurrentUser() user: any) {
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  update(
+    @Param("id") id: string,
+    @Body() dto: UpdateVendorDto,
+    @CurrentUser() user: any,
+  ) {
     return this.vendorsService.updateVendor(id, dto, user);
   }
 
   @Delete(":id")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
   delete(@Param("id") id: string, @CurrentUser() user: any) {
     return this.vendorsService.deleteVendor(id, user);
   }
 
   @Post(":id/approve")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
-  approve(@Param("id") id: string, @Body() dto: VendorStatusActionDto, @CurrentUser() user: any) {
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  approve(
+    @Param("id") id: string,
+    @Body() dto: VendorStatusActionDto,
+    @CurrentUser() user: any,
+  ) {
     return this.vendorsService.approveVendor(id, dto, user);
   }
 
   @Post(":id/suspend")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
-  suspend(@Param("id") id: string, @Body() dto: VendorStatusActionDto, @CurrentUser() user: any) {
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  suspend(
+    @Param("id") id: string,
+    @Body() dto: VendorStatusActionDto,
+    @CurrentUser() user: any,
+  ) {
     return this.vendorsService.suspendVendor(id, dto, user);
   }
 
   @Post(":id/blacklist")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
-  blacklist(@Param("id") id: string, @Body() dto: VendorStatusActionDto, @CurrentUser() user: any) {
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  blacklist(
+    @Param("id") id: string,
+    @Body() dto: VendorStatusActionDto,
+    @CurrentUser() user: any,
+  ) {
     return this.vendorsService.blacklistVendor(id, dto, user);
   }
 
   @Post(":id/reactivate")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
-  reactivate(@Param("id") id: string, @Body() dto: VendorStatusActionDto, @CurrentUser() user: any) {
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
+  reactivate(
+    @Param("id") id: string,
+    @Body() dto: VendorStatusActionDto,
+    @CurrentUser() user: any,
+  ) {
     return this.vendorsService.reactivateVendor(id, dto, user);
   }
 
   @Post(":id/contacts")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
   addContact(
     @Param("id") vendorId: string,
     @Body() dto: CreateVendorContactDto,
@@ -198,7 +266,12 @@ export class VendorsController {
   }
 
   @Post(":id/documents")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
   @UseInterceptors(FileInterceptor("file", multerConfig))
   uploadDocument(
     @Param("id") vendorId: string,
@@ -225,7 +298,12 @@ export class VendorsController {
   }
 
   @Post(":id/products")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
   addProduct(
     @Param("id") vendorId: string,
     @Body() dto: CreateVendorProductDto,
@@ -235,7 +313,12 @@ export class VendorsController {
   }
 
   @Put(":id/products/:productId")
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.PROCUREMENT_OFFICER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.CEO,
+    UserRole.CFO,
+    UserRole.PROCUREMENT_OFFICER,
+  )
   updateProduct(
     @Param("id") vendorId: string,
     @Param("productId") productId: string,

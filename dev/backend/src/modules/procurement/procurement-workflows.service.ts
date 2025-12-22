@@ -29,7 +29,10 @@ export class ProcurementWorkflowsService {
     return new Prisma.Decimal(n);
   }
 
-  async createWorkflow(dto: CreateProcurementWorkflowDto, user: { userId: string; role: UserRole }) {
+  async createWorkflow(
+    dto: CreateProcurementWorkflowDto,
+    user: { userId: string; role: UserRole },
+  ) {
     if (user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.CEO) {
       throw new ForbiddenException("Not allowed");
     }
@@ -55,7 +58,9 @@ export class ProcurementWorkflowsService {
     const maxAmount = this.toDecimalOrNull(dto.maxAmount ?? undefined);
 
     if (minAmount && maxAmount && minAmount.greaterThan(maxAmount)) {
-      throw new BadRequestException("minAmount cannot be greater than maxAmount");
+      throw new BadRequestException(
+        "minAmount cannot be greater than maxAmount",
+      );
     }
 
     return this.prisma.procurementWorkflow.create({
@@ -83,7 +88,9 @@ export class ProcurementWorkflowsService {
       },
       include: {
         stages: { orderBy: { stageNumber: "asc" } },
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
   }
@@ -100,7 +107,9 @@ export class ProcurementWorkflowsService {
     return this.prisma.procurementWorkflow.findMany({
       include: {
         stages: { orderBy: { stageNumber: "asc" } },
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -119,7 +128,9 @@ export class ProcurementWorkflowsService {
       where: { id },
       include: {
         stages: { orderBy: { stageNumber: "asc" } },
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
     if (!wf) throw new NotFoundException("Workflow not found");
@@ -141,17 +152,27 @@ export class ProcurementWorkflowsService {
     });
     if (!existing) throw new NotFoundException("Workflow not found");
 
-    const minAmount = dto.minAmount !== undefined ? this.toDecimalOrNull(dto.minAmount) : undefined;
-    const maxAmount = dto.maxAmount !== undefined ? this.toDecimalOrNull(dto.maxAmount) : undefined;
+    const minAmount =
+      dto.minAmount !== undefined
+        ? this.toDecimalOrNull(dto.minAmount)
+        : undefined;
+    const maxAmount =
+      dto.maxAmount !== undefined
+        ? this.toDecimalOrNull(dto.maxAmount)
+        : undefined;
 
     if (minAmount && maxAmount && minAmount.greaterThan(maxAmount)) {
-      throw new BadRequestException("minAmount cannot be greater than maxAmount");
+      throw new BadRequestException(
+        "minAmount cannot be greater than maxAmount",
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.stages) {
         if (!dto.stages.length) {
-          throw new BadRequestException("Workflow must have at least one stage");
+          throw new BadRequestException(
+            "Workflow must have at least one stage",
+          );
         }
 
         const stageNumbers = new Set<number>();
@@ -167,7 +188,9 @@ export class ProcurementWorkflowsService {
           }
         }
 
-        await tx.procurementWorkflowStage.deleteMany({ where: { workflowId: id } });
+        await tx.procurementWorkflowStage.deleteMany({
+          where: { workflowId: id },
+        });
 
         await tx.procurementWorkflowStage.createMany({
           data: dto.stages
@@ -190,7 +213,10 @@ export class ProcurementWorkflowsService {
         data: {
           name: dto.name,
           description: dto.description,
-          type: dto.type === undefined ? undefined : (dto.type as RequisitionType | null),
+          type:
+            dto.type === undefined
+              ? undefined
+              : (dto.type as RequisitionType | null),
           isActive: dto.isActive,
           minAmount: minAmount as any,
           maxAmount: maxAmount as any,
@@ -201,7 +227,9 @@ export class ProcurementWorkflowsService {
         where: { id },
         include: {
           stages: { orderBy: { stageNumber: "asc" } },
-          createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+          createdBy: {
+            select: { id: true, firstName: true, lastName: true, role: true },
+          },
         },
       });
     });
@@ -232,15 +260,27 @@ export class ProcurementWorkflowsService {
       type?: RequisitionType;
       minAmount?: number;
       maxAmount?: number | null;
-      stages: Array<{ stageNumber: number; name: string; approverRole: UserRole }>;
+      stages: Array<{
+        stageNumber: number;
+        name: string;
+        approverRole: UserRole;
+      }>;
     }> = [
       {
         name: "Standard Requisition (< GH₵5,000)",
         minAmount: 0,
         maxAmount: 5000,
         stages: [
-          { stageNumber: 1, name: "Department Head", approverRole: UserRole.DEPARTMENT_HEAD },
-          { stageNumber: 2, name: "Procurement Officer", approverRole: UserRole.PROCUREMENT_OFFICER },
+          {
+            stageNumber: 1,
+            name: "Department Head",
+            approverRole: UserRole.DEPARTMENT_HEAD,
+          },
+          {
+            stageNumber: 2,
+            name: "Procurement Officer",
+            approverRole: UserRole.PROCUREMENT_OFFICER,
+          },
         ],
       },
       {
@@ -248,8 +288,16 @@ export class ProcurementWorkflowsService {
         minAmount: 5000,
         maxAmount: 50000,
         stages: [
-          { stageNumber: 1, name: "Department Head", approverRole: UserRole.DEPARTMENT_HEAD },
-          { stageNumber: 2, name: "Operations Manager", approverRole: UserRole.OPERATIONS_MANAGER },
+          {
+            stageNumber: 1,
+            name: "Department Head",
+            approverRole: UserRole.DEPARTMENT_HEAD,
+          },
+          {
+            stageNumber: 2,
+            name: "Operations Manager",
+            approverRole: UserRole.OPERATIONS_MANAGER,
+          },
           { stageNumber: 3, name: "CFO", approverRole: UserRole.CFO },
         ],
       },
@@ -258,8 +306,16 @@ export class ProcurementWorkflowsService {
         minAmount: 50000,
         maxAmount: null,
         stages: [
-          { stageNumber: 1, name: "Department Head", approverRole: UserRole.DEPARTMENT_HEAD },
-          { stageNumber: 2, name: "Operations Manager", approverRole: UserRole.OPERATIONS_MANAGER },
+          {
+            stageNumber: 1,
+            name: "Department Head",
+            approverRole: UserRole.DEPARTMENT_HEAD,
+          },
+          {
+            stageNumber: 2,
+            name: "Operations Manager",
+            approverRole: UserRole.OPERATIONS_MANAGER,
+          },
           { stageNumber: 3, name: "CFO", approverRole: UserRole.CFO },
           { stageNumber: 4, name: "CEO", approverRole: UserRole.CEO },
         ],
@@ -267,7 +323,13 @@ export class ProcurementWorkflowsService {
       {
         name: "Emergency Requisition",
         type: RequisitionType.EMERGENCY,
-        stages: [{ stageNumber: 1, name: "Operations Manager", approverRole: UserRole.OPERATIONS_MANAGER }],
+        stages: [
+          {
+            stageNumber: 1,
+            name: "Operations Manager",
+            approverRole: UserRole.OPERATIONS_MANAGER,
+          },
+        ],
       },
     ];
 
@@ -279,8 +341,16 @@ export class ProcurementWorkflowsService {
           description: wf.description,
           type: wf.type ?? null,
           isActive: true,
-          minAmount: wf.minAmount !== undefined ? new Prisma.Decimal(wf.minAmount) : null,
-          maxAmount: wf.maxAmount === undefined ? null : wf.maxAmount === null ? null : new Prisma.Decimal(wf.maxAmount),
+          minAmount:
+            wf.minAmount !== undefined
+              ? new Prisma.Decimal(wf.minAmount)
+              : null,
+          maxAmount:
+            wf.maxAmount === undefined
+              ? null
+              : wf.maxAmount === null
+                ? null
+                : new Prisma.Decimal(wf.maxAmount),
           createdById: user.userId,
           stages: {
             create: wf.stages.map((s) => ({

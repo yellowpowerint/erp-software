@@ -16,7 +16,9 @@ import { CreateApprovalDelegationDto } from "./dto";
 @Controller("procurement/delegations")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ApprovalDelegationsController {
-  constructor(private readonly delegationsService: ApprovalDelegationsService) {}
+  constructor(
+    private readonly delegationsService: ApprovalDelegationsService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateApprovalDelegationDto, @CurrentUser() user: any) {

@@ -46,7 +46,10 @@ export class RFQsService {
   }
 
   private rfqInviteClient() {
-    return (this.prisma as any).rFQVendorInvite ?? (this.prisma as any).rfqVendorInvite;
+    return (
+      (this.prisma as any).rFQVendorInvite ??
+      (this.prisma as any).rfqVendorInvite
+    );
   }
 
   private rfqResponseClient() {
@@ -54,7 +57,10 @@ export class RFQsService {
   }
 
   private rfqResponseItemClient() {
-    return (this.prisma as any).rFQResponseItem ?? (this.prisma as any).rfqResponseItem;
+    return (
+      (this.prisma as any).rFQResponseItem ??
+      (this.prisma as any).rfqResponseItem
+    );
   }
 
   private canManageRFQs(role: UserRole): boolean {
@@ -155,7 +161,10 @@ export class RFQsService {
     });
   }
 
-  async listRFQs(query: any, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async listRFQs(
+    query: any,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     // Vendor portal users should use /rfqs/invited
     if (user.role === UserRole.VENDOR) {
       throw new ForbiddenException("Not allowed");
@@ -180,13 +189,18 @@ export class RFQsService {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        _count: { select: { items: true, invitedVendors: true, responses: true } },
+        _count: {
+          select: { items: true, invitedVendors: true, responses: true },
+        },
       },
       take: 200,
     });
   }
 
-  async getRFQById(id: string, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async getRFQById(
+    id: string,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     if (user.role === UserRole.VENDOR) {
       if (!user.vendorId) {
         throw new ForbiddenException("Vendor account not linked");
@@ -210,19 +224,34 @@ export class RFQsService {
       where: { id },
       include: {
         items: true,
-        requisition: { select: { id: true, requisitionNo: true, title: true, status: true } },
+        requisition: {
+          select: { id: true, requisitionNo: true, title: true, status: true },
+        },
         invitedVendors: {
-          include: { vendor: { select: { id: true, vendorCode: true, companyName: true, status: true } } },
+          include: {
+            vendor: {
+              select: {
+                id: true,
+                vendorCode: true,
+                companyName: true,
+                status: true,
+              },
+            },
+          },
           orderBy: { invitedAt: "desc" },
         },
         responses: {
           include: {
-            vendor: { select: { id: true, vendorCode: true, companyName: true } },
+            vendor: {
+              select: { id: true, vendorCode: true, companyName: true },
+            },
             items: { include: { rfqItem: true } },
           },
           orderBy: { submittedAt: "desc" },
         },
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
 
@@ -230,7 +259,11 @@ export class RFQsService {
     return rfq;
   }
 
-  async updateRFQ(id: string, dto: UpdateRFQDto, user: { userId: string; role: UserRole }) {
+  async updateRFQ(
+    id: string,
+    dto: UpdateRFQDto,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageRFQs(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -270,8 +303,13 @@ export class RFQsService {
         data: {
           title: dto.title,
           description: dto.description,
-          requisitionId: dto.requisitionId === undefined ? undefined : dto.requisitionId || null,
-          responseDeadline: dto.responseDeadline ? new Date(dto.responseDeadline) : undefined,
+          requisitionId:
+            dto.requisitionId === undefined
+              ? undefined
+              : dto.requisitionId || null,
+          responseDeadline: dto.responseDeadline
+            ? new Date(dto.responseDeadline)
+            : undefined,
           validityPeriod: dto.validityPeriod,
           deliveryLocation: dto.deliveryLocation,
           deliveryTerms: dto.deliveryTerms,
@@ -319,7 +357,10 @@ export class RFQsService {
       throw new ForbiddenException("Not allowed");
     }
 
-    const rfq = await this.rfqClient().findUnique({ where: { id }, select: { id: true } });
+    const rfq = await this.rfqClient().findUnique({
+      where: { id },
+      select: { id: true },
+    });
     if (!rfq) throw new NotFoundException("RFQ not found");
 
     return this.rfqClient().update({
@@ -328,7 +369,11 @@ export class RFQsService {
     });
   }
 
-  async inviteVendors(id: string, dto: InviteRFQVendorsDto, user: { userId: string; role: UserRole }) {
+  async inviteVendors(
+    id: string,
+    dto: InviteRFQVendorsDto,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageRFQs(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -340,7 +385,11 @@ export class RFQsService {
 
     if (!rfq) throw new NotFoundException("RFQ not found");
 
-    if (![RFQ_STATUS.DRAFT, RFQ_STATUS.PUBLISHED].includes(String(rfq.status) as any)) {
+    if (
+      ![RFQ_STATUS.DRAFT, RFQ_STATUS.PUBLISHED].includes(
+        String(rfq.status) as any,
+      )
+    ) {
       throw new BadRequestException("RFQ is not open for invitations");
     }
 
@@ -359,7 +408,11 @@ export class RFQsService {
     return { success: true };
   }
 
-  async listInvitedRFQs(user: { userId: string; role: UserRole; vendorId?: string }) {
+  async listInvitedRFQs(user: {
+    userId: string;
+    role: UserRole;
+    vendorId?: string;
+  }) {
     if (user.role !== UserRole.VENDOR) {
       throw new ForbiddenException("Not allowed");
     }
@@ -371,7 +424,14 @@ export class RFQsService {
     return this.rfqClient().findMany({
       where: {
         invitedVendors: { some: { vendorId: user.vendorId } },
-        status: { in: [RFQ_STATUS.PUBLISHED, RFQ_STATUS.EVALUATING, RFQ_STATUS.AWARDED, RFQ_STATUS.CLOSED] },
+        status: {
+          in: [
+            RFQ_STATUS.PUBLISHED,
+            RFQ_STATUS.EVALUATING,
+            RFQ_STATUS.AWARDED,
+            RFQ_STATUS.CLOSED,
+          ],
+        },
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -413,7 +473,11 @@ export class RFQsService {
     return { total, computed };
   }
 
-  async submitResponse(rfqId: string, dto: SubmitRFQResponseDto, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async submitResponse(
+    rfqId: string,
+    dto: SubmitRFQResponseDto,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     if (user.role !== UserRole.VENDOR) {
       throw new ForbiddenException("Not allowed");
     }
@@ -449,17 +513,24 @@ export class RFQsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const rfqResponseClient = (tx as any).rFQResponse ?? (tx as any).rfqResponse;
+      const rfqResponseClient =
+        (tx as any).rFQResponse ?? (tx as any).rfqResponse;
       const existing = await rfqResponseClient.findFirst({
         where: { rfqId, vendorId: user.vendorId },
         select: { id: true },
       });
 
       if (existing) {
-        throw new BadRequestException("Response already exists. Use update endpoint.");
+        throw new BadRequestException(
+          "Response already exists. Use update endpoint.",
+        );
       }
 
-      const { total, computed } = await this.computeResponseTotals(tx, rfqId, dto.items);
+      const { total, computed } = await this.computeResponseTotals(
+        tx,
+        rfqId,
+        dto.items,
+      );
 
       const response = await rfqResponseClient.create({
         data: {
@@ -487,7 +558,8 @@ export class RFQsService {
         include: { items: true },
       });
 
-      const rfqInviteClient = (tx as any).rFQVendorInvite ?? (tx as any).rfqVendorInvite;
+      const rfqInviteClient =
+        (tx as any).rFQVendorInvite ?? (tx as any).rfqVendorInvite;
       await rfqInviteClient.updateMany({
         where: { rfqId, vendorId: user.vendorId },
         data: { status: "RESPONDED" },
@@ -497,7 +569,11 @@ export class RFQsService {
     });
   }
 
-  async updateMyResponse(rfqId: string, dto: UpdateRFQResponseDto, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async updateMyResponse(
+    rfqId: string,
+    dto: UpdateRFQResponseDto,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     if (user.role !== UserRole.VENDOR) {
       throw new ForbiddenException("Not allowed");
     }
@@ -522,9 +598,16 @@ export class RFQsService {
     return this.prisma.$transaction(async (tx) => {
       let totalAmount: Prisma.Decimal | undefined;
       if (dto.items) {
-        const rfqResponseItemClient = (tx as any).rFQResponseItem ?? (tx as any).rfqResponseItem;
-        await rfqResponseItemClient.deleteMany({ where: { responseId: existing.id } });
-        const { total, computed } = await this.computeResponseTotals(tx, rfqId, dto.items);
+        const rfqResponseItemClient =
+          (tx as any).rFQResponseItem ?? (tx as any).rfqResponseItem;
+        await rfqResponseItemClient.deleteMany({
+          where: { responseId: existing.id },
+        });
+        const { total, computed } = await this.computeResponseTotals(
+          tx,
+          rfqId,
+          dto.items,
+        );
         totalAmount = total;
 
         await rfqResponseItemClient.createMany({
@@ -539,7 +622,8 @@ export class RFQsService {
         });
       }
 
-      const rfqResponseClient = (tx as any).rFQResponse ?? (tx as any).rfqResponse;
+      const rfqResponseClient =
+        (tx as any).rFQResponse ?? (tx as any).rfqResponse;
       return rfqResponseClient.update({
         where: { id: existing.id },
         data: {
@@ -557,7 +641,11 @@ export class RFQsService {
     });
   }
 
-  async evaluateResponses(rfqId: string, dto: EvaluateRFQDto, user: { userId: string; role: UserRole }) {
+  async evaluateResponses(
+    rfqId: string,
+    dto: EvaluateRFQDto,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageRFQs(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -571,7 +659,8 @@ export class RFQsService {
 
     await this.prisma.$transaction(async (tx) => {
       const rfqClient = (tx as any).rFQ ?? (tx as any).rfq;
-      const rfqResponseClient = (tx as any).rFQResponse ?? (tx as any).rfqResponse;
+      const rfqResponseClient =
+        (tx as any).rFQResponse ?? (tx as any).rfqResponse;
 
       await rfqClient.update({
         where: { id: rfqId },
@@ -596,7 +685,11 @@ export class RFQsService {
     return { success: true };
   }
 
-  async awardRFQ(rfqId: string, dto: AwardRFQDto, user: { userId: string; role: UserRole }) {
+  async awardRFQ(
+    rfqId: string,
+    dto: AwardRFQDto,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageRFQs(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -612,7 +705,8 @@ export class RFQsService {
 
     await this.prisma.$transaction(async (tx) => {
       const rfqClient = (tx as any).rFQ ?? (tx as any).rfq;
-      const rfqResponseClient = (tx as any).rFQResponse ?? (tx as any).rfqResponse;
+      const rfqResponseClient =
+        (tx as any).rFQResponse ?? (tx as any).rfqResponse;
 
       await rfqClient.update({
         where: { id: rfqId },

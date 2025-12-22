@@ -57,7 +57,11 @@ export class PurchaseOrdersController {
     UserRole.PROCUREMENT_OFFICER,
     UserRole.OPERATIONS_MANAGER,
   )
-  update(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: UpdatePurchaseOrderDto) {
+  update(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: UpdatePurchaseOrderDto,
+  ) {
     return this.purchaseOrdersService.updatePO(id, dto, user);
   }
 
@@ -109,15 +113,25 @@ export class PurchaseOrdersController {
     UserRole.PROCUREMENT_OFFICER,
     UserRole.OPERATIONS_MANAGER,
   )
-  createFromRfq(@Param("responseId") responseId: string, @CurrentUser() user: any) {
+  createFromRfq(
+    @Param("responseId") responseId: string,
+    @CurrentUser() user: any,
+  ) {
     return this.purchaseOrdersService.createFromRFQResponse(responseId, user);
   }
 
   @Get(":id/pdf")
-  async pdf(@Param("id") id: string, @CurrentUser() user: any, @Res() res: Response) {
+  async pdf(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Res() res: Response,
+  ) {
     const pdfBuffer = await this.purchaseOrdersService.generatePOPdf(id, user);
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=\"purchase-order-${id}.pdf\"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=\"purchase-order-${id}.pdf\"`,
+    );
     res.send(pdfBuffer);
   }
 }

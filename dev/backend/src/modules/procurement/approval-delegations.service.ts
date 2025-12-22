@@ -13,10 +13,17 @@ export class ApprovalDelegationsService {
   constructor(private prisma: PrismaService) {}
 
   private canManageOthers(role: UserRole) {
-    return role === UserRole.SUPER_ADMIN || role === UserRole.CEO || role === UserRole.CFO;
+    return (
+      role === UserRole.SUPER_ADMIN ||
+      role === UserRole.CEO ||
+      role === UserRole.CFO
+    );
   }
 
-  async createDelegation(dto: CreateApprovalDelegationDto, user: { userId: string; role: UserRole }) {
+  async createDelegation(
+    dto: CreateApprovalDelegationDto,
+    user: { userId: string; role: UserRole },
+  ) {
     const delegatorId = dto.delegatorId;
 
     if (delegatorId !== user.userId && !this.canManageOthers(user.role)) {
@@ -65,8 +72,12 @@ export class ApprovalDelegationsService {
         isActive: true,
       },
       include: {
-        delegator: { select: { id: true, firstName: true, lastName: true, role: true } },
-        delegate: { select: { id: true, firstName: true, lastName: true, role: true } },
+        delegator: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+        delegate: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
   }
@@ -81,18 +92,27 @@ export class ApprovalDelegationsService {
     return this.prisma.approvalDelegation.findMany({
       where,
       include: {
-        delegator: { select: { id: true, firstName: true, lastName: true, role: true } },
-        delegate: { select: { id: true, firstName: true, lastName: true, role: true } },
+        delegator: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+        delegate: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
   }
 
   async cancelDelegation(id: string, user: { userId: string; role: UserRole }) {
-    const delegation = await this.prisma.approvalDelegation.findUnique({ where: { id } });
+    const delegation = await this.prisma.approvalDelegation.findUnique({
+      where: { id },
+    });
     if (!delegation) throw new NotFoundException("Delegation not found");
 
-    if (delegation.delegatorId !== user.userId && !this.canManageOthers(user.role)) {
+    if (
+      delegation.delegatorId !== user.userId &&
+      !this.canManageOthers(user.role)
+    ) {
       throw new ForbiddenException("Not allowed");
     }
 

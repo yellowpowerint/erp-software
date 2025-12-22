@@ -1,5 +1,17 @@
-import { IsEnum, IsInt, IsISO8601, IsOptional, IsString, Min } from "class-validator";
-import { FleetAssetCondition, FleetAssetStatus, FleetAssetType, FuelType } from "./create-fleet-asset.dto";
+import {
+  IsEnum,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Min,
+} from "class-validator";
+import {
+  FleetAssetCondition,
+  FleetAssetStatus,
+  FleetAssetType,
+  FuelType,
+} from "./create-fleet-asset.dto";
 
 export class UpdateFleetAssetDto {
   @IsOptional()

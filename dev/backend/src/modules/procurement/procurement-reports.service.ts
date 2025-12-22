@@ -32,7 +32,9 @@ export class ProcurementReportsService {
       where,
       include: {
         vendor: { select: { id: true, vendorCode: true, companyName: true } },
-        purchaseOrder: { select: { id: true, poNumber: true, deliverySite: true } },
+        purchaseOrder: {
+          select: { id: true, poNumber: true, deliverySite: true },
+        },
         items: { select: { poItemId: true, totalPrice: true } },
       },
       take: 2000,
@@ -54,9 +56,9 @@ export class ProcurementReportsService {
         this.toDecimal(inv.totalAmount),
       );
 
-      spendByVendor[inv.vendorId] = (spendByVendor[inv.vendorId] ?? new Prisma.Decimal(0)).add(
-        this.toDecimal(inv.totalAmount),
-      );
+      spendByVendor[inv.vendorId] = (
+        spendByVendor[inv.vendorId] ?? new Prisma.Decimal(0)
+      ).add(this.toDecimal(inv.totalAmount));
 
       const site = inv.purchaseOrder?.deliverySite || "UNKNOWN";
       spendBySite[site] = (spendBySite[site] ?? new Prisma.Decimal(0)).add(
@@ -69,11 +71,13 @@ export class ProcurementReportsService {
       if (inv.vendor) vendorMap.set(inv.vendorId, inv.vendor);
     }
 
-    const spendByVendorArr = Object.entries(spendByVendor).map(([vendorId, amount]) => ({
-      vendorId,
-      vendor: vendorMap.get(vendorId) ?? null,
-      amount,
-    }));
+    const spendByVendorArr = Object.entries(spendByVendor).map(
+      ([vendorId, amount]) => ({
+        vendorId,
+        vendor: vendorMap.get(vendorId) ?? null,
+        amount,
+      }),
+    );
 
     return {
       totalSpend,
@@ -82,7 +86,10 @@ export class ProcurementReportsService {
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([month, amount]) => ({ month, amount })),
       spendByVendor: spendByVendorArr,
-      spendBySite: Object.entries(spendBySite).map(([site, amount]) => ({ site, amount })),
+      spendBySite: Object.entries(spendBySite).map(([site, amount]) => ({
+        site,
+        amount,
+      })),
     };
   }
 
@@ -91,7 +98,10 @@ export class ProcurementReportsService {
 
     const vendors = vendorId
       ? await this.prisma.vendor.findMany({ where: { id: vendorId } })
-      : await this.prisma.vendor.findMany({ orderBy: { totalSpend: "desc" }, take: 100 });
+      : await this.prisma.vendor.findMany({
+          orderBy: { totalSpend: "desc" },
+          take: 100,
+        });
 
     return vendors.map((v) => ({
       vendorId: v.id,
@@ -124,7 +134,11 @@ export class ProcurementReportsService {
       where,
       include: {
         requisition: { select: { createdAt: true } },
-        receipts: { select: { receivedDate: true }, orderBy: { receivedDate: "desc" }, take: 1 },
+        receipts: {
+          select: { receivedDate: true },
+          orderBy: { receivedDate: "desc" },
+          take: 1,
+        },
       },
       take: 500,
     });
@@ -134,11 +148,16 @@ export class ProcurementReportsService {
       .map((p: any) => {
         const startMs = new Date(p.requisition.createdAt).getTime();
         const endMs = new Date(p.receipts[0].receivedDate).getTime();
-        const days = Math.max(0, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)));
+        const days = Math.max(
+          0,
+          Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)),
+        );
         return days;
       });
 
-    const avg = cycles.length ? cycles.reduce((a: number, b: number) => a + b, 0) / cycles.length : 0;
+    const avg = cycles.length
+      ? cycles.reduce((a: number, b: number) => a + b, 0) / cycles.length
+      : 0;
 
     return {
       sampleSize: cycles.length,
@@ -159,7 +178,14 @@ export class ProcurementReportsService {
     const pos = await (this.prisma as any).purchaseOrder.findMany({
       where,
       include: {
-        requisition: { select: { id: true, requisitionNo: true, totalEstimate: true, currency: true } },
+        requisition: {
+          select: {
+            id: true,
+            requisitionNo: true,
+            totalEstimate: true,
+            currency: true,
+          },
+        },
         vendor: { select: { id: true, vendorCode: true, companyName: true } },
       },
       take: 1000,
@@ -192,41 +218,57 @@ export class ProcurementReportsService {
   }
 
   async compliance() {
-    const [poTotal, poApproved, invoiceTotal, invoiceMatched] = await Promise.all([
-      (this.prisma as any).purchaseOrder.count({ where: { status: { not: "CANCELLED" } } }),
-      (this.prisma as any).purchaseOrder.count({
-        where: {
-          status: {
-            in: [
-              "APPROVED",
-              "SENT",
-              "ACKNOWLEDGED",
-              "PARTIALLY_RECEIVED",
-              "RECEIVED",
-              "COMPLETED",
-            ],
+    const [poTotal, poApproved, invoiceTotal, invoiceMatched] =
+      await Promise.all([
+        (this.prisma as any).purchaseOrder.count({
+          where: { status: { not: "CANCELLED" } },
+        }),
+        (this.prisma as any).purchaseOrder.count({
+          where: {
+            status: {
+              in: [
+                "APPROVED",
+                "SENT",
+                "ACKNOWLEDGED",
+                "PARTIALLY_RECEIVED",
+                "RECEIVED",
+                "COMPLETED",
+              ],
+            },
           },
-        },
-      }),
-      (this.prisma as any).vendorInvoice.count(),
-      (this.prisma as any).vendorInvoice.count({ where: { matchStatus: "MATCHED" } }),
-    ]);
+        }),
+        (this.prisma as any).vendorInvoice.count(),
+        (this.prisma as any).vendorInvoice.count({
+          where: { matchStatus: "MATCHED" },
+        }),
+      ]);
 
     return {
       poApprovalComplianceRate: poTotal > 0 ? (poApproved / poTotal) * 100 : 0,
-      invoiceMatchRate: invoiceTotal > 0 ? (invoiceMatched / invoiceTotal) * 100 : 0,
+      invoiceMatchRate:
+        invoiceTotal > 0 ? (invoiceMatched / invoiceTotal) * 100 : 0,
       totals: { poTotal, poApproved, invoiceTotal, invoiceMatched },
     };
   }
 
   async pendingActions() {
-    const [pendingRequisitions, pendingPOApprovals, pendingInvoiceMatches, duePayments] =
-      await Promise.all([
-        this.prisma.requisition.count({ where: { status: "PENDING_APPROVAL" } }),
-        (this.prisma as any).purchaseOrder.count({ where: { status: "PENDING_APPROVAL" } }),
-        (this.prisma as any).vendorInvoice.count({ where: { matchStatus: "PENDING" } }),
-        (this.prisma as any).vendorInvoice.count({ where: { paymentStatus: { in: ["OVERDUE"] } } }),
-      ]);
+    const [
+      pendingRequisitions,
+      pendingPOApprovals,
+      pendingInvoiceMatches,
+      duePayments,
+    ] = await Promise.all([
+      this.prisma.requisition.count({ where: { status: "PENDING_APPROVAL" } }),
+      (this.prisma as any).purchaseOrder.count({
+        where: { status: "PENDING_APPROVAL" },
+      }),
+      (this.prisma as any).vendorInvoice.count({
+        where: { matchStatus: "PENDING" },
+      }),
+      (this.prisma as any).vendorInvoice.count({
+        where: { paymentStatus: { in: ["OVERDUE"] } },
+      }),
+    ]);
 
     return {
       pendingRequisitions,
@@ -269,7 +311,9 @@ export class ProcurementReportsService {
     const items = await (this.prisma as any).vendorInvoiceItem.findMany({
       where,
       include: {
-        invoice: { select: { id: true, invoiceNumber: true, invoiceDate: true } },
+        invoice: {
+          select: { id: true, invoiceNumber: true, invoiceDate: true },
+        },
         poItem: { select: { id: true, itemName: true, stockItemId: true } },
       },
       take: 500,
@@ -297,7 +341,15 @@ export class ProcurementReportsService {
     const movements = await this.prisma.stockMovement.findMany({
       where,
       include: {
-        item: { select: { id: true, itemCode: true, name: true, category: true, unit: true } },
+        item: {
+          select: {
+            id: true,
+            itemCode: true,
+            name: true,
+            category: true,
+            unit: true,
+          },
+        },
         warehouse: { select: { id: true, code: true, name: true } },
       },
       take: 1000,
@@ -305,7 +357,10 @@ export class ProcurementReportsService {
     });
 
     const consumables = movements.filter(
-      (m) => m.item?.category === "CONSUMABLES" || m.item?.category === "FUEL" || m.item?.category === "CHEMICALS",
+      (m) =>
+        m.item?.category === "CONSUMABLES" ||
+        m.item?.category === "FUEL" ||
+        m.item?.category === "CHEMICALS",
     );
 
     const byItem: Record<string, number> = {};
@@ -315,7 +370,10 @@ export class ProcurementReportsService {
 
     return {
       movementsCount: consumables.length,
-      usageByItem: Object.entries(byItem).map(([itemId, quantity]) => ({ itemId, quantity })),
+      usageByItem: Object.entries(byItem).map(([itemId, quantity]) => ({
+        itemId,
+        quantity,
+      })),
       movements: consumables.slice(0, 200),
     };
   }
@@ -358,7 +416,9 @@ export class ProcurementReportsService {
     const items = await (this.prisma as any).vendorInvoiceItem.findMany({
       where,
       include: {
-        invoice: { select: { id: true, invoiceNumber: true, invoiceDate: true } },
+        invoice: {
+          select: { id: true, invoiceNumber: true, invoiceDate: true },
+        },
         poItem: { select: { id: true, itemName: true, stockItemId: true } },
       },
       take: 500,

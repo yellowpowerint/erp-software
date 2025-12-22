@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
@@ -43,7 +47,9 @@ export class ThreeWayMatchingService {
 
     if (!invoice) throw new NotFoundException("Invoice not found");
     if (!invoice.purchaseOrderId) {
-      throw new BadRequestException("Invoice must be linked to a purchase order for matching");
+      throw new BadRequestException(
+        "Invoice must be linked to a purchase order for matching",
+      );
     }
 
     const po = invoice.purchaseOrder;
@@ -62,12 +68,18 @@ export class ThreeWayMatchingService {
     const acceptedByPoItemId = new Map<string, Prisma.Decimal>();
     for (const r of receipts) {
       for (const it of r.items) {
-        const prev = acceptedByPoItemId.get(it.poItemId) ?? new Prisma.Decimal(0);
-        acceptedByPoItemId.set(it.poItemId, prev.add(this.toDecimal(it.acceptedQty)));
+        const prev =
+          acceptedByPoItemId.get(it.poItemId) ?? new Prisma.Decimal(0);
+        acceptedByPoItemId.set(
+          it.poItemId,
+          prev.add(this.toDecimal(it.acceptedQty)),
+        );
       }
     }
 
-    const poItemsById = new Map<string, any>(po.items.map((i: any) => [i.id, i]));
+    const poItemsById = new Map<string, any>(
+      po.items.map((i: any) => [i.id, i]),
+    );
 
     let priceVariance = new Prisma.Decimal(0);
     let quantityVariance = new Prisma.Decimal(0);
@@ -82,8 +94,10 @@ export class ThreeWayMatchingService {
       }
 
       if (!poItem) {
-        const guess = po.items.find((i: any) =>
-          String(i.itemName).trim().toLowerCase() === String(invItem.description).trim().toLowerCase(),
+        const guess = po.items.find(
+          (i: any) =>
+            String(i.itemName).trim().toLowerCase() ===
+            String(invItem.description).trim().toLowerCase(),
         );
         poItem = guess ?? null;
       }
@@ -97,15 +111,14 @@ export class ThreeWayMatchingService {
       const invUnitPrice = this.toDecimal(invItem.unitPrice);
       const poUnitPrice = this.toDecimal(poItem.unitPrice);
 
-      const acceptedQty = acceptedByPoItemId.get(poItem.id) ?? new Prisma.Decimal(0);
+      const acceptedQty =
+        acceptedByPoItemId.get(poItem.id) ?? new Prisma.Decimal(0);
 
-      priceVariance = priceVariance.add(invUnitPrice.sub(poUnitPrice).mul(invQty));
+      priceVariance = priceVariance.add(
+        invUnitPrice.sub(poUnitPrice).mul(invQty),
+      );
       quantityVariance = quantityVariance.add(invQty.sub(acceptedQty));
     }
-
-    const poTotal = this.toDecimal(po.totalAmount);
-    const denom = poTotal.equals(0) ? new Prisma.Decimal(1) : poTotal;
-    const pct = this.abs(priceVariance).div(denom).mul(100);
 
     const hasUnmatched = unmatched.length > 0;
     const hasQtyMismatch = !quantityVariance.equals(0);
@@ -120,11 +133,16 @@ export class ThreeWayMatchingService {
       variances: { priceVariance, quantityVariance },
       isMatched: status === "MATCHED",
       status,
-      notes: hasUnmatched ? `Unmatched invoice lines: ${unmatched.join(", ")}` : undefined,
+      notes: hasUnmatched
+        ? `Unmatched invoice lines: ${unmatched.join(", ")}`
+        : undefined,
     };
   }
 
-  async performThreeWayMatch(invoiceId: string, tolerancePercent: number): Promise<ThreeWayMatchResult> {
+  async performThreeWayMatch(
+    invoiceId: string,
+    tolerancePercent: number,
+  ): Promise<ThreeWayMatchResult> {
     const result = await this.calculateVariances(invoiceId);
 
     const invoice = await (this.prisma as any).vendorInvoice.findUnique({
@@ -135,17 +153,27 @@ export class ThreeWayMatchingService {
 
     const poTotal = this.toDecimal(invoice.purchaseOrder?.totalAmount ?? 0);
     const denom = poTotal.equals(0) ? new Prisma.Decimal(1) : poTotal;
-    const pricePct = this.abs(result.variances.priceVariance).div(denom).mul(100);
+    const pricePct = this.abs(result.variances.priceVariance)
+      .div(denom)
+      .mul(100);
 
-    const priceOk = pricePct.lessThanOrEqualTo(new Prisma.Decimal(tolerancePercent));
-    const qtyOk = this.abs(result.variances.quantityVariance).lessThanOrEqualTo(new Prisma.Decimal(0));
+    const priceOk = pricePct.lessThanOrEqualTo(
+      new Prisma.Decimal(tolerancePercent),
+    );
+    const qtyOk = this.abs(result.variances.quantityVariance).lessThanOrEqualTo(
+      new Prisma.Decimal(0),
+    );
 
     const isMatched = priceOk && qtyOk && result.status === "MATCHED";
 
     return {
       ...result,
       isMatched,
-      status: isMatched ? "MATCHED" : result.status === "MATCHED" ? "MISMATCH" : result.status,
+      status: isMatched
+        ? "MATCHED"
+        : result.status === "MATCHED"
+          ? "MISMATCH"
+          : result.status,
     };
   }
 }

@@ -17,17 +17,17 @@ export class ProcurementDashboardService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-    const completedPOsForDeliveryRatePromise = (this.prisma as any).purchaseOrder.findMany(
-      {
-        where: {
-          status: { in: ["RECEIVED", "COMPLETED"] },
-          actualDelivery: { not: null },
-          expectedDelivery: { not: null },
-        },
-        select: { actualDelivery: true, expectedDelivery: true },
-        take: 1000,
+    const completedPOsForDeliveryRatePromise = (
+      this.prisma as any
+    ).purchaseOrder.findMany({
+      where: {
+        status: { in: ["RECEIVED", "COMPLETED"] },
+        actualDelivery: { not: null },
+        expectedDelivery: { not: null },
       },
-    );
+      select: { actualDelivery: true, expectedDelivery: true },
+      take: 1000,
+    });
 
     const [
       mtdInvoices,
@@ -78,9 +78,13 @@ export class ProcurementDashboardService {
         },
       }),
       (this.prisma as any).vendorInvoice.count({
-        where: { paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] } },
+        where: {
+          paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
+        },
       }),
-      (this.prisma as any).vendorInvoice.count({ where: { paymentStatus: "OVERDUE" } }),
+      (this.prisma as any).vendorInvoice.count({
+        where: { paymentStatus: "OVERDUE" },
+      }),
       this.prisma.stockItem.findMany({
         select: {
           id: true,
@@ -105,7 +109,9 @@ export class ProcurementDashboardService {
           vendor: { select: { id: true, vendorCode: true, companyName: true } },
         },
       }),
-      (this.prisma as any).vendorInvoice.count({ where: { matchStatus: "MATCHED" } }),
+      (this.prisma as any).vendorInvoice.count({
+        where: { matchStatus: "MATCHED" },
+      }),
       (this.prisma as any).vendorInvoice.count(),
       completedPOsForDeliveryRatePromise,
     ]);
@@ -119,17 +125,25 @@ export class ProcurementDashboardService {
       new Prisma.Decimal(0),
     );
 
-    const invoiceMatchRate = totalInvoicesCount > 0 ? (matchedInvoicesCount / totalInvoicesCount) * 100 : 0;
+    const invoiceMatchRate =
+      totalInvoicesCount > 0
+        ? (matchedInvoicesCount / totalInvoicesCount) * 100
+        : 0;
 
     const completedPOCount = completedPOsForDeliveryRate.length;
     const onTimePOCount = completedPOsForDeliveryRate.filter((p: any) => {
-      const actual = p.actualDelivery ? new Date(p.actualDelivery).getTime() : null;
-      const expected = p.expectedDelivery ? new Date(p.expectedDelivery).getTime() : null;
+      const actual = p.actualDelivery
+        ? new Date(p.actualDelivery).getTime()
+        : null;
+      const expected = p.expectedDelivery
+        ? new Date(p.expectedDelivery).getTime()
+        : null;
       if (!actual || !expected) return false;
       return actual <= expected;
     }).length;
 
-    const onTimeDeliveryRate = completedPOCount > 0 ? (onTimePOCount / completedPOCount) * 100 : 0;
+    const onTimeDeliveryRate =
+      completedPOCount > 0 ? (onTimePOCount / completedPOCount) * 100 : 0;
 
     const lowStockItems = stockItemsForLowStock
       .filter((s: any) => s.currentQuantity <= s.reorderLevel)
@@ -173,25 +187,34 @@ export class ProcurementDashboardService {
 
     const invoices = await (this.prisma as any).vendorInvoice.findMany({
       where,
-      include: { vendor: { select: { id: true, vendorCode: true, companyName: true } }, purchaseOrder: true },
+      include: {
+        vendor: { select: { id: true, vendorCode: true, companyName: true } },
+        purchaseOrder: true,
+      },
       take: 1000,
     });
 
     const totalSpend = invoices.reduce(
-      (acc: Prisma.Decimal, inv: any) => acc.add(this.toDecimal(inv.totalAmount)),
+      (acc: Prisma.Decimal, inv: any) =>
+        acc.add(this.toDecimal(inv.totalAmount)),
       new Prisma.Decimal(0),
     );
 
     const byVendor: Record<string, Prisma.Decimal> = {};
     for (const inv of invoices) {
       const key = inv.vendorId;
-      byVendor[key] = (byVendor[key] ?? new Prisma.Decimal(0)).add(this.toDecimal(inv.totalAmount));
+      byVendor[key] = (byVendor[key] ?? new Prisma.Decimal(0)).add(
+        this.toDecimal(inv.totalAmount),
+      );
     }
 
     return {
       totalSpend,
       invoiceCount: invoices.length,
-      byVendor: Object.entries(byVendor).map(([vendorId, amount]) => ({ vendorId, amount })),
+      byVendor: Object.entries(byVendor).map(([vendorId, amount]) => ({
+        vendorId,
+        amount,
+      })),
     };
   }
 

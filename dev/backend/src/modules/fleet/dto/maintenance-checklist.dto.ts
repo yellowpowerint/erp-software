@@ -1,4 +1,9 @@
-import { IsBoolean, IsOptional, IsString, ValidateNested } from "class-validator";
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
 import { Type } from "class-transformer";
 import { FleetAssetType } from "./create-fleet-asset.dto";
 

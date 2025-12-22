@@ -84,13 +84,21 @@ export class InvoicesController {
     UserRole.ACCOUNTANT,
     UserRole.PROCUREMENT_OFFICER,
   )
-  match(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: MatchVendorInvoiceDto) {
+  match(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: MatchVendorInvoiceDto,
+  ) {
     return this.invoicesService.runMatching(id, dto, user);
   }
 
   @Post(":id/approve")
   @Roles(UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.ACCOUNTANT)
-  approve(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: ApproveVendorInvoiceDto) {
+  approve(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: ApproveVendorInvoiceDto,
+  ) {
     return this.invoicesService.approveInvoice(id, dto, user);
   }
 
@@ -102,7 +110,11 @@ export class InvoicesController {
     UserRole.ACCOUNTANT,
     UserRole.PROCUREMENT_OFFICER,
   )
-  dispute(@Param("id") id: string, @CurrentUser() user: any, @Body() dto: DisputeVendorInvoiceDto) {
+  dispute(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: DisputeVendorInvoiceDto,
+  ) {
     return this.invoicesService.disputeInvoice(id, dto, user);
   }
 

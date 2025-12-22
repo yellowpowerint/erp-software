@@ -10,7 +10,11 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { ProcurementApprovalType, RequisitionType, UserRole } from "@prisma/client";
+import {
+  ProcurementApprovalType,
+  RequisitionType,
+  UserRole,
+} from "@prisma/client";
 
 export class CreateProcurementWorkflowStageDto {
   @IsInt()

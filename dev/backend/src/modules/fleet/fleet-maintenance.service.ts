@@ -14,7 +14,6 @@ import {
   CreateMaintenanceRecordDto,
   CreateMaintenanceScheduleDto,
   MaintenanceStatus,
-  MaintenanceType,
   ScheduleFrequency,
   UpcomingMaintenanceQueryDto,
   UpdateMaintenanceRecordDto,
@@ -50,7 +49,9 @@ export class FleetMaintenanceService {
       "WAREHOUSE_MANAGER",
     ];
     if (!allowed.includes(String(role))) {
-      throw new ForbiddenException("You do not have permission to manage fleet maintenance");
+      throw new ForbiddenException(
+        "You do not have permission to manage fleet maintenance",
+      );
     }
   }
 
@@ -70,21 +71,32 @@ export class FleetMaintenanceService {
     return asset;
   }
 
-  private validateScheduleUnit(frequency: ScheduleFrequency, intervalUnit: string) {
+  private validateScheduleUnit(
+    frequency: ScheduleFrequency,
+    intervalUnit: string,
+  ) {
     const unit = String(intervalUnit || "").toUpperCase();
     const allowed = ["DAYS", "KM", "HOURS"];
     if (!allowed.includes(unit)) {
-      throw new BadRequestException("intervalUnit must be one of DAYS, KM, HOURS");
+      throw new BadRequestException(
+        "intervalUnit must be one of DAYS, KM, HOURS",
+      );
     }
 
     if (frequency === ScheduleFrequency.TIME_BASED && unit !== "DAYS") {
-      throw new BadRequestException("TIME_BASED schedules require intervalUnit DAYS");
+      throw new BadRequestException(
+        "TIME_BASED schedules require intervalUnit DAYS",
+      );
     }
     if (frequency === ScheduleFrequency.DISTANCE_BASED && unit !== "KM") {
-      throw new BadRequestException("DISTANCE_BASED schedules require intervalUnit KM");
+      throw new BadRequestException(
+        "DISTANCE_BASED schedules require intervalUnit KM",
+      );
     }
     if (frequency === ScheduleFrequency.HOURS_BASED && unit !== "HOURS") {
-      throw new BadRequestException("HOURS_BASED schedules require intervalUnit HOURS");
+      throw new BadRequestException(
+        "HOURS_BASED schedules require intervalUnit HOURS",
+      );
     }
 
     return unit;
@@ -107,28 +119,44 @@ export class FleetMaintenanceService {
     let nextDueOdometer: Prisma.Decimal | null = null;
     let nextDueHours: Prisma.Decimal | null = null;
 
-    if (args.frequency === ScheduleFrequency.TIME_BASED || args.frequency === ScheduleFrequency.COMBINED) {
+    if (
+      args.frequency === ScheduleFrequency.TIME_BASED ||
+      args.frequency === ScheduleFrequency.COMBINED
+    ) {
       const d = new Date(baseDate);
       d.setDate(d.getDate() + intervalValue);
       nextDue = d;
     }
 
-    if (args.frequency === ScheduleFrequency.DISTANCE_BASED || args.frequency === ScheduleFrequency.COMBINED) {
+    if (
+      args.frequency === ScheduleFrequency.DISTANCE_BASED ||
+      args.frequency === ScheduleFrequency.COMBINED
+    ) {
       if (unit === "KM") {
-        nextDueOdometer = args.asset.currentOdometer.add(new Prisma.Decimal(intervalValue));
+        nextDueOdometer = args.asset.currentOdometer.add(
+          new Prisma.Decimal(intervalValue),
+        );
       }
     }
 
-    if (args.frequency === ScheduleFrequency.HOURS_BASED || args.frequency === ScheduleFrequency.COMBINED) {
+    if (
+      args.frequency === ScheduleFrequency.HOURS_BASED ||
+      args.frequency === ScheduleFrequency.COMBINED
+    ) {
       if (unit === "HOURS") {
-        nextDueHours = args.asset.currentHours.add(new Prisma.Decimal(intervalValue));
+        nextDueHours = args.asset.currentHours.add(
+          new Prisma.Decimal(intervalValue),
+        );
       }
     }
 
     return { nextDue, nextDueOdometer, nextDueHours };
   }
 
-  async createSchedule(dto: CreateMaintenanceScheduleDto, user: { userId: string; role: string }) {
+  async createSchedule(
+    dto: CreateMaintenanceScheduleDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
     const asset = await this.getAsset(dto.assetId);
@@ -172,10 +200,16 @@ export class FleetMaintenanceService {
     });
   }
 
-  async updateSchedule(id: string, dto: UpdateMaintenanceScheduleDto, user: { userId: string; role: string }) {
+  async updateSchedule(
+    id: string,
+    dto: UpdateMaintenanceScheduleDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
-    const existing = await (this.prisma as any).maintenanceSchedule.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).maintenanceSchedule.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException("Schedule not found");
 
     const asset = await this.getAsset(existing.assetId);
@@ -206,11 +240,20 @@ export class FleetMaintenanceService {
         nextDueOdometer: next.nextDueOdometer,
         nextDueHours: next.nextDueHours,
         alertDaysBefore: dto.alertDaysBefore,
-        alertKmBefore: dto.alertKmBefore !== undefined ? toDecimalOrNull(dto.alertKmBefore) : undefined,
-        alertHoursBefore: dto.alertHoursBefore !== undefined ? toDecimalOrNull(dto.alertHoursBefore) : undefined,
+        alertKmBefore:
+          dto.alertKmBefore !== undefined
+            ? toDecimalOrNull(dto.alertKmBefore)
+            : undefined,
+        alertHoursBefore:
+          dto.alertHoursBefore !== undefined
+            ? toDecimalOrNull(dto.alertHoursBefore)
+            : undefined,
         isActive: dto.isActive,
         priority: dto.priority as any,
-        estimatedCost: dto.estimatedCost !== undefined ? toDecimalOrNull(dto.estimatedCost) : undefined,
+        estimatedCost:
+          dto.estimatedCost !== undefined
+            ? toDecimalOrNull(dto.estimatedCost)
+            : undefined,
         estimatedDuration: dto.estimatedDuration,
       },
       include: {
@@ -222,7 +265,9 @@ export class FleetMaintenanceService {
   async deleteSchedule(id: string, user: { userId: string; role: string }) {
     this.assertCanManageFleet(user.role);
 
-    const existing = await (this.prisma as any).maintenanceSchedule.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).maintenanceSchedule.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException("Schedule not found");
 
     return (this.prisma as any).maintenanceSchedule.delete({ where: { id } });
@@ -233,7 +278,14 @@ export class FleetMaintenanceService {
     return (this.prisma as any).maintenanceSchedule.findMany({
       where,
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentLocation: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -243,13 +295,25 @@ export class FleetMaintenanceService {
   async getScheduleById(id: string) {
     const schedule = await (this.prisma as any).maintenanceSchedule.findUnique({
       where: { id },
-      include: { asset: { select: { id: true, assetCode: true, name: true, currentLocation: true } } },
+      include: {
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+          },
+        },
+      },
     });
     if (!schedule) throw new NotFoundException("Schedule not found");
     return schedule;
   }
 
-  async createMaintenanceRecord(dto: CreateMaintenanceRecordDto, user: { userId: string; role: string }) {
+  async createMaintenanceRecord(
+    dto: CreateMaintenanceRecordDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
     await this.getAsset(dto.assetId);
@@ -271,7 +335,9 @@ export class FleetMaintenanceService {
         scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : null,
         startDate: new Date(dto.startDate),
         downtime: dto.downtime ? toDecimal(dto.downtime) : null,
-        odometerReading: dto.odometerReading ? toDecimal(dto.odometerReading) : null,
+        odometerReading: dto.odometerReading
+          ? toDecimal(dto.odometerReading)
+          : null,
         hoursReading: dto.hoursReading ? toDecimal(dto.hoursReading) : null,
         workPerformed: null,
         partsReplaced: null,
@@ -292,12 +358,22 @@ export class FleetMaintenanceService {
         createdById: user.userId,
       },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentLocation: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+          },
+        },
         schedule: true,
       },
     });
 
-    if (status === MaintenanceStatus.IN_PROGRESS || status === MaintenanceStatus.SCHEDULED) {
+    if (
+      status === MaintenanceStatus.IN_PROGRESS ||
+      status === MaintenanceStatus.SCHEDULED
+    ) {
       await (this.prisma as any).fleetAsset.update({
         where: { id: dto.assetId },
         data: { status: "IN_MAINTENANCE" },
@@ -307,15 +383,30 @@ export class FleetMaintenanceService {
     return created;
   }
 
-  async updateMaintenanceRecord(id: string, dto: UpdateMaintenanceRecordDto, user: { userId: string; role: string }) {
+  async updateMaintenanceRecord(
+    id: string,
+    dto: UpdateMaintenanceRecordDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
-    const existing = await (this.prisma as any).maintenanceRecord.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).maintenanceRecord.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException("Maintenance record not found");
 
-    const laborCost = dto.laborCost !== undefined ? toDecimal(dto.laborCost) : existing.laborCost;
-    const partsCost = dto.partsCost !== undefined ? toDecimal(dto.partsCost) : existing.partsCost;
-    const externalCost = dto.externalCost !== undefined ? toDecimal(dto.externalCost) : existing.externalCost;
+    const laborCost =
+      dto.laborCost !== undefined
+        ? toDecimal(dto.laborCost)
+        : existing.laborCost;
+    const partsCost =
+      dto.partsCost !== undefined
+        ? toDecimal(dto.partsCost)
+        : existing.partsCost;
+    const externalCost =
+      dto.externalCost !== undefined
+        ? toDecimal(dto.externalCost)
+        : existing.externalCost;
     const totalCost = laborCost.add(partsCost).add(externalCost);
 
     const updated = await (this.prisma as any).maintenanceRecord.update({
@@ -324,11 +415,17 @@ export class FleetMaintenanceService {
         type: dto.type as any,
         title: dto.title,
         description: dto.description,
-        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : undefined,
+        scheduledDate: dto.scheduledDate
+          ? new Date(dto.scheduledDate)
+          : undefined,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         downtime: dto.downtime ? toDecimal(dto.downtime) : undefined,
-        odometerReading: dto.odometerReading ? toDecimal(dto.odometerReading) : undefined,
-        hoursReading: dto.hoursReading ? toDecimal(dto.hoursReading) : undefined,
+        odometerReading: dto.odometerReading
+          ? toDecimal(dto.odometerReading)
+          : undefined,
+        hoursReading: dto.hoursReading
+          ? toDecimal(dto.hoursReading)
+          : undefined,
         workPerformed: dto.workPerformed,
         partsReplaced: dto.partsReplaced,
         technicianNotes: dto.technicianNotes,
@@ -341,11 +438,20 @@ export class FleetMaintenanceService {
         invoiceNumber: dto.invoiceNumber,
         status: dto.status as any,
         priority: dto.priority as any,
-        performedById: dto.performedById !== undefined ? dto.performedById : undefined,
-        approvedById: dto.approvedById !== undefined ? dto.approvedById : undefined,
+        performedById:
+          dto.performedById !== undefined ? dto.performedById : undefined,
+        approvedById:
+          dto.approvedById !== undefined ? dto.approvedById : undefined,
       },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentLocation: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+          },
+        },
         schedule: true,
       },
     });
@@ -357,12 +463,25 @@ export class FleetMaintenanceService {
     const record = await (this.prisma as any).maintenanceRecord.findUnique({
       where: { id },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentLocation: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+          },
+        },
         schedule: true,
         vendor: { select: { id: true, companyName: true, vendorCode: true } },
-        performedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
-        approvedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
-        createdBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        performedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+        approvedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+        createdBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
     if (!record) throw new NotFoundException("Maintenance record not found");
@@ -374,7 +493,14 @@ export class FleetMaintenanceService {
     return (this.prisma as any).maintenanceRecord.findMany({
       where,
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentLocation: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+          },
+        },
       },
       orderBy: { startDate: "desc" },
       take: 200,
@@ -388,15 +514,28 @@ export class FleetMaintenanceService {
   ) {
     this.assertCanManageFleet(user.role);
 
-    const existing = await (this.prisma as any).maintenanceRecord.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).maintenanceRecord.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException("Maintenance record not found");
 
-    const laborCost = dto.laborCost !== undefined ? toDecimal(dto.laborCost) : existing.laborCost;
-    const partsCost = dto.partsCost !== undefined ? toDecimal(dto.partsCost) : existing.partsCost;
-    const externalCost = dto.externalCost !== undefined ? toDecimal(dto.externalCost) : existing.externalCost;
+    const laborCost =
+      dto.laborCost !== undefined
+        ? toDecimal(dto.laborCost)
+        : existing.laborCost;
+    const partsCost =
+      dto.partsCost !== undefined
+        ? toDecimal(dto.partsCost)
+        : existing.partsCost;
+    const externalCost =
+      dto.externalCost !== undefined
+        ? toDecimal(dto.externalCost)
+        : existing.externalCost;
     const totalCost = laborCost.add(partsCost).add(externalCost);
 
-    const completionDate = dto.completionDate ? new Date(dto.completionDate) : new Date();
+    const completionDate = dto.completionDate
+      ? new Date(dto.completionDate)
+      : new Date();
 
     const updated = await (this.prisma as any).maintenanceRecord.update({
       where: { id },
@@ -404,8 +543,12 @@ export class FleetMaintenanceService {
         status: "COMPLETED",
         completionDate,
         downtime: dto.downtime ? toDecimal(dto.downtime) : existing.downtime,
-        odometerReading: dto.odometerReading ? toDecimal(dto.odometerReading) : existing.odometerReading,
-        hoursReading: dto.hoursReading ? toDecimal(dto.hoursReading) : existing.hoursReading,
+        odometerReading: dto.odometerReading
+          ? toDecimal(dto.odometerReading)
+          : existing.odometerReading,
+        hoursReading: dto.hoursReading
+          ? toDecimal(dto.hoursReading)
+          : existing.hoursReading,
         workPerformed: dto.workPerformed ?? existing.workPerformed,
         partsReplaced: dto.partsReplaced ?? existing.partsReplaced,
         technicianNotes: dto.technicianNotes ?? existing.technicianNotes,
@@ -420,7 +563,9 @@ export class FleetMaintenanceService {
 
     if (existing.scheduleId) {
       const asset = await this.getAsset(existing.assetId);
-      const schedule = await (this.prisma as any).maintenanceSchedule.findUnique({
+      const schedule = await (
+        this.prisma as any
+      ).maintenanceSchedule.findUnique({
         where: { id: existing.scheduleId },
       });
       if (schedule) {
@@ -463,10 +608,16 @@ export class FleetMaintenanceService {
     return this.getMaintenanceRecordById(id);
   }
 
-  async cancelMaintenanceRecord(id: string, _dto: CancelMaintenanceRecordDto, user: { userId: string; role: string }) {
+  async cancelMaintenanceRecord(
+    id: string,
+    _dto: CancelMaintenanceRecordDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
-    const existing = await (this.prisma as any).maintenanceRecord.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).maintenanceRecord.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException("Maintenance record not found");
 
     await (this.prisma as any).maintenanceRecord.update({
@@ -503,15 +654,30 @@ export class FleetMaintenanceService {
   private isScheduleOverdue(schedule: any, asset: any) {
     const now = new Date();
 
-    if (schedule.nextDue && new Date(schedule.nextDue).getTime() < now.getTime()) {
+    if (
+      schedule.nextDue &&
+      new Date(schedule.nextDue).getTime() < now.getTime()
+    ) {
       return true;
     }
 
-    if (schedule.nextDueOdometer && asset.currentOdometer && new Prisma.Decimal(asset.currentOdometer).greaterThanOrEqualTo(schedule.nextDueOdometer)) {
+    if (
+      schedule.nextDueOdometer &&
+      asset.currentOdometer &&
+      new Prisma.Decimal(asset.currentOdometer).greaterThanOrEqualTo(
+        schedule.nextDueOdometer,
+      )
+    ) {
       return true;
     }
 
-    if (schedule.nextDueHours && asset.currentHours && new Prisma.Decimal(asset.currentHours).greaterThanOrEqualTo(schedule.nextDueHours)) {
+    if (
+      schedule.nextDueHours &&
+      asset.currentHours &&
+      new Prisma.Decimal(asset.currentHours).greaterThanOrEqualTo(
+        schedule.nextDueHours,
+      )
+    ) {
       return true;
     }
 
@@ -522,7 +688,16 @@ export class FleetMaintenanceService {
     const schedules = await (this.prisma as any).maintenanceSchedule.findMany({
       where: { isActive: true },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentOdometer: true, currentHours: true, currentLocation: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentOdometer: true,
+            currentHours: true,
+            currentLocation: true,
+          },
+        },
       },
       take: 500,
     });
@@ -545,7 +720,14 @@ export class FleetMaintenanceService {
         nextDue: { gte: now, lte: until },
       },
       include: {
-        asset: { select: { id: true, assetCode: true, name: true, currentLocation: true } },
+        asset: {
+          select: {
+            id: true,
+            assetCode: true,
+            name: true,
+            currentLocation: true,
+          },
+        },
       },
       orderBy: { nextDue: "asc" },
       take: 200,
@@ -588,12 +770,19 @@ export class FleetMaintenanceService {
 
     const totals = rows.reduce(
       (acc: any, r: any) => {
-        const v = r.totalCost ? new Prisma.Decimal(r.totalCost) : new Prisma.Decimal(0);
+        const v = r.totalCost
+          ? new Prisma.Decimal(r.totalCost)
+          : new Prisma.Decimal(0);
         acc.total = acc.total.add(v);
-        acc.byStatus[r.status] = (acc.byStatus[r.status] || new Prisma.Decimal(0)).add(v);
+        acc.byStatus[r.status] = (
+          acc.byStatus[r.status] || new Prisma.Decimal(0)
+        ).add(v);
         return acc;
       },
-      { total: new Prisma.Decimal(0), byStatus: {} as Record<string, Prisma.Decimal> },
+      {
+        total: new Prisma.Decimal(0),
+        byStatus: {} as Record<string, Prisma.Decimal>,
+      },
     );
 
     return {
@@ -614,7 +803,10 @@ export class FleetMaintenanceService {
     });
   }
 
-  async createChecklist(dto: CreateMaintenanceChecklistDto, user: { userId: string; role: string }) {
+  async createChecklist(
+    dto: CreateMaintenanceChecklistDto,
+    user: { userId: string; role: string },
+  ) {
     this.assertCanManageFleet(user.role);
 
     const items = Array.isArray(dto.items) ? dto.items : [];
@@ -651,7 +843,14 @@ export class FleetMaintenanceService {
       "WAREHOUSE_MANAGER",
     ]);
 
-    const notifications: { userId: string; type: any; title: string; message: string; referenceId?: string; referenceType?: string }[] = [];
+    const notifications: {
+      userId: string;
+      type: any;
+      title: string;
+      message: string;
+      referenceId?: string;
+      referenceType?: string;
+    }[] = [];
 
     if (Array.isArray(dueSoon.schedules) && dueSoon.schedules.length > 0) {
       const msg = `There are ${dueSoon.schedules.length} maintenance schedules due within ${dueSoon.daysAhead} days.`;

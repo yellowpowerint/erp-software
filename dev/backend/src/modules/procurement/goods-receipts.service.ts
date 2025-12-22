@@ -52,7 +52,10 @@ export class GoodsReceiptsService {
     return `${prefix}${String(count + 1).padStart(4, "0")}`;
   }
 
-  private async recomputePOStatus(tx: Prisma.TransactionClient, purchaseOrderId: string) {
+  private async recomputePOStatus(
+    tx: Prisma.TransactionClient,
+    purchaseOrderId: string,
+  ) {
     const po = await (tx as any).purchaseOrder.findUnique({
       where: { id: purchaseOrderId },
       include: { items: { select: { quantity: true, receivedQty: true } } },
@@ -61,7 +64,9 @@ export class GoodsReceiptsService {
     if (!po) return;
 
     const allReceived = po.items.every((i: any) =>
-      new Prisma.Decimal(i.receivedQty).greaterThanOrEqualTo(new Prisma.Decimal(i.quantity)),
+      new Prisma.Decimal(i.receivedQty).greaterThanOrEqualTo(
+        new Prisma.Decimal(i.quantity),
+      ),
     );
 
     const anyReceived = po.items.some((i: any) =>
@@ -82,7 +87,10 @@ export class GoodsReceiptsService {
     }
   }
 
-  async createGRN(dto: CreateGoodsReceiptDto, user: { userId: string; role: UserRole }) {
+  async createGRN(
+    dto: CreateGoodsReceiptDto,
+    user: { userId: string; role: UserRole },
+  ) {
     if (!this.canManageReceiving(user.role)) {
       throw new ForbiddenException("Not allowed");
     }
@@ -104,11 +112,14 @@ export class GoodsReceiptsService {
 
       const grnNumber = await this.generateGRNNumber(tx);
 
-      const poItemsById = new Map<string, any>(po.items.map((i: any) => [i.id, i]));
+      const poItemsById = new Map<string, any>(
+        po.items.map((i: any) => [i.id, i]),
+      );
 
       const itemsToCreate = dto.items.map((i) => {
         const poItem = poItemsById.get(i.poItemId);
-        if (!poItem) throw new BadRequestException(`Invalid poItemId: ${i.poItemId}`);
+        if (!poItem)
+          throw new BadRequestException(`Invalid poItemId: ${i.poItemId}`);
 
         const receivedQty = this.toDecimal(i.receivedQty);
         if (receivedQty.lessThanOrEqualTo(0)) {
@@ -167,17 +178,23 @@ export class GoodsReceiptsService {
     });
   }
 
-  async listGRNs(query: any, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async listGRNs(
+    query: any,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     const where: any = {};
 
     if (user.role === UserRole.VENDOR) {
-      if (!user.vendorId) throw new ForbiddenException("Vendor account not linked");
+      if (!user.vendorId)
+        throw new ForbiddenException("Vendor account not linked");
       where.purchaseOrder = { vendorId: user.vendorId };
     } else {
-      if (!this.canManageReceiving(user.role)) throw new ForbiddenException("Not allowed");
+      if (!this.canManageReceiving(user.role))
+        throw new ForbiddenException("Not allowed");
     }
 
-    if (query.purchaseOrderId) where.purchaseOrderId = String(query.purchaseOrderId);
+    if (query.purchaseOrderId)
+      where.purchaseOrderId = String(query.purchaseOrderId);
     if (query.status) where.status = String(query.status);
 
     return (this.prisma as any).goodsReceipt.findMany({
@@ -188,43 +205,59 @@ export class GoodsReceiptsService {
           select: {
             id: true,
             poNumber: true,
-            vendor: { select: { id: true, vendorCode: true, companyName: true } },
+            vendor: {
+              select: { id: true, vendorCode: true, companyName: true },
+            },
           },
         },
-        receivedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        receivedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
         _count: { select: { items: true, inspections: true } },
       },
       take: 200,
     });
   }
 
-  async getGRNById(id: string, user: { userId: string; role: UserRole; vendorId?: string }) {
+  async getGRNById(
+    id: string,
+    user: { userId: string; role: UserRole; vendorId?: string },
+  ) {
     const grn = await (this.prisma as any).goodsReceipt.findUnique({
       where: { id },
       include: {
         purchaseOrder: {
           include: {
-            vendor: { select: { id: true, vendorCode: true, companyName: true } },
+            vendor: {
+              select: { id: true, vendorCode: true, companyName: true },
+            },
           },
         },
         items: { include: { poItem: true } },
         inspections: {
           include: {
-            inspector: { select: { id: true, firstName: true, lastName: true, role: true } },
+            inspector: {
+              select: { id: true, firstName: true, lastName: true, role: true },
+            },
           },
           orderBy: { inspectionDate: "desc" },
         },
-        receivedBy: { select: { id: true, firstName: true, lastName: true, role: true } },
+        receivedBy: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
     });
 
     if (!grn) throw new NotFoundException("Goods receipt not found");
 
     if (user.role === UserRole.VENDOR) {
-      if (!user.vendorId) throw new ForbiddenException("Vendor account not linked");
-      if (grn.purchaseOrder.vendorId !== user.vendorId) throw new ForbiddenException("Not allowed");
+      if (!user.vendorId)
+        throw new ForbiddenException("Vendor account not linked");
+      if (grn.purchaseOrder.vendorId !== user.vendorId)
+        throw new ForbiddenException("Not allowed");
     } else {
-      if (!this.canManageReceiving(user.role)) throw new ForbiddenException("Not allowed");
+      if (!this.canManageReceiving(user.role))
+        throw new ForbiddenException("Not allowed");
     }
 
     return grn;
@@ -235,7 +268,8 @@ export class GoodsReceiptsService {
     dto: UpdateGoodsReceiptDto,
     user: { userId: string; role: UserRole },
   ) {
-    if (!this.canManageReceiving(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageReceiving(user.role))
+      throw new ForbiddenException("Not allowed");
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await (tx as any).goodsReceipt.findUnique({
@@ -245,8 +279,14 @@ export class GoodsReceiptsService {
 
       if (!existing) throw new NotFoundException("Goods receipt not found");
 
-      if (["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(String(existing.status))) {
-        throw new BadRequestException("Cannot update a finalized goods receipt");
+      if (
+        ["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(
+          String(existing.status),
+        )
+      ) {
+        throw new BadRequestException(
+          "Cannot update a finalized goods receipt",
+        );
       }
 
       if (dto.items) {
@@ -256,20 +296,29 @@ export class GoodsReceiptsService {
         });
         if (!po) throw new BadRequestException("Purchase order not found");
 
-        const poItemsById = new Map<string, any>(po.items.map((i: any) => [i.id, i]));
+        const poItemsById = new Map<string, any>(
+          po.items.map((i: any) => [i.id, i]),
+        );
 
         for (const oldItem of existing.items) {
           await (tx as any).purchaseOrderItem.update({
             where: { id: oldItem.poItemId },
-            data: { receivedQty: { decrement: new Prisma.Decimal(oldItem.receivedQty) } },
+            data: {
+              receivedQty: {
+                decrement: new Prisma.Decimal(oldItem.receivedQty),
+              },
+            },
           });
         }
 
-        await (tx as any).goodsReceiptItem.deleteMany({ where: { goodsReceiptId: id } });
+        await (tx as any).goodsReceiptItem.deleteMany({
+          where: { goodsReceiptId: id },
+        });
 
         const newItems = dto.items.map((i) => {
           const poItem = poItemsById.get(i.poItemId);
-          if (!poItem) throw new BadRequestException(`Invalid poItemId: ${i.poItemId}`);
+          if (!poItem)
+            throw new BadRequestException(`Invalid poItemId: ${i.poItemId}`);
 
           const receivedQty = this.toDecimal(i.receivedQty);
           if (receivedQty.lessThanOrEqualTo(0)) {
@@ -313,7 +362,8 @@ export class GoodsReceiptsService {
       return (tx as any).goodsReceipt.update({
         where: { id },
         data: {
-          warehouseId: dto.warehouseId === undefined ? undefined : dto.warehouseId || null,
+          warehouseId:
+            dto.warehouseId === undefined ? undefined : dto.warehouseId || null,
           siteLocation: dto.siteLocation,
           deliveryNote: dto.deliveryNote,
           carrierName: dto.carrierName,
@@ -331,7 +381,8 @@ export class GoodsReceiptsService {
     dto: SubmitQualityInspectionDto,
     user: { userId: string; role: UserRole },
   ) {
-    if (!this.canManageReceiving(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageReceiving(user.role))
+      throw new ForbiddenException("Not allowed");
 
     return this.prisma.$transaction(async (tx) => {
       const grn = await (tx as any).goodsReceipt.findUnique({
@@ -340,8 +391,14 @@ export class GoodsReceiptsService {
       });
       if (!grn) throw new NotFoundException("Goods receipt not found");
 
-      if (["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(String(grn.status))) {
-        throw new BadRequestException("Cannot inspect a finalized goods receipt");
+      if (
+        ["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(
+          String(grn.status),
+        )
+      ) {
+        throw new BadRequestException(
+          "Cannot inspect a finalized goods receipt",
+        );
       }
 
       const inspection = await (tx as any).qualityInspection.create({
@@ -375,7 +432,8 @@ export class GoodsReceiptsService {
     dto: AcceptGoodsReceiptDto,
     user: { userId: string; role: UserRole },
   ) {
-    if (!this.canManageReceiving(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageReceiving(user.role))
+      throw new ForbiddenException("Not allowed");
 
     return this.prisma.$transaction(async (tx) => {
       const grn = await (tx as any).goodsReceipt.findUnique({
@@ -384,11 +442,17 @@ export class GoodsReceiptsService {
       });
       if (!grn) throw new NotFoundException("Goods receipt not found");
 
-      if (["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(String(grn.status))) {
+      if (
+        ["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(
+          String(grn.status),
+        )
+      ) {
         throw new BadRequestException("Goods receipt is already finalized");
       }
 
-      const itemById = new Map<string, any>(grn.items.map((i: any) => [i.id, i]));
+      const itemById = new Map<string, any>(
+        grn.items.map((i: any) => [i.id, i]),
+      );
 
       if (!dto.items?.length) {
         throw new BadRequestException("No acceptance items provided");
@@ -397,7 +461,9 @@ export class GoodsReceiptsService {
       for (const i of dto.items) {
         const existingItem = itemById.get(i.goodsReceiptItemId);
         if (!existingItem) {
-          throw new BadRequestException(`Invalid goodsReceiptItemId: ${i.goodsReceiptItemId}`);
+          throw new BadRequestException(
+            `Invalid goodsReceiptItemId: ${i.goodsReceiptItemId}`,
+          );
         }
 
         const acceptedQty = this.toDecimal(i.acceptedQty);
@@ -405,7 +471,9 @@ export class GoodsReceiptsService {
         const receivedQty = new Prisma.Decimal(existingItem.receivedQty);
 
         if (acceptedQty.lessThan(0) || rejectedQty.lessThan(0)) {
-          throw new BadRequestException("acceptedQty/rejectedQty cannot be negative");
+          throw new BadRequestException(
+            "acceptedQty/rejectedQty cannot be negative",
+          );
         }
 
         if (!acceptedQty.add(rejectedQty).equals(receivedQty)) {
@@ -430,7 +498,9 @@ export class GoodsReceiptsService {
       });
 
       const allAccepted = updatedItems.every((i: any) =>
-        new Prisma.Decimal(i.acceptedQty).equals(new Prisma.Decimal(i.receivedQty)),
+        new Prisma.Decimal(i.acceptedQty).equals(
+          new Prisma.Decimal(i.receivedQty),
+        ),
       );
       const noneAccepted = updatedItems.every((i: any) =>
         new Prisma.Decimal(i.acceptedQty).equals(new Prisma.Decimal(0)),
@@ -455,7 +525,8 @@ export class GoodsReceiptsService {
     dto: RejectGoodsReceiptDto,
     user: { userId: string; role: UserRole },
   ) {
-    if (!this.canManageReceiving(user.role)) throw new ForbiddenException("Not allowed");
+    if (!this.canManageReceiving(user.role))
+      throw new ForbiddenException("Not allowed");
 
     return this.prisma.$transaction(async (tx) => {
       const grn = await (tx as any).goodsReceipt.findUnique({
@@ -464,17 +535,25 @@ export class GoodsReceiptsService {
       });
       if (!grn) throw new NotFoundException("Goods receipt not found");
 
-      if (["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(String(grn.status))) {
+      if (
+        ["ACCEPTED", "PARTIALLY_ACCEPTED", "REJECTED"].includes(
+          String(grn.status),
+        )
+      ) {
         throw new BadRequestException("Goods receipt is already finalized");
       }
 
-      const itemById = new Map<string, any>(grn.items.map((i: any) => [i.id, i]));
+      const itemById = new Map<string, any>(
+        grn.items.map((i: any) => [i.id, i]),
+      );
 
       if (dto.items?.length) {
         for (const i of dto.items) {
           const existingItem = itemById.get(i.goodsReceiptItemId);
           if (!existingItem) {
-            throw new BadRequestException(`Invalid goodsReceiptItemId: ${i.goodsReceiptItemId}`);
+            throw new BadRequestException(
+              `Invalid goodsReceiptItemId: ${i.goodsReceiptItemId}`,
+            );
           }
 
           const rejectedQty = this.toDecimal(i.rejectedQty);

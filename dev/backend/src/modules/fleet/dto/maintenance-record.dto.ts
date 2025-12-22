@@ -1,4 +1,12 @@
-import { IsEnum, IsISO8601, IsInt, IsNumberString, IsOptional, IsString, Min } from "class-validator";
+import {
+  IsEnum,
+  IsISO8601,
+  IsInt,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  Min,
+} from "class-validator";
 import { MaintenanceType, Priority } from "./maintenance-schedule.dto";
 
 export enum MaintenanceStatus {
