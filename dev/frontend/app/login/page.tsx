@@ -31,7 +31,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-2xl">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Mining ERP System
+            Yellow Power
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to your account
@@ -100,7 +100,7 @@ export default function LoginPage() {
         </form>
         <div className="text-center text-sm text-gray-600">
           <p>Enterprise Resource Planning System</p>
-          <p className="text-xs mt-1">© 2025 Yellow Power Int&apos;l ERP v1.0</p>
+          <p className="text-xs mt-1">© 2025 Yellow Power</p>
         </div>
       </div>
     </div>

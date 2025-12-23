@@ -3,8 +3,14 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
-  title: "Yellow Power Int'l ERP",
-  description: "Yellow Power Int'l ERP for mining operations with workflow automation and AI insights",
+  title: "Yellow Power",
+  description: "Yellow Power platform for operations with workflow automation and insights",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.jpg', type: 'image/jpeg' },
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -7,6 +7,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import QuickActions from '@/components/dashboard/QuickActions';
 import ProductionChart from '@/components/dashboard/ProductionChart';
 import ExpenseChart from '@/components/dashboard/ExpenseChart';
+import ApprovalsBreakdownChart from '@/components/dashboard/ApprovalsBreakdownChart';
+import InventoryStatusChart from '@/components/dashboard/InventoryStatusChart';
 import { getRoleBasedStats } from '@/lib/get-role-stats';
 import { AlertCircle, Clock } from 'lucide-react';
 import RecentDocumentsWidget from '@/components/documents/RecentDocumentsWidget';
@@ -194,6 +196,8 @@ function DashboardContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ProductionChart data={overview?.productionByMonth || []} />
         <ExpenseChart data={overview?.expensesByCategory || []} />
+        <ApprovalsBreakdownChart kpis={overview?.kpis || null} />
+        <InventoryStatusChart kpis={overview?.kpis || null} />
       </div>
 
       {/* Three Column Layout */}
