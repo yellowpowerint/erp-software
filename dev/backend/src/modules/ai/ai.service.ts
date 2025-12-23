@@ -1,9 +1,144 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import axios from "axios";
 
 @Injectable()
 export class AiService {
   constructor(private prisma: PrismaService) {}
+
+  private getOpenAiRuntime() {
+    const enabledRaw = process.env.AI_ENABLED ?? process.env.OPENAI_ENABLED;
+    const providerRaw =
+      process.env.AI_DEFAULT_PROVIDER ?? process.env.AI_PROVIDER ?? "OPENAI";
+    const apiKey =
+      process.env.AI_OPENAI_API_KEY ??
+      process.env.OPENAI_API_KEY ??
+      null;
+    const model =
+      process.env.AI_OPENAI_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+
+    const enabled = enabledRaw === "true";
+    const provider = typeof providerRaw === "string" ? providerRaw.toUpperCase() : "OPENAI";
+
+    return {
+      enabled,
+      provider,
+      apiKey,
+      model,
+    };
+  }
+
+  private async openAiJson<T>(opts: {
+    apiKey: string;
+    model: string;
+    system: string;
+    user: string;
+    temperature?: number;
+  }): Promise<T> {
+    const res = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: opts.model,
+        temperature: opts.temperature ?? 0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${opts.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 60_000,
+      },
+    );
+
+    const content = res?.data?.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || content.trim().length === 0) {
+      throw new Error("OpenAI returned empty content");
+    }
+    return JSON.parse(content) as T;
+  }
+
+  private async tryOpenAiProjectSummary(
+    project: any,
+    stats: {
+      completedMilestones: number;
+      totalMilestones: number;
+      completedTasks: number;
+      totalTasks: number;
+      totalExpenses: number;
+      totalProduction: number;
+    },
+  ): Promise<
+    | {
+        summary?: string;
+        insights?: string[];
+        recommendations?: string[];
+        risks?: any[];
+        nextSteps?: string[];
+      }
+    | null
+  > {
+    const cfg = this.getOpenAiRuntime();
+    if (!cfg.enabled || cfg.provider !== "OPENAI" || !cfg.apiKey) return null;
+
+    const payload = {
+      project: {
+        id: project.id,
+        name: project.name,
+        projectCode: project.projectCode,
+        status: project.status,
+        progress: project.progress,
+        estimatedBudget: project.estimatedBudget ?? null,
+        actualCost: project.actualCost ?? null,
+        startDate: project.startDate ?? null,
+        endDate: project.endDate ?? null,
+        milestones: (project.milestones || []).slice(0, 30).map((m: any) => ({
+          title: m.title,
+          isCompleted: m.isCompleted,
+          dueDate: m.dueDate ?? null,
+        })),
+        tasks: (project.tasks || []).slice(0, 30).map((t: any) => ({
+          title: t.title,
+          status: t.status,
+          priority: t.priority ?? null,
+          dueDate: t.dueDate ?? null,
+        })),
+        recentProductionLogs: (project.productionLogs || []).slice(0, 10),
+        criticalFieldReports: (project.fieldReports || []).slice(0, 10).map((r: any) => ({
+          title: r.title,
+          description: r.description ?? null,
+          reportDate: r.reportDate ?? null,
+          priority: r.priority,
+        })),
+      },
+      stats,
+    };
+
+    try {
+      return await this.openAiJson<{
+        summary: string;
+        insights: string[];
+        recommendations: string[];
+        risks: any[];
+        nextSteps: string[];
+      }>({
+        apiKey: cfg.apiKey,
+        model: cfg.model,
+        system:
+          "You are an assistant for a mining ERP. Return concise business-friendly project insights. Output must be valid JSON.",
+        user:
+          "Given the following project data, generate a JSON object with keys: summary (string), insights (string[]), recommendations (string[]), risks (array of {level, description}), nextSteps (string[]). Keep arrays <= 8 items. Data: " +
+          JSON.stringify(payload),
+        temperature: 0.2,
+      });
+    } catch {
+      return null;
+    }
+  }
 
   // ==================== Project Summaries ====================
 
@@ -51,6 +186,15 @@ export class AiService {
       0,
     );
 
+    const aiSummary = await this.tryOpenAiProjectSummary(project, {
+      completedMilestones,
+      totalMilestones,
+      completedTasks,
+      totalTasks,
+      totalExpenses,
+      totalProduction,
+    });
+
     // Generate AI summary (simulated - in production, call OpenAI API)
     const summary = {
       projectId: project.id,
@@ -59,25 +203,40 @@ export class AiService {
       status: project.status,
       progress: project.progress,
       overallHealth: this.calculateProjectHealth(project),
-      summary: this.generateTextSummary(project, {
-        completedMilestones,
-        totalMilestones,
-        completedTasks,
-        totalTasks,
-        totalExpenses,
-        totalProduction,
-      }),
-      insights: this.generateInsights(project, {
-        completedMilestones,
-        totalMilestones,
-        completedTasks,
-        totalTasks,
-        totalExpenses,
-        totalProduction,
-      }),
-      recommendations: this.generateRecommendations(project),
-      risks: this.identifyRisks(project),
-      nextSteps: this.suggestNextSteps(project),
+      summary:
+        aiSummary?.summary ||
+        this.generateTextSummary(project, {
+          completedMilestones,
+          totalMilestones,
+          completedTasks,
+          totalTasks,
+          totalExpenses,
+          totalProduction,
+        }),
+      insights:
+        (aiSummary?.insights && Array.isArray(aiSummary.insights)
+          ? aiSummary.insights
+          : null) ||
+        this.generateInsights(project, {
+          completedMilestones,
+          totalMilestones,
+          completedTasks,
+          totalTasks,
+          totalExpenses,
+          totalProduction,
+        }),
+      recommendations:
+        (aiSummary?.recommendations && Array.isArray(aiSummary.recommendations)
+          ? aiSummary.recommendations
+          : null) || this.generateRecommendations(project),
+      risks:
+        (aiSummary?.risks && Array.isArray(aiSummary.risks)
+          ? aiSummary.risks
+          : null) || this.identifyRisks(project),
+      nextSteps:
+        (aiSummary?.nextSteps && Array.isArray(aiSummary.nextSteps)
+          ? aiSummary.nextSteps
+          : null) || this.suggestNextSteps(project),
       statistics: {
         milestones: {
           completed: completedMilestones,
@@ -337,6 +496,29 @@ export class AiService {
       bulkPurchaseOpportunities: this.identifyBulkOpportunities(lowStockItems),
     };
 
+    const cfg = this.getOpenAiRuntime();
+    if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
+      try {
+        const out = await this.openAiJson<{ costSavingOpportunities?: string[] }>(
+          {
+            apiKey: cfg.apiKey,
+            model: cfg.model,
+            system: "You are a procurement advisor. Output must be valid JSON.",
+            user:
+              "Return JSON {costSavingOpportunities: string[]} (max 6). Data: " +
+              JSON.stringify({
+                urgentPurchases: advice.urgentPurchases.slice(0, 10),
+                supplierRecommendations: advice.supplierRecommendations.slice(0, 5),
+              }),
+            temperature: 0.2,
+          },
+        );
+        if (Array.isArray(out?.costSavingOpportunities)) {
+          advice.costSavingOpportunities = out.costSavingOpportunities.slice(0, 6);
+        }
+      } catch {}
+    }
+
     return advice;
   }
 
@@ -513,9 +695,40 @@ export class AiService {
       );
     }
 
+    let summary = `System is managing ${projects} active projects with good operational health.`;
+    let finalInsights = insights;
+    const cfg = this.getOpenAiRuntime();
+    if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
+      try {
+        const out = await this.openAiJson<{ summary?: string; insights?: string[] }>({
+          apiKey: cfg.apiKey,
+          model: cfg.model,
+          system:
+            "You generate concise executive dashboard insights for a mining ERP. Output must be valid JSON.",
+          user:
+            "Return JSON {summary: string, insights: string[]} (<=6 insights). Data: " +
+            JSON.stringify({
+              metrics: {
+                activeProjects: projects,
+                pendingExpenses: expenses,
+                overbudgetCount: budgets.filter((b) => b.spentAmount > b.allocatedAmount).length,
+                assetsInMaintenance: assets,
+              },
+            }),
+          temperature: 0.2,
+        });
+        if (typeof out?.summary === "string" && out.summary.trim().length > 0) {
+          summary = out.summary.trim();
+        }
+        if (Array.isArray(out?.insights) && out.insights.length > 0) {
+          finalInsights = out.insights.slice(0, 6);
+        }
+      } catch {}
+    }
+
     return {
-      summary: `System is managing ${projects} active projects with good operational health.`,
-      insights,
+      summary,
+      insights: finalInsights,
       metrics: {
         activeProjects: projects,
         pendingExpenses: expenses,
@@ -587,7 +800,36 @@ export class AiService {
     // Sort by risk score descending
     predictions.sort((a, b) => b.riskScore - a.riskScore);
 
-    const summary = this.generateMaintenanceSummary(predictions);
+    let summary = this.generateMaintenanceSummary(predictions);
+    const cfg = this.getOpenAiRuntime();
+    if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
+      try {
+        const out = await this.openAiJson<{ summary?: string }>({
+          apiKey: cfg.apiKey,
+          model: cfg.model,
+          system:
+            "You generate concise maintenance summary for a mining ERP dashboard. Output must be valid JSON.",
+          user:
+            "Return JSON {summary: string}. Use this data: " +
+            JSON.stringify({
+              topRisks: predictions.slice(0, 10).map((p) => ({
+                assetCode: p.assetCode,
+                name: p.name,
+                category: p.category,
+                condition: p.condition,
+                riskScore: p.riskScore,
+                riskLevel: p.riskLevel,
+                urgency: p.urgency,
+                daysUntilMaintenance: p.daysUntilMaintenance,
+              })),
+            }),
+          temperature: 0.2,
+        });
+        if (typeof out?.summary === "string" && out.summary.trim().length > 0) {
+          summary = out.summary.trim();
+        }
+      } catch {}
+    }
 
     return {
       predictions,
@@ -876,9 +1118,52 @@ export class AiService {
       };
     }
 
-    // Step 2: Generate AI answer based on retrieved documents (RAG approach)
-    // In production, this would call OpenAI/Claude API with the retrieved context
-    const answer = this.generateAnswerFromDocuments(question, relevantDocs);
+    const cfg = this.getOpenAiRuntime();
+    let answer: { text: string; confidence: number } | null = null;
+    if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
+      const sourcesForPrompt = relevantDocs.slice(0, 6).map((d) => ({
+        id: d.id,
+        title: d.title,
+        type: d.type,
+        content: String(d.content || "").slice(0, 3500),
+      }));
+
+      try {
+        const out = await this.openAiJson<{
+          answer: string;
+          confidence: number;
+          relatedQuestions?: string[];
+        }>({
+          apiKey: cfg.apiKey,
+          model: cfg.model,
+          system:
+            "You answer questions for a mining ERP knowledge base. Use only the provided documents. If unsure, say so. Output must be valid JSON.",
+          user:
+            "Question: " +
+            question +
+            "\n\nDocuments (each has id/title/type/content): " +
+            JSON.stringify(sourcesForPrompt) +
+            "\n\nReturn JSON: {answer: string, confidence: number (0-100), relatedQuestions?: string[] (<=5)}.",
+          temperature: 0.2,
+        });
+
+        if (out?.answer && typeof out.answer === "string") {
+          const conf = Number(out.confidence);
+          answer = {
+            text: out.answer,
+            confidence: Number.isFinite(conf)
+              ? Math.max(0, Math.min(100, conf))
+              : 70,
+          };
+        }
+      } catch {
+        answer = null;
+      }
+    }
+
+    if (!answer) {
+      answer = this.generateAnswerFromDocuments(question, relevantDocs);
+    }
 
     // Step 3: Return answer with source citations
     return {
@@ -1117,10 +1402,76 @@ export class AiService {
       throw new Error("Incident not found");
     }
 
-    // AI Analysis (Simulated - in production, use OpenAI Vision API or similar)
-    const aiAnalysis = this.generateIncidentAnalysis(incident);
-    const rootCause = this.identifyRootCause(incident);
-    const correctiveActions = this.generateCorrectiveActions(incident);
+    // AI Analysis
+    let aiAnalysis = this.generateIncidentAnalysis(incident);
+    let rootCause = this.identifyRootCause(incident);
+    let correctiveActions = this.generateCorrectiveActions(incident);
+
+    const cfg = this.getOpenAiRuntime();
+    if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
+      try {
+        const out = await this.openAiJson<{
+          analysis?: {
+            summary: string;
+            hazardsIdentified: string[];
+            affectedAreas: string[];
+            immediateActions: string[];
+          };
+          rootCause?: {
+            analysis: string;
+            contributingFactors: string[];
+            recommendations: string[];
+          };
+          correctiveActions?: string[];
+        }>({
+          apiKey: cfg.apiKey,
+          model: cfg.model,
+          system:
+            "You are a safety incident analyst for a mining company. Output must be valid JSON. Be specific and actionable.",
+          user:
+            "Given this incident, return JSON with keys: analysis {summary, hazardsIdentified[], affectedAreas[], immediateActions[]}, rootCause {analysis, contributingFactors[], recommendations[]}, correctiveActions[] (max 10). Incident: " +
+            JSON.stringify({
+              type: incident.type,
+              severity: incident.severity,
+              location: incident.location,
+              incidentDate: incident.incidentDate,
+              description: incident.description,
+              injuries: incident.injuries ?? null,
+              witnesses: incident.witnesses ?? [],
+            }),
+          temperature: 0.2,
+        });
+
+        if (out?.analysis?.summary) {
+          aiAnalysis = {
+            summary: String(out.analysis.summary),
+            hazardsIdentified: Array.isArray(out.analysis.hazardsIdentified)
+              ? out.analysis.hazardsIdentified.slice(0, 10)
+              : aiAnalysis.hazardsIdentified,
+            affectedAreas: Array.isArray(out.analysis.affectedAreas)
+              ? out.analysis.affectedAreas.slice(0, 10)
+              : aiAnalysis.affectedAreas,
+            immediateActions: Array.isArray(out.analysis.immediateActions)
+              ? out.analysis.immediateActions.slice(0, 10)
+              : aiAnalysis.immediateActions,
+          };
+        }
+        if (out?.rootCause?.analysis) {
+          rootCause = {
+            analysis: String(out.rootCause.analysis),
+            contributingFactors: Array.isArray(out.rootCause.contributingFactors)
+              ? out.rootCause.contributingFactors.slice(0, 10)
+              : rootCause.contributingFactors,
+            recommendations: Array.isArray(out.rootCause.recommendations)
+              ? out.rootCause.recommendations.slice(0, 10)
+              : rootCause.recommendations,
+          };
+        }
+        if (Array.isArray(out?.correctiveActions) && out.correctiveActions.length > 0) {
+          correctiveActions = out.correctiveActions.slice(0, 10);
+        }
+      } catch {}
+    }
     const oshaReportable = this.determineOSHAReportability(incident);
     const oshaReport = oshaReportable
       ? this.generateOSHAReport(incident, aiAnalysis, rootCause)
