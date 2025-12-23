@@ -1,11 +1,63 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BarChart3, TrendingUp } from 'lucide-react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import api from '@/lib/api';
+
+type MoneyLike = string | number | null | undefined;
+
+function toNumber(v: MoneyLike): number {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatCurrency(v: MoneyLike) {
+  return `₵${toNumber(v).toLocaleString()}`;
+}
+
+type ProcurementDashboard = {
+  totalSpendMTD: MoneyLike;
+  totalSpendYTD: MoneyLike;
+  pendingApprovals: number;
+  openPOs: number;
+  pendingDeliveries: number;
+  unpaidInvoices: number;
+  overduePayments: number;
+};
 
 function ProcurementAnalyticsContent() {
+  const [dashboard, setDashboard] = useState<ProcurementDashboard | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchDashboard = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get('/procurement/dashboard');
+        if (!mounted) return;
+        setDashboard(res.data);
+      } catch (e) {
+        console.error('Failed to fetch procurement dashboard metrics:', e);
+        if (!mounted) return;
+        setDashboard(null);
+      } finally {
+        if (!mounted) return;
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -36,13 +88,43 @@ function ProcurementAnalyticsContent() {
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900">Coming next</h2>
-          <div className="mt-3 space-y-2 text-sm text-gray-600">
-            <div>Spend forecasting</div>
-            <div>Vendor risk scoring</div>
-            <div>Category-level trends</div>
-            <div>Service level compliance</div>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900">Live Procurement Snapshot</h2>
+          {loading ? (
+            <p className="mt-3 text-sm text-gray-500">Loading analytics…</p>
+          ) : !dashboard ? (
+            <p className="mt-3 text-sm text-gray-500">No analytics available yet.</p>
+          ) : (
+            <div className="mt-3 space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Spend (MTD)</span>
+                <span className="font-medium text-gray-900">{formatCurrency(dashboard.totalSpendMTD)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Spend (YTD)</span>
+                <span className="font-medium text-gray-900">{formatCurrency(dashboard.totalSpendYTD)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Pending Approvals</span>
+                <span className="font-medium text-gray-900">{dashboard.pendingApprovals ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Open POs</span>
+                <span className="font-medium text-gray-900">{dashboard.openPOs ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Pending Deliveries</span>
+                <span className="font-medium text-gray-900">{dashboard.pendingDeliveries ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Unpaid Invoices</span>
+                <span className="font-medium text-gray-900">{dashboard.unpaidInvoices ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Overdue Payments</span>
+                <span className="font-medium text-gray-900">{dashboard.overduePayments ?? 0}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
