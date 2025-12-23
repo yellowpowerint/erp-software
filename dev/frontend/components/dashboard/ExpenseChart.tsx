@@ -1,10 +1,21 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
-const data: Array<{ category: string; amount: number; budget: number }> = [];
+interface ExpenseChartProps {
+  data?: Array<{ category: string; amount: number; budget: number }>;
+}
 
-export default function ExpenseChart() {
+export default function ExpenseChart({ data = [] }: ExpenseChartProps) {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Monthly Expenses (₵)</h2>

@@ -10,6 +10,41 @@ import ExpenseChart from '@/components/dashboard/ExpenseChart';
 import { getRoleBasedStats } from '@/lib/get-role-stats';
 import { AlertCircle, Clock } from 'lucide-react';
 import RecentDocumentsWidget from '@/components/documents/RecentDocumentsWidget';
+import api from '@/lib/api';
+
+type DashboardOverview = {
+  generatedAt: string;
+  currency: string;
+  kpis: {
+    pendingApprovals: number;
+    pendingInvoices: number;
+    pendingPurchaseRequests: number;
+    pendingExpenses: number;
+    pendingRequisitions: number;
+    pendingPayments: number;
+    activeProjects: number;
+    activeEmployees: number;
+    openIncidents: number;
+    totalStockItems: number;
+    lowStockItems: number;
+    outOfStockItems: number;
+    mtdProduction: number;
+    mtdExpenses: number;
+    ytdProduction: number;
+  };
+  productionByMonth: Array<{ month: string; production: number }>;
+  expensesByCategory: Array<{ category: string; amount: number; budget: number }>;
+  recentActivity: Array<{
+    id: string;
+    timestamp: string;
+    action: string;
+    module: string | null;
+    userId: string;
+    userName: string | null;
+    userEmail: string | null;
+    details: unknown | null;
+  }>;
+};
 
 function DashboardContent() {
   const { user } = useAuth();
@@ -43,9 +78,74 @@ function DashboardContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const stats = user ? getRoleBasedStats(user.role) : [];
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
 
-  const recentActivities: Array<{ action: string; user: string; time: string }> = [];
+  useEffect(() => {
+    let mounted = true;
+    const fetchOverview = async () => {
+      if (!user) return;
+      setOverviewLoading(true);
+      try {
+        const response = await api.get('/settings/dashboard-overview');
+        if (!mounted) return;
+        setOverview(response.data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard overview:', error);
+        if (!mounted) return;
+        setOverview(null);
+      } finally {
+        if (!mounted) return;
+        setOverviewLoading(false);
+      }
+    };
+
+    fetchOverview();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  const formatNumber = (value: number) => new Intl.NumberFormat('en-GB').format(value);
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: overview?.currency || 'GHS',
+      maximumFractionDigits: 0,
+    }).format(value);
+  const formatTons = (value: number) => `${formatNumber(Math.round(value))} tons`;
+
+  const stats = user
+    ? getRoleBasedStats(user.role).map((s) => {
+        const key = s.key;
+        if (!key || !overview) return s;
+        const raw = (overview.kpis as any)[key];
+        if (raw === undefined || raw === null) return s;
+
+        if (key === 'mtdExpenses') return { ...s, value: formatCurrency(Number(raw) || 0) };
+        if (key === 'mtdProduction' || key === 'ytdProduction')
+          return { ...s, value: formatTons(Number(raw) || 0) };
+        return { ...s, value: formatNumber(Number(raw) || 0) };
+      })
+    : [];
+
+  const recentActivities =
+    overview?.recentActivity?.map((a) => {
+      const timestamp = a.timestamp ? new Date(a.timestamp) : null;
+      return {
+        action: a.action,
+        user: a.userName || a.userEmail || 'System',
+        time: timestamp
+          ? timestamp.toLocaleString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '',
+      };
+    }) || [];
 
   return (
     <DashboardLayout>
@@ -92,8 +192,8 @@ function DashboardContent() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <ProductionChart />
-        <ExpenseChart />
+        <ProductionChart data={overview?.productionByMonth || []} />
+        <ExpenseChart data={overview?.expensesByCategory || []} />
       </div>
 
       {/* Three Column Layout */}
@@ -104,10 +204,11 @@ function DashboardContent() {
             <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
           </div>
           <div className="p-6">
-            {recentActivities.length === 0 ? (
+            {overviewLoading ? (
+              <p className="text-sm text-gray-500">Loading recent activity…</p>
+            ) : recentActivities.length === 0 ? (
               <p className="text-sm text-gray-500">
-                No recent activity yet. As your team starts using the system, key events
-                will appear here.
+                No recent activity yet.
               </p>
             ) : (
               <div className="space-y-4">
@@ -137,10 +238,32 @@ function DashboardContent() {
               <AlertCircle className="w-5 h-5 text-orange-500" />
               <h2 className="text-lg font-semibold text-gray-900">Alerts</h2>
             </div>
-            <p className="text-sm text-gray-500">
-              Alerts for low stock, safety incidents, and pending approvals will appear
-              here as the system is used.
-            </p>
+            {overviewLoading ? (
+              <p className="text-sm text-gray-500">Loading alerts…</p>
+            ) : !overview ? (
+              <p className="text-sm text-gray-500">No alert data available.</p>
+            ) : (
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Pending Approvals</span>
+                  <span className="font-medium text-gray-900">
+                    {formatNumber(overview.kpis.pendingApprovals || 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Low Stock Items</span>
+                  <span className="font-medium text-gray-900">
+                    {formatNumber(overview.kpis.lowStockItems || 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Open Incidents</span>
+                  <span className="font-medium text-gray-900">
+                    {formatNumber(overview.kpis.openIncidents || 0)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* User Info */}

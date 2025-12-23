@@ -1,10 +1,21 @@
 'use client';
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
-const data: Array<{ month: string; production: number; target: number }> = [];
+interface ProductionChartProps {
+  data?: Array<{ month: string; production: number }>;
+}
 
-export default function ProductionChart() {
+export default function ProductionChart({ data = [] }: ProductionChartProps) {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Production Trend (Tons)</h2>
@@ -20,8 +31,13 @@ export default function ProductionChart() {
             <YAxis />
             <Tooltip />
             <Legend />
-            <Line type="monotone" dataKey="production" stroke="#4f46e5" strokeWidth={2} name="Actual" />
-            <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="Target" />
+            <Line
+              type="monotone"
+              dataKey="production"
+              stroke="#4f46e5"
+              strokeWidth={2}
+              name="Production"
+            />
           </LineChart>
         </ResponsiveContainer>
       )}

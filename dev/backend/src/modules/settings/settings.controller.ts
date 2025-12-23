@@ -44,6 +44,11 @@ export class SettingsController {
     return this.settingsService.getSystemStats();
   }
 
+  @Get("dashboard-overview")
+  async getDashboardOverview() {
+    return this.settingsService.getDashboardOverview();
+  }
+
   // User Management
   @Get("users")
   async getAllUsers(

@@ -19,7 +19,7 @@ describe('getRoleBasedStats', () => {
     expect(stats).toHaveLength(4);
     expect(stats[0]).toEqual(
       expect.objectContaining({
-        name: 'My Tasks',
+        name: 'Pending Approvals',
       }),
     );
   });

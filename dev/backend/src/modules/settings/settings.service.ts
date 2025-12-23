@@ -294,23 +294,184 @@ export class SettingsService {
     };
   }
 
-  // Audit Log (simplified)
   async getAuditLogs(limit: number = 50) {
-    // In a real system, you'd have a dedicated audit log table
-    // For now, we'll return recent user activities
-    const logs = [
-      {
-        id: "1",
-        timestamp: new Date(),
-        action: "USER_LOGIN",
-        userId: "system",
-        details: "System audit log placeholder",
-      },
-    ];
+    const take = Math.max(1, Math.min(200, Number(limit) || 50));
+    const logs = await this.prisma.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take,
+    });
+
+    const userIds = Array.from(
+      new Set(logs.map((l) => String(l.userId)).filter(Boolean)),
+    );
+    const users = userIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const userById = new Map(users.map((u) => [u.id, u] as const));
 
     return {
-      logs: logs.slice(0, limit),
+      logs: logs.map((l) => {
+        const u = userById.get(String(l.userId));
+        const userName = u ? `${u.firstName} ${u.lastName}`.trim() : null;
+        return {
+          id: l.id,
+          timestamp: l.createdAt,
+          action: l.action,
+          module: l.module,
+          userId: l.userId,
+          userName,
+          userEmail: u?.email ?? null,
+          details: l.details,
+        };
+      }),
       total: logs.length,
+    };
+  }
+
+  async getDashboardOverview() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startOfLast12Months = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+
+    const monthKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+    const [
+      activeEmployees,
+      activeProjects,
+      openIncidents,
+      pendingInvoices,
+      pendingPurchaseRequests,
+      pendingExpenses,
+      pendingRequisitions,
+      pendingPayments,
+      productionLogs,
+      expensesMtd,
+      budgetsActive,
+      totalStockItems,
+      lowStockCount,
+      outOfStockCount,
+      lowStockItems,
+      recentActivity,
+    ] = await Promise.all([
+      this.prisma.employee.count({ where: { status: "ACTIVE" } }),
+      this.prisma.project.count({ where: { status: { in: ["PLANNING", "ACTIVE", "ON_HOLD"] } } }),
+      this.prisma.safetyIncident.count({
+        where: { status: { in: ["REPORTED", "INVESTIGATING"] } },
+      }),
+      this.prisma.invoice.count({ where: { status: "PENDING" } }),
+      this.prisma.purchaseRequest.count({ where: { status: "PENDING" } }),
+      this.prisma.expense.count({ where: { status: "PENDING" } }),
+      this.prisma.requisition.count({ where: { status: "PENDING_APPROVAL" } }),
+      this.prisma.financePayment.count({ where: { status: "PENDING" } }),
+      this.prisma.productionLog.findMany({
+        where: { date: { gte: startOfLast12Months, lte: now } },
+        select: { date: true, quantity: true },
+        orderBy: { date: "asc" },
+      }),
+      this.prisma.expense.groupBy({
+        by: ["category"],
+        where: { expenseDate: { gte: startOfMonth, lte: now } },
+        _sum: { amount: true },
+      }),
+      this.prisma.budget.groupBy({
+        by: ["category"],
+        where: { startDate: { lte: now }, endDate: { gte: now } },
+        _sum: { allocatedAmount: true },
+      }),
+      this.prisma.stockItem.count(),
+      this.prisma.stockItem.count({ where: { currentQuantity: { lte: 10 } } }),
+      this.prisma.stockItem.count({ where: { currentQuantity: { equals: 0 } } }),
+      this.prisma.stockItem.findMany({
+        where: { currentQuantity: { lte: 10 } },
+        select: {
+          id: true,
+          itemCode: true,
+          name: true,
+          currentQuantity: true,
+          reservedQuantity: true,
+          reorderLevel: true,
+          warehouse: { select: { id: true, code: true, name: true } },
+        },
+        take: 10,
+        orderBy: { currentQuantity: "asc" },
+      }),
+      this.getAuditLogs(10),
+    ]);
+
+    const productionByMonthMap: Record<string, number> = {};
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(startOfLast12Months.getFullYear(), startOfLast12Months.getMonth() + i, 1);
+      productionByMonthMap[monthKey(d)] = 0;
+    }
+    for (const l of productionLogs) {
+      const k = monthKey(new Date(l.date));
+      if (productionByMonthMap[k] !== undefined) {
+        productionByMonthMap[k] += Number(l.quantity) || 0;
+      }
+    }
+    const productionByMonth = Object.entries(productionByMonthMap).map(
+      ([month, production]) => ({ month, production }),
+    );
+
+    const budgetsByCategory = new Map(
+      budgetsActive.map((b: any) => [String(b.category), Number(b._sum?.allocatedAmount ?? 0)] as const),
+    );
+    const expensesByCategory = expensesMtd
+      .map((e: any) => {
+        const cat = String(e.category);
+        const amount = Number(e._sum?.amount ?? 0);
+        const budget = Number(budgetsByCategory.get(cat) ?? 0);
+        return { category: cat, amount, budget };
+      })
+      .sort((a, b) => b.amount - a.amount);
+
+    const mtdProduction = productionLogs
+      .filter((l) => new Date(l.date) >= startOfMonth)
+      .reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
+
+    const mtdExpensesTotal = expensesMtd.reduce(
+      (sum: number, r: any) => sum + Number(r._sum?.amount ?? 0),
+      0,
+    );
+
+    const pendingApprovals =
+      pendingInvoices +
+      pendingPurchaseRequests +
+      pendingExpenses +
+      pendingRequisitions +
+      pendingPayments;
+
+    return {
+      generatedAt: now,
+      currency: "GHS",
+      kpis: {
+        pendingApprovals,
+        pendingInvoices,
+        pendingPurchaseRequests,
+        pendingExpenses,
+        pendingRequisitions,
+        pendingPayments,
+        activeProjects,
+        activeEmployees,
+        openIncidents,
+        totalStockItems,
+        lowStockItems: lowStockCount,
+        outOfStockItems: outOfStockCount,
+        mtdProduction,
+        mtdExpenses: mtdExpensesTotal,
+        ytdProduction: productionLogs
+          .filter((l) => new Date(l.date) >= startOfYear)
+          .reduce((sum, l) => sum + (Number(l.quantity) || 0), 0),
+      },
+      productionByMonth,
+      expensesByCategory,
+      lowStockItems,
+      recentActivity: recentActivity.logs,
     };
   }
 
