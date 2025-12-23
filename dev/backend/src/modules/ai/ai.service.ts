@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import axios from "axios";
 
@@ -165,7 +165,7 @@ export class AiService {
     });
 
     if (!project) {
-      throw new Error("Project not found");
+      throw new NotFoundException("Project not found");
     }
 
     // Calculate statistics
@@ -1399,7 +1399,7 @@ export class AiService {
     });
 
     if (!incident) {
-      throw new Error("Incident not found");
+      throw new NotFoundException("Incident not found");
     }
 
     // AI Analysis
