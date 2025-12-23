@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { menuItems, type MenuItem } from '@/lib/config/menu';
@@ -16,6 +16,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpand = (itemId: string) => {
@@ -31,14 +32,38 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const filteredMenuItems = menuItems.filter(canViewMenuItem);
 
-  const isActive = (path?: string) => {
+  const currentRoute = (() => {
+    const search = searchParams?.toString();
+    return search ? `${pathname}?${search}` : pathname;
+  })();
+
+  const matchesRoute = (path?: string) => {
     if (!path) return false;
+
+    if (path.includes('?')) {
+      return currentRoute === path;
+    }
+
     return pathname === path || pathname.startsWith(path + '/');
   };
 
+  const getBestMatchingChildPath = (item: MenuItem): string | null => {
+    if (!item.children || item.children.length === 0) return null;
+
+    const candidates = item.children
+      .filter(canViewMenuItem)
+      .map((child) => child.path)
+      .filter((p): p is string => Boolean(p))
+      .filter((p) => matchesRoute(p));
+
+    if (candidates.length === 0) return null;
+
+    return candidates.reduce((best, cur) => (cur.length > best.length ? cur : best), candidates[0]);
+  };
+
   const isParentActive = (item: MenuItem) => {
-    if (isActive(item.path)) return true;
-    return item.children?.some((child) => isActive(child.path)) || false;
+    if (matchesRoute(item.path)) return true;
+    return getBestMatchingChildPath(item) !== null;
   };
 
   return (
@@ -78,7 +103,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             const hasChildren = item.children && item.children.length > 0;
             const isExpanded = expandedItems.includes(item.id) || isParentActive(item);
             const Icon = item.icon;
-            const activeItem = isActive(item.path);
+            const bestChildPath = hasChildren ? getBestMatchingChildPath(item) : null;
+            const activeItem = matchesRoute(item.path);
             const activeParent = isParentActive(item);
 
             return (
@@ -126,7 +152,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     {item.children
                       ?.filter(canViewMenuItem)
                       .map((child) => {
-                        const activeChild = isActive(child.path);
+                        const activeChild = Boolean(child.path && bestChildPath && child.path === bestChildPath);
                         return (
                           <Link
                             key={child.id}
