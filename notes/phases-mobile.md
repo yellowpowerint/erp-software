@@ -357,6 +357,28 @@ This document defines the **session-by-session procedure** to develop the Mining
   - Fast search UX
   - Correct units and quantities displayed
 
+**Status:** COMPLETE
+
+**Implementation Notes (M4.1)**
+- Backend `GET /api/inventory/items` now supports `search`, `category`, and `lowStock` query params for fast server-side filtering.
+- Mobile **Inventory Items** screen includes:
+  - Fast search input (code/name/barcode/supplier)
+  - Low-stock toggle
+  - Category filter chips (auto-derived)
+  - Tap-to-open **Inventory Item Detail**
+- Mobile **Inventory Item Detail** screen shows:
+  - Current quantity + unit and reorder level
+  - Warehouse context
+  - Optional commercial fields (unit price/supplier/barcode)
+  - Recent movements (read-only)
+
+**Acceptance Checklist (M4.1)**
+- [x] Inventory search screen implemented
+- [x] Filters implemented (category + low stock)
+- [x] Item detail screen implemented
+- [x] Fast search UX (server-side search + responsive UI)
+- [x] Correct units and quantities displayed
+
 ## Session M4.2 — Inventory: Receiving (Confirm)
 - **Scope**
   - Receiving confirm flow

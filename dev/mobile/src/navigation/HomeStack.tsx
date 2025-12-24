@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { InventoryItemsScreen } from '../screens/InventoryItemsScreen';
+import { InventoryItemDetailScreen } from '../screens/InventoryItemDetailScreen';
 import { AssetsListScreen } from '../screens/AssetsListScreen';
 import { ProjectsListScreen } from '../screens/ProjectsListScreen';
 import { ExpensesListScreen } from '../screens/ExpensesListScreen';
@@ -13,6 +14,7 @@ import { SafetyTrainingsListScreen } from '../screens/SafetyTrainingsListScreen'
 export type HomeStackParamList = {
   Home: undefined;
   InventoryItems: undefined;
+  InventoryItemDetail: { id: string };
   Assets: undefined;
   Projects: undefined;
   Expenses: undefined;
@@ -28,6 +30,7 @@ export function HomeStack() {
     <Stack.Navigator>
       <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
       <Stack.Screen name="InventoryItems" component={InventoryItemsScreen} options={{ title: 'Inventory' }} />
+      <Stack.Screen name="InventoryItemDetail" component={InventoryItemDetailScreen} options={{ title: 'Item' }} />
       <Stack.Screen name="Assets" component={AssetsListScreen} options={{ title: 'Assets' }} />
       <Stack.Screen name="Projects" component={ProjectsListScreen} options={{ title: 'Projects' }} />
       <Stack.Screen name="Expenses" component={ExpensesListScreen} options={{ title: 'Expenses' }} />

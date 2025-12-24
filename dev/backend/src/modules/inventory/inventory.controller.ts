@@ -47,11 +47,13 @@ export class InventoryController {
     @Query("warehouseId") warehouseId?: string,
     @Query("category") category?: string,
     @Query("lowStock") lowStock?: string,
+    @Query("search") search?: string,
   ) {
     return this.inventoryService.getStockItems(
       warehouseId,
       category,
       lowStock === "true",
+      search,
     );
   }
 

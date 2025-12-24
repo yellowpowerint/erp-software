@@ -68,6 +68,7 @@ export class InventoryService {
     warehouseId?: string,
     category?: string,
     lowStock?: boolean,
+    search?: string,
   ) {
     const where: any = {};
 
@@ -77,6 +78,18 @@ export class InventoryService {
 
     if (category) {
       where.category = category;
+    }
+
+    const q = String(search ?? "").trim();
+    if (q.length > 0) {
+      where.OR = [
+        { itemCode: { contains: q, mode: "insensitive" } },
+        { name: { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { barcode: { contains: q, mode: "insensitive" } },
+        { supplier: { contains: q, mode: "insensitive" } },
+        { notes: { contains: q, mode: "insensitive" } },
+      ];
     }
 
     const items = await this.prisma.stockItem.findMany({

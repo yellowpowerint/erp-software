@@ -34,7 +34,7 @@ type Widget = {
   title: string;
   value: string;
   subtitle: string;
-  route: keyof HomeStackParamList;
+  route: Exclude<keyof HomeStackParamList, 'InventoryItemDetail'>;
 };
 
 export function HomeScreen() {
