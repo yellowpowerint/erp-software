@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { http, setAuthToken } from '../api/http';
+import { http, setAuthToken, setUnauthorizedHandler } from '../api/http';
 import { clearAccessToken, getAccessToken, setAccessToken } from './authStorage';
 import type { LoginResponse, MeResponse } from './types';
 
@@ -79,6 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthToken(null);
     setState({ isBooting: false, token: null, me: null });
   }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => signOut());
+    return () => setUnauthorizedHandler(null);
+  }, [signOut]);
 
   const refreshMe = useCallback(async () => {
     if (!state.token) return;

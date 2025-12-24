@@ -10,8 +10,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import axios from 'axios';
 
+import { parseApiError } from '../api/errors';
 import { useAuth } from '../auth/AuthContext';
 import { API_BASE_URL } from '../config';
 
@@ -31,22 +31,8 @@ export function LoginScreen() {
     try {
       await signIn(email.trim(), password);
     } catch (e: any) {
-      let message = 'Login failed';
-      if (axios.isAxiosError(e)) {
-        if (!e.response) {
-          message = `Network error. API: ${API_BASE_URL}`;
-        } else {
-          const apiMessage = (e.response?.data as any)?.message;
-          if (typeof apiMessage === 'string' && apiMessage.trim().length > 0) {
-            message = apiMessage;
-          } else if (typeof e.message === 'string' && e.message.trim().length > 0) {
-            message = e.message;
-          }
-        }
-      } else if (typeof e?.message === 'string' && e.message.trim().length > 0) {
-        message = e.message;
-      }
-      Alert.alert('Sign In Failed', message);
+      const parsed = parseApiError(e, API_BASE_URL);
+      Alert.alert('Sign In Failed', parsed.message);
     } finally {
       setLoading(false);
     }
