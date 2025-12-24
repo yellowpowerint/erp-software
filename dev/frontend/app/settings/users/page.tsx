@@ -45,29 +45,34 @@ const MODULES = [
 
 type ModuleKey = (typeof MODULES)[number];
 
+const toggleStringInArray = (values: string[], value: string) => {
+  if (values.includes(value)) return values.filter((v) => v !== value);
+  return [...values, value];
+};
+
 const REPORTS_TO_TITLE_GROUPS = [
   {
     label: 'Executive / Senior Management',
     items: ['Managing Director (MD)', 'Chief Operating Officer (COO)', 'Operations Manager', 'Deputy Manager'],
   },
   {
-    label: 'Finance & Administration',
+    label: 'Middle Management (Department Heads & Supervision) - Finance & Administration',
     items: ['Finance Manager', 'Accounts Manager', 'Senior Accountant', 'Budget & Cost Control Manager'],
   },
   {
-    label: 'Procurement & Supply Chain',
+    label: 'Middle Management (Department Heads & Supervision) - Procurement & Supply Chain',
     items: ['Procurement Manager', 'Supply Chain Manager', 'Logistics Manager', 'Warehouse Manager'],
   },
   {
-    label: 'Human Resources',
+    label: 'Middle Management (Department Heads & Supervision) - Human Resources',
     items: ['HR Manager', 'Training & Development Manager', 'Industrial Relations Manager'],
   },
   {
-    label: 'Information Technology',
+    label: 'Middle Management (Department Heads & Supervision) - Information Technology',
     items: ['IT Manager', 'Systems & Infrastructure Manager', 'Applications / ERP Manager'],
   },
   {
-    label: 'Mining & Technical Operations',
+    label: 'Middle Management (Department Heads & Supervision) - Mining & Technical Operations',
     items: [
       'Mine Manager',
       'Plant Manager',
@@ -83,7 +88,38 @@ const REPORTS_TO_TITLE_GROUPS = [
 const REPORTS_TO_TITLES = REPORTS_TO_TITLE_GROUPS.flatMap((g) => g.items);
 
 const ROLE_GROUPS = [
-  ...REPORTS_TO_TITLE_GROUPS,
+  {
+    label: 'Executive / Senior Management',
+    items: ['Managing Director (MD)', 'Chief Operating Officer (COO)', 'Operations Manager', 'Deputy Manager'],
+  },
+  {
+    label: 'Middle Management (Department Heads & Supervision) - Finance & Administration',
+    items: ['Finance Manager', 'Accounts Manager', 'Senior Accountant', 'Budget & Cost Control Manager'],
+  },
+  {
+    label: 'Middle Management (Department Heads & Supervision) - Procurement & Supply Chain',
+    items: ['Procurement Manager', 'Supply Chain Manager', 'Logistics Manager', 'Warehouse Manager'],
+  },
+  {
+    label: 'Middle Management (Department Heads & Supervision) - Human Resources',
+    items: ['HR Manager', 'Training & Development Manager', 'Industrial Relations Manager'],
+  },
+  {
+    label: 'Middle Management (Department Heads & Supervision) - Information Technology',
+    items: ['IT Manager', 'Systems & Infrastructure Manager', 'Applications / ERP Manager'],
+  },
+  {
+    label: 'Middle Management (Department Heads & Supervision) - Mining & Technical Operations',
+    items: [
+      'Mine Manager',
+      'Plant Manager',
+      'Engineering Manager',
+      'Maintenance Manager',
+      'Exploration Manager',
+      'HSE Manager (Health, Safety & Environment)',
+      'Fleet / Transport Manager',
+    ],
+  },
   {
     label: 'Junior Management / Officers - Finance',
     items: ['Assistant Finance Manager', 'Accountant', 'Assistant Accountant', 'Payroll Officer'],
@@ -146,6 +182,8 @@ const ROLE_GROUPS = [
   },
 ] as const;
 
+const ROLE_TITLES = ROLE_GROUPS.flatMap((g) => g.items);
+
 const buildDefaultModulePermissions = () => {
   const perms: Record<string, any> = {};
   MODULES.forEach((m) => {
@@ -163,6 +201,8 @@ function UserManagementContent() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<SettingsUser | null>(null);
   const [wizardStep, setWizardStep] = useState(0);
+  const [isReportsToOpen, setIsReportsToOpen] = useState(false);
+  const [isPositionOpen, setIsPositionOpen] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -227,6 +267,8 @@ function UserManagementContent() {
   };
 
   const handleEditUser = (user: SettingsUser) => {
+    const positionValue = user.position || '';
+    const positionIsKnown = !positionValue || ROLE_TITLES.includes(positionValue);
     setEditingUser(user);
     setWizardStep(0);
     setFormData({
@@ -237,8 +279,8 @@ function UserManagementContent() {
       role: user.role,
       status: user.status,
       department: user.department || '',
-      position: user.position || '',
-      customPosition: '',
+      position: positionIsKnown ? positionValue : 'Other',
+      customPosition: positionIsKnown ? '' : positionValue,
       managerId: user.managerId || '',
       reportsToTitles: (user.reportsToTitles as string[]) || [],
       modulePermissions: user.modulePermissions || buildDefaultModulePermissions(),
@@ -252,6 +294,16 @@ function UserManagementContent() {
     if (step === 0) {
       if (!formData.firstName || !formData.lastName || !formData.email) {
         alert('Please fill in First Name, Last Name, and Email.');
+        return false;
+      }
+    }
+    if (step === 2) {
+      if (!formData.position) {
+        alert('Please select a Role / Job Title.');
+        return false;
+      }
+      if (formData.position === 'Other' && !formData.customPosition.trim()) {
+        alert('Please specify the Role / Job Title.');
         return false;
       }
     }
@@ -604,28 +656,42 @@ function UserManagementContent() {
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Manager / Reports To</label>
                     <div className="space-y-2">
-                      <select
-                        multiple
-                        value={formData.reportsToTitles}
-                        onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions).map((o) => o.value);
-                          setFormData({ ...formData, reportsToTitles: values });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg h-48"
+                      <button
+                        type="button"
+                        onClick={() => setIsReportsToOpen((v) => !v)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left bg-white"
                       >
-                        {REPORTS_TO_TITLE_GROUPS.map((g) => (
-                          <optgroup key={g.label} label={g.label}>
-                            {g.items.map((t) => (
-                              <option key={t} value={t}>
-                                {t}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                      <p className="text-xs text-gray-500">
-                        Hold Ctrl (Windows) / Cmd (Mac) to select multiple.
-                      </p>
+                        {formData.reportsToTitles.length > 0
+                          ? `${formData.reportsToTitles.length} selected`
+                          : 'Select reports-to titles'}
+                      </button>
+                      {isReportsToOpen && (
+                        <div className="border border-gray-200 rounded-lg p-3 max-h-60 overflow-y-auto bg-white">
+                          {REPORTS_TO_TITLE_GROUPS.map((g) => (
+                            <div key={g.label} className="mb-4 last:mb-0">
+                              <div className="text-xs font-semibold text-gray-700 mb-2">{g.label}</div>
+                              <div className="space-y-2">
+                                {g.items.map((t) => (
+                                  <label key={t} className="flex items-center space-x-2 text-sm text-gray-700">
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4"
+                                      checked={formData.reportsToTitles.includes(t)}
+                                      onChange={() =>
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          reportsToTitles: toggleStringInArray(prev.reportsToTitles, t),
+                                        }))
+                                      }
+                                    />
+                                    <span>{t}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -668,23 +734,66 @@ function UserManagementContent() {
 
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Role*</label>
-                      <select
-                        required
-                        value={formData.position}
-                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      <button
+                        type="button"
+                        onClick={() => setIsPositionOpen((v) => !v)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left bg-white"
                       >
-                        {ROLE_GROUPS.map((g) => (
-                          <optgroup key={g.label} label={g.label}>
-                            {g.items.map((t) => (
-                              <option key={t} value={t}>
-                                {t}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                        <option value="Other">Other</option>
-                      </select>
+                        {formData.position
+                          ? formData.position === 'Other'
+                            ? formData.customPosition
+                              ? `Other: ${formData.customPosition}`
+                              : 'Other'
+                            : formData.position
+                          : 'Select role'}
+                      </button>
+                      {isPositionOpen && (
+                        <div className="border border-gray-200 rounded-lg p-3 max-h-60 overflow-y-auto bg-white">
+                          {ROLE_GROUPS.map((g) => (
+                            <div key={g.label} className="mb-4 last:mb-0">
+                              <div className="text-xs font-semibold text-gray-700 mb-2">{g.label}</div>
+                              <div className="space-y-2">
+                                {g.items.map((t) => (
+                                  <label key={t} className="flex items-center space-x-2 text-sm text-gray-700">
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4"
+                                      checked={formData.position === t}
+                                      onChange={() =>
+                                        setFormData((prev) => {
+                                          setIsPositionOpen(false);
+                                          return {
+                                            ...prev,
+                                            position: t,
+                                            customPosition: '',
+                                          };
+                                        })
+                                      }
+                                    />
+                                    <span>{t}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          <div className="pt-2 mt-2 border-t border-gray-100">
+                            <label className="flex items-center space-x-2 text-sm text-gray-700">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={formData.position === 'Other'}
+                                onChange={() =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    position: 'Other',
+                                  }))
+                                }
+                              />
+                              <span>Other</span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {formData.position === 'Other' && (

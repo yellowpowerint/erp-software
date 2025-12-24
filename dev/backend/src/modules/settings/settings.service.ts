@@ -67,6 +67,19 @@ export class SettingsService {
   }) {
     const where: any = {};
 
+    const excludedEmails = [
+      'itmanager@mining.com',
+      'ceo@mining.com',
+      'cfo@mining.com',
+      'accountant@mining.com',
+      'operations@mining.com',
+      'warehouse@mining.com',
+      'employee@mining.com',
+      'admin@mining.com',
+    ];
+
+    where.NOT = [{ email: { in: excludedEmails } }];
+
     if (filters?.role) {
       where.role = filters.role;
     }

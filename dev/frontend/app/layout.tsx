@@ -7,9 +7,7 @@ export const metadata: Metadata = {
   description: "Yellow Power platform for operations with workflow automation and insights",
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/favicon.png', type: 'image/png' },
-      { url: '/favicon.jpg', type: 'image/jpeg' },
     ],
   },
 };

@@ -3,17 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { menuItems, type MenuItem } from '@/lib/config/menu';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   isOpen: boolean;
+  isCollapsed: boolean;
+  onToggleCollapsed: () => void;
   onClose: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, isCollapsed, onToggleCollapsed, onClose }: SidebarProps) {
   const { user } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -81,24 +83,35 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         className={cn(
           'fixed top-0 left-0 z-50 h-full bg-gray-900 text-white transition-transform duration-300 ease-in-out lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
-          'w-64 overflow-y-auto'
+          isCollapsed ? 'w-20' : 'w-64',
+          'overflow-y-auto'
         )}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">YP</span>
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-white">
+              <img src="/favicon.png" alt="Company" className="w-8 h-8 object-contain" />
             </div>
-            <span className="font-bold text-lg">Yellow Power</span>
+            {!isCollapsed && <span className="font-bold text-lg truncate">Yellow Power</span>}
           </div>
-          <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-white">
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="hidden lg:inline-flex text-gray-400 hover:text-white p-1 rounded"
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+            <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Menu Items */}
-        <nav className="p-4 space-y-2">
+        <nav className={cn('p-4 space-y-2', isCollapsed && 'px-2')}>
           {filteredMenuItems.map((item) => {
             const hasChildren = item.children && item.children.length > 0;
             const isExpanded = expandedItems.includes(item.id) || isParentActive(item);
@@ -106,6 +119,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             const bestChildPath = hasChildren ? getBestMatchingChildPath(item) : null;
             const activeItem = matchesRoute(item.path);
             const activeParent = isParentActive(item);
+
+            if (isCollapsed) {
+              const href = bestChildPath || item.path || '#';
+              return (
+                <div key={item.id}>
+                  <Link
+                    href={href}
+                    onClick={onClose}
+                    title={item.label}
+                    className={cn(
+                      'flex items-center justify-center px-3 py-2 rounded-lg transition-colors',
+                      matchesRoute(href)
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    )}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </Link>
+                </div>
+              );
+            }
 
             return (
               <div key={item.id}>
