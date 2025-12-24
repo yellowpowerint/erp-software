@@ -182,7 +182,7 @@ const ROLE_GROUPS = [
   },
 ] as const;
 
-const ROLE_TITLES = ROLE_GROUPS.flatMap((g) => g.items);
+const ROLE_TITLES: string[] = ROLE_GROUPS.flatMap((g) => g.items) as unknown as string[];
 
 const buildDefaultModulePermissions = () => {
   const perms: Record<string, any> = {};
