@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import * as bcrypt from "bcrypt";
@@ -10,6 +11,8 @@ import { EmailService } from "../csv/email.service";
 
 @Injectable()
 export class SettingsService {
+  private readonly logger = new Logger(SettingsService.name);
+
   constructor(
     private prisma: PrismaService,
     private readonly emailService: EmailService,
@@ -25,9 +28,17 @@ export class SettingsService {
   }
 
   private async getSetting(key: string): Promise<string | null> {
-    const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
-    const value = setting?.value?.trim();
-    return value && value.length > 0 ? value : null;
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
+      const value = setting?.value?.trim();
+      return value && value.length > 0 ? value : null;
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to read system setting ${key}. Falling back to defaults.`,
+        err?.stack || String(err),
+      );
+      return null;
+    }
   }
 
   private safeJsonParse<T>(raw: string | null, fallback: T): T {
