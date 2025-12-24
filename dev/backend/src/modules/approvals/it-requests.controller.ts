@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards } from "@nestjs/common";
 import { ITRequestsService } from "./it-requests.service";
-import { CreateITRequestDto, ApprovalActionDto } from "./dto";
+import { CreateITRequestDto, ApprovalActionDto, RejectionActionDto } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -54,7 +54,7 @@ export class ITRequestsController {
   rejectITRequest(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: ApprovalActionDto,
+    @Body() dto: RejectionActionDto,
   ) {
     return this.itRequestsService.rejectITRequest(
       id,

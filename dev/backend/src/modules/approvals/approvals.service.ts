@@ -2,14 +2,18 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ITRequestsService } from "./it-requests.service";
+import { PaymentRequestsService } from "./payment-requests.service";
 import {
   CreateInvoiceDto,
   CreatePurchaseRequestDto,
   ApprovalActionDto,
   ApprovalsListQueryDto,
+  RejectionActionDto,
 } from "./dto";
 
 type ApprovalListItem = {
@@ -38,11 +42,36 @@ type ApprovalsListResponse = {
   hasNextPage: boolean;
 };
 
+type UnifiedApprovalType = "INVOICE" | "PURCHASE_REQUEST" | "IT_REQUEST" | "PAYMENT_REQUEST";
+
+type UnifiedApprovalDetail = {
+  id: string;
+  type: UnifiedApprovalType;
+  status: string;
+  referenceNumber: string;
+  title: string;
+  description?: string | null;
+  requester: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  };
+  amount: number | null;
+  currency: string | null;
+  createdAt: Date;
+  attachmentUrl?: string | null;
+  approvalHistory: any[];
+};
+
 @Injectable()
 export class ApprovalsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private itRequestsService: ITRequestsService,
+    private paymentRequestsService: PaymentRequestsService,
   ) {}
 
   async getApprovalsList(
@@ -293,6 +322,160 @@ export class ApprovalsService {
       total,
       hasNextPage,
     };
+  }
+
+  private normalizeType(type: string): UnifiedApprovalType {
+    const t = String(type || "").toUpperCase().trim();
+    if (
+      t === "INVOICE" ||
+      t === "PURCHASE_REQUEST" ||
+      t === "IT_REQUEST" ||
+      t === "PAYMENT_REQUEST"
+    ) {
+      return t;
+    }
+    throw new NotFoundException("Approval type not found");
+  }
+
+  private assertCanView(
+    type: UnifiedApprovalType,
+    userId: string,
+    userRole: string,
+    createdById: string,
+  ) {
+    const canSeeAllByType: Record<UnifiedApprovalType, string[]> = {
+      INVOICE: ["CEO", "CFO", "ACCOUNTANT", "SUPER_ADMIN"],
+      PURCHASE_REQUEST: ["CEO", "CFO", "PROCUREMENT_OFFICER", "SUPER_ADMIN"],
+      IT_REQUEST: ["CEO", "CFO", "IT_MANAGER", "SUPER_ADMIN"],
+      PAYMENT_REQUEST: ["CEO", "CFO", "ACCOUNTANT", "SUPER_ADMIN"],
+    };
+
+    if (canSeeAllByType[type].includes(userRole)) return;
+    if (createdById !== userId) {
+      throw new ForbiddenException("You do not have access to this approval");
+    }
+  }
+
+  async getApprovalDetail(
+    userId: string,
+    userRole: string,
+    type: string,
+    id: string,
+  ): Promise<UnifiedApprovalDetail> {
+    const t = this.normalizeType(type);
+
+    if (t === "INVOICE") {
+      const invoice = await this.getInvoiceById(id);
+      this.assertCanView("INVOICE", userId, userRole, invoice.createdBy.id);
+      return {
+        id: invoice.id,
+        type: "INVOICE",
+        status: invoice.status,
+        referenceNumber: invoice.invoiceNumber,
+        title: invoice.description,
+        description: invoice.notes ?? null,
+        requester: invoice.createdBy,
+        amount: typeof invoice.amount === "number" ? invoice.amount : null,
+        currency: invoice.currency ?? null,
+        createdAt: invoice.createdAt,
+        attachmentUrl: invoice.attachmentUrl ?? null,
+        approvalHistory: invoice.approvalHistory,
+      };
+    }
+
+    if (t === "PURCHASE_REQUEST") {
+      const pr = await this.getPurchaseRequestById(id);
+      this.assertCanView("PURCHASE_REQUEST", userId, userRole, pr.createdBy.id);
+      return {
+        id: pr.id,
+        type: "PURCHASE_REQUEST",
+        status: pr.status,
+        referenceNumber: pr.requestNumber,
+        title: pr.title,
+        description: pr.description ?? null,
+        requester: pr.createdBy,
+        amount: typeof pr.estimatedCost === "number" ? pr.estimatedCost : null,
+        currency: pr.currency ?? null,
+        createdAt: pr.createdAt,
+        attachmentUrl: pr.attachmentUrl ?? null,
+        approvalHistory: pr.approvalHistory,
+      };
+    }
+
+    if (t === "IT_REQUEST") {
+      const it = await this.itRequestsService.getITRequestById(id);
+      this.assertCanView("IT_REQUEST", userId, userRole, it.createdBy.id);
+      return {
+        id: it.id,
+        type: "IT_REQUEST",
+        status: it.status,
+        referenceNumber: it.requestNumber,
+        title: it.title,
+        description: it.description ?? null,
+        requester: it.createdBy,
+        amount: typeof it.estimatedCost === "number" ? it.estimatedCost : null,
+        currency: it.currency ?? null,
+        createdAt: it.createdAt,
+        attachmentUrl: it.attachmentUrl ?? null,
+        approvalHistory: it.approvalHistory,
+      };
+    }
+
+    const pay = await this.paymentRequestsService.getPaymentRequestById(id);
+    this.assertCanView("PAYMENT_REQUEST", userId, userRole, pay.createdBy.id);
+    const title = pay.description || pay.payeeName || "Payment Request";
+    return {
+      id: pay.id,
+      type: "PAYMENT_REQUEST",
+      status: pay.status,
+      referenceNumber: pay.requestNumber,
+      title,
+      description: pay.notes ?? null,
+      requester: pay.createdBy,
+      amount: typeof pay.amount === "number" ? pay.amount : null,
+      currency: pay.currency ?? null,
+      createdAt: pay.createdAt,
+      attachmentUrl: pay.attachmentUrl ?? null,
+      approvalHistory: pay.approvalHistory,
+    };
+  }
+
+  async approveApproval(
+    type: string,
+    id: string,
+    userId: string,
+    userRole: string,
+    dto: ApprovalActionDto,
+  ) {
+    const t = this.normalizeType(type);
+    const detail = await this.getApprovalDetail(userId, userRole, t, id);
+    if (detail.status !== "PENDING") {
+      throw new ConflictException("This approval has already been actioned");
+    }
+
+    if (t === "INVOICE") return this.approveInvoice(id, userId, userRole, dto);
+    if (t === "PURCHASE_REQUEST") return this.approvePurchaseRequest(id, userId, userRole, dto);
+    if (t === "IT_REQUEST") return this.itRequestsService.approveITRequest(id, userId, userRole, dto);
+    return this.paymentRequestsService.approvePaymentRequest(id, userId, userRole, dto);
+  }
+
+  async rejectApproval(
+    type: string,
+    id: string,
+    userId: string,
+    userRole: string,
+    dto: RejectionActionDto,
+  ) {
+    const t = this.normalizeType(type);
+    const detail = await this.getApprovalDetail(userId, userRole, t, id);
+    if (detail.status !== "PENDING") {
+      throw new ConflictException("This approval has already been actioned");
+    }
+
+    if (t === "INVOICE") return this.rejectInvoice(id, userId, userRole, dto);
+    if (t === "PURCHASE_REQUEST") return this.rejectPurchaseRequest(id, userId, userRole, dto);
+    if (t === "IT_REQUEST") return this.itRequestsService.rejectITRequest(id, userId, userRole, dto);
+    return this.paymentRequestsService.rejectPaymentRequest(id, userId, userRole, dto);
   }
 
   // Invoice Methods

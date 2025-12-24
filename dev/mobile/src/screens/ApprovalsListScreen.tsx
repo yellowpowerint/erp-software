@@ -10,10 +10,14 @@ import {
   View,
 } from 'react-native';
 
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { ErrorBanner } from '../components/ErrorBanner';
 import { parseApiError } from '../api/errors';
 import { http } from '../api/http';
 import { API_BASE_URL } from '../config';
+import type { WorkStackParamList } from '../navigation/WorkStack';
 
 type ApprovalType = 'INVOICE' | 'PURCHASE_REQUEST' | 'IT_REQUEST' | 'PAYMENT_REQUEST';
 
@@ -71,6 +75,8 @@ function typeLabel(t: ApprovalType) {
 }
 
 export function ApprovalsListScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList, 'ApprovalsList'>>();
+
   const [items, setItems] = useState<ApprovalListItem[] | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -257,7 +263,11 @@ export function ApprovalsListScreen() {
           renderItem={({ item }) => {
             const requesterName = `${item.requester.firstName} ${item.requester.lastName}`.trim() || item.requester.email;
             return (
-              <View style={styles.row}>
+              <Pressable
+                onPress={() => navigation.navigate('ApprovalDetail', { type: item.type, id: item.id })}
+                style={({ pressed }) => [styles.row, pressed ? { opacity: 0.9 } : null]}
+                accessibilityRole="button"
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {typeLabel(item.type)} • {item.referenceNumber}
@@ -273,7 +283,7 @@ export function ApprovalsListScreen() {
                   <Text style={styles.amount}>{formatMoney(item.amount, item.currency)}</Text>
                   <Text style={styles.amountMeta}>{String(item.createdAt).slice(0, 19).replace('T', ' ')}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           }}
           ListFooterComponent={

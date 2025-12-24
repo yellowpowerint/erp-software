@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards } from "@nestjs/common";
 import { PaymentRequestsService } from "./payment-requests.service";
-import { CreatePaymentRequestDto, ApprovalActionDto } from "./dto";
+import { CreatePaymentRequestDto, ApprovalActionDto, RejectionActionDto } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -55,7 +55,7 @@ export class PaymentRequestsController {
   rejectPaymentRequest(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: ApprovalActionDto,
+    @Body() dto: RejectionActionDto,
   ) {
     return this.paymentRequestsService.rejectPaymentRequest(
       id,

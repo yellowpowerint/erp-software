@@ -5,6 +5,7 @@ import {
   CreatePurchaseRequestDto,
   ApprovalActionDto,
   ApprovalsListQueryDto,
+  RejectionActionDto,
 } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -19,6 +20,35 @@ export class ApprovalsController {
   @Get()
   async listApprovals(@CurrentUser() user: any, @Query() query: ApprovalsListQueryDto) {
     return this.approvalsService.getApprovalsList(user.userId, user.role, query);
+  }
+
+  @Get("item/:type/:id")
+  async getApprovalDetail(
+    @Param("type") type: string,
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.approvalsService.getApprovalDetail(user.userId, user.role, type, id);
+  }
+
+  @Post("item/:type/:id/approve")
+  async approveApproval(
+    @Param("type") type: string,
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: ApprovalActionDto,
+  ) {
+    return this.approvalsService.approveApproval(type, id, user.userId, user.role, dto);
+  }
+
+  @Post("item/:type/:id/reject")
+  async rejectApproval(
+    @Param("type") type: string,
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: RejectionActionDto,
+  ) {
+    return this.approvalsService.rejectApproval(type, id, user.userId, user.role, dto);
   }
 
   // Invoice endpoints
@@ -58,7 +88,7 @@ export class ApprovalsController {
   rejectInvoice(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: ApprovalActionDto,
+    @Body() dto: RejectionActionDto,
   ) {
     return this.approvalsService.rejectInvoice(id, user.userId, user.role, dto);
   }
@@ -110,7 +140,7 @@ export class ApprovalsController {
   rejectPurchaseRequest(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: ApprovalActionDto,
+    @Body() dto: RejectionActionDto,
   ) {
     return this.approvalsService.rejectPurchaseRequest(
       id,

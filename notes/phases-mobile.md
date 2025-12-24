@@ -275,6 +275,21 @@ This document defines the **session-by-session procedure** to develop the Mining
   - Conflict handling (already actioned) behaves correctly
   - Reject requires reason
 
+**Status:** COMPLETE
+
+**Implementation Notes (M3.2)**
+- Backend adds unified approval detail + action endpoints under `GET/POST /api/approvals/item/:type/:id`.
+- The unified endpoints enforce role-based access per approval type and return `409 Conflict` if an approval is already actioned.
+- Rejection enforces a non-empty reason (minimum 2 characters).
+- Mobile adds an **Approval Detail** screen that shows header details, an attachment link (when present), and approval history, and supports approve/reject with optional comments.
+
+**Acceptance Checklist (M3.2)**
+- [x] Approval detail view implemented
+- [x] Approve/reject/comment actions implemented
+- [x] Attachments view/link implemented
+- [x] Conflict handling behaves correctly (`409 Conflict` when already actioned)
+- [x] Reject requires reason
+
 ## Session M3.3 — Tasks List + Task Detail
 - **Scope**
   - Tasks list + detail (view-first)
