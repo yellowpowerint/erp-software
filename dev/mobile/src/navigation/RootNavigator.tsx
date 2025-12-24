@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LinkingOptions } from '@react-navigation/native';
-import { NavigationContainer } from '@react-navigation/native';
+import { getStateFromPath, NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '../auth/AuthContext';
@@ -15,8 +15,27 @@ import { APP_SCHEME } from '../config';
 
 type RootParamList = AuthStackParamList & AppTabsParamList;
 
+function normalizeLegacyPath(path: string): string {
+  const p0 = String(path || '').trim();
+  const p = p0.startsWith('/') ? p0.slice(1) : p0;
+  if (!p) return p;
+
+  if (p.startsWith('approvals/')) {
+    return `work/${p}`;
+  }
+  if (p.startsWith('tasks/')) {
+    return `work/${p}`;
+  }
+
+  return p;
+}
+
 const linking: LinkingOptions<RootParamList> = {
   prefixes: [`${APP_SCHEME}://`],
+  getStateFromPath: (path, options) => {
+    const normalized = normalizeLegacyPath(path);
+    return getStateFromPath(normalized, options);
+  },
   config: {
     screens: {
       Home: {
@@ -26,7 +45,20 @@ const linking: LinkingOptions<RootParamList> = {
       },
       Work: {
         screens: {
+          WorkHome: 'work',
           ApprovalsList: 'work/approvals',
+          ApprovalLink: 'work/approvals/:id',
+          ApprovalDetail: {
+            path: 'work/approvals/:type/:id',
+            parse: {
+              type: (v: string) => String(v || '').toUpperCase(),
+            },
+            stringify: {
+              type: (v: any) => String(v || '').toLowerCase(),
+            },
+          },
+          TasksList: 'work/tasks',
+          TaskDetail: 'work/tasks/:id',
         },
       },
       Modules: 'modules',

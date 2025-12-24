@@ -325,6 +325,23 @@ This document defines the **session-by-session procedure** to develop the Mining
   - Opening a deep link never crashes
   - If user lacks access, show clear “no access” state
 
+**Status:** COMPLETE
+
+**Implementation Notes (M3.4)**
+- Mobile deep links now support:
+  - `miningerp://approvals/{id}` (routes to a resolver screen and then to Approval Detail)
+  - `miningerp://work/approvals/{type}/{id}` (direct detail)
+  - `miningerp://tasks/{id}` (routes to Task Detail)
+  - `miningerp://work/tasks/{id}` (direct detail)
+- Permission gating is enforced server-side; mobile renders a dedicated **No access** state on `403`.
+- Legacy deep link paths are normalized into the Work stack so inbound links don’t break when route shapes evolve.
+
+**Acceptance Checklist (M3.4)**
+- [x] Deep link support for approvals/tasks implemented
+- [x] Permission gating on deep link open (shows clear “no access” state)
+- [x] Deep link router stable (legacy normalization)
+- [x] Opening a deep link never crashes (invalid/missing params handled safely)
+
 ---
 
 # Phase M4 — Core Modules MVP (recommended 8 sessions)

@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { Pressable } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { http } from '../api/http';
 import { parseApiError } from '../api/errors';
@@ -34,27 +36,44 @@ function formatDateTime(value: string | null) {
 
 export function TaskDetailScreen() {
   const route = useRoute<RouteProp<WorkStackParamList, 'TaskDetail'>>();
+  const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
   const { id } = route.params;
 
   const [detail, setDetail] = useState<TaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noAccess, setNoAccess] = useState(false);
+
+  const trimmedId = useMemo(() => String(id ?? '').trim(), [id]);
 
   const load = useCallback(async () => {
+    if (!trimmedId) {
+      setError('Missing task id.');
+      setDetail(null);
+      setNoAccess(false);
+      return;
+    }
     setLoading(true);
     setError(null);
+    setNoAccess(false);
     try {
-      const res = await http.get<TaskDetail>(`/tasks/${encodeURIComponent(id)}`);
+      const res = await http.get<TaskDetail>(`/tasks/${encodeURIComponent(trimmedId)}`);
       setDetail(res.data);
     } catch (e: any) {
       const parsed = parseApiError(e, API_BASE_URL);
+      if (parsed.status === 403) {
+        setNoAccess(true);
+        setDetail(null);
+        setError(null);
+        return;
+      }
       const statusPart = parsed.status ? ` (${parsed.status})` : '';
       setError(`Failed to load task${statusPart}: ${parsed.message}\nAPI: ${API_BASE_URL}`);
       setDetail(null);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [trimmedId]);
 
   useEffect(() => {
     void load();
@@ -69,6 +88,22 @@ export function TaskDetailScreen() {
   return (
     <View style={styles.screen}>
       {error ? <ErrorBanner message={error} onRetry={load} /> : null}
+
+      {noAccess ? (
+        <View style={styles.card}>
+          <Text style={styles.title}>No access</Text>
+          <Text style={styles.value}>You don’t have access to view this task.</Text>
+          <View style={styles.row}>
+            <Pressable
+              onPress={() => navigation.navigate('TasksList')}
+              style={styles.btnPrimary}
+              accessibilityRole="button"
+            >
+              <Text style={styles.btnText}>Go to Tasks</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       {loading && !detail ? (
         <View style={styles.center}>
@@ -128,6 +163,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
     padding: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  btnPrimary: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#111827',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnText: {
+    color: '#ffffff',
+    fontWeight: '900',
   },
   content: {
     paddingBottom: 16,

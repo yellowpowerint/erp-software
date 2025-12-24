@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { TasksListQueryDto } from "./dto";
 
@@ -105,11 +105,11 @@ export class TasksService {
     if (!this.canSeeAll(user?.role)) {
       const userEmail = String(user?.email ?? "").trim();
       if (!userEmail) {
-        throw new NotFoundException("Task not found");
+        throw new ForbiddenException("You do not have access to this task");
       }
       const assigned = String(task.assignedTo ?? "").trim();
       if (!assigned || assigned.toLowerCase() !== userEmail.toLowerCase()) {
-        throw new NotFoundException("Task not found");
+        throw new ForbiddenException("You do not have access to this task");
       }
     }
 

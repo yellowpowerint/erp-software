@@ -1,8 +1,9 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { http } from '../api/http';
 import { parseApiError } from '../api/errors';
@@ -42,6 +43,7 @@ function formatMoney(amount: number | null, currency: string | null) {
 
 export function ApprovalDetailScreen() {
   const route = useRoute<RouteProp<WorkStackParamList, 'ApprovalDetail'>>();
+  const navigation = useNavigation<NativeStackNavigationProp<WorkStackParamList>>();
   const { type, id } = route.params;
 
   const [detail, setDetail] = useState<ApprovalDetail | null>(null);
@@ -49,24 +51,53 @@ export function ApprovalDetailScreen() {
   const [acting, setActing] = useState(false);
   const [comments, setComments] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [noAccess, setNoAccess] = useState(false);
+
+  const trimmedId = useMemo(() => String(id ?? '').trim(), [id]);
+  const normalizedType = useMemo(() => String(type ?? '').toUpperCase().trim(), [type]);
+  const isValidType = useMemo(
+    () => ['INVOICE', 'PURCHASE_REQUEST', 'IT_REQUEST', 'PAYMENT_REQUEST'].includes(normalizedType),
+    [normalizedType]
+  );
 
   const canAct = useMemo(() => detail?.status === 'PENDING', [detail?.status]);
 
   const load = useCallback(async () => {
+    if (!trimmedId) {
+      setError('Missing approval id.');
+      setDetail(null);
+      setNoAccess(false);
+      return;
+    }
+
+    if (!isValidType) {
+      setError('Invalid approval type in link.');
+      setDetail(null);
+      setNoAccess(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setNoAccess(false);
     try {
-      const res = await http.get<ApprovalDetail>(`/approvals/item/${type}/${id}`);
+      const res = await http.get<ApprovalDetail>(`/approvals/item/${normalizedType}/${encodeURIComponent(trimmedId)}`);
       setDetail(res.data);
     } catch (e: any) {
       const parsed = parseApiError(e, API_BASE_URL);
+      if (parsed.status === 403) {
+        setNoAccess(true);
+        setDetail(null);
+        setError(null);
+        return;
+      }
       const statusPart = parsed.status ? ` (${parsed.status})` : '';
       setError(`Failed to load approval${statusPart}: ${parsed.message}\nAPI: ${API_BASE_URL}`);
       setDetail(null);
     } finally {
       setLoading(false);
     }
-  }, [type, id]);
+  }, [isValidType, normalizedType, trimmedId]);
 
   useEffect(() => {
     void load();
@@ -103,7 +134,9 @@ export function ApprovalDetailScreen() {
       }
       setActing(true);
       try {
-        await http.post(`/approvals/item/${type}/${id}/${action}`, { comments: text.length ? text : undefined });
+        await http.post(`/approvals/item/${normalizedType}/${encodeURIComponent(trimmedId)}/${action}`, {
+          comments: text.length ? text : undefined,
+        });
         setComments('');
         await load();
       } catch (e: any) {
@@ -111,6 +144,10 @@ export function ApprovalDetailScreen() {
         if (parsed.status === 409) {
           Alert.alert('Already actioned', parsed.message);
           await load();
+        } else if (parsed.status === 403) {
+          setNoAccess(true);
+          setDetail(null);
+          setError(null);
         } else {
           Alert.alert('Action failed', parsed.message);
         }
@@ -118,12 +155,24 @@ export function ApprovalDetailScreen() {
         setActing(false);
       }
     },
-    [comments, detail, id, load, type]
+    [comments, detail, load, normalizedType, trimmedId]
   );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {error ? <ErrorBanner message={error} onRetry={load} /> : null}
+
+      {noAccess ? (
+        <View style={styles.card}>
+          <Text style={styles.h1}>No access</Text>
+          <Text style={styles.muted}>You don’t have access to view this approval.</Text>
+          <View style={styles.row}>
+            <Pressable onPress={() => navigation.navigate('ApprovalsList')} style={styles.btnPrimary} accessibilityRole="button">
+              <Text style={styles.btnText}>Go to Approvals</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
       {loading && !detail ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" />
