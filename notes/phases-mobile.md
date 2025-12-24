@@ -300,6 +300,21 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Role rules are enforced
 
+**Status:** COMPLETE
+
+**Implementation Notes (M3.3)**
+- Backend adds dedicated tasks endpoints under `GET /api/tasks` (paged list with `page`, `pageSize`, `search`, `status`, `mine`) and `GET /api/tasks/:id` (detail).
+- Role rules are enforced server-side: privileged roles can see all tasks; other users only see tasks assigned to their email.
+- Mobile adds a Work home screen that routes to **Approvals** and **Tasks**.
+- Mobile implements **Tasks List** with search, status filters, mine/all toggle, pull-to-refresh, and infinite pagination.
+- Mobile implements **Task Detail** (view-first) showing project, status, assignee, due date, completion state, description, and timestamps.
+
+**Acceptance Checklist (M3.3)**
+- [x] Tasks list renders due dates and status
+- [x] Task detail view implemented
+- [x] Pagination works
+- [x] Role rules are enforced (server-side)
+
 ## Session M3.4 — Deep Links for Work Items
 - **Scope**
   - Deep link support for approvals/tasks

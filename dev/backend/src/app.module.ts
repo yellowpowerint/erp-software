@@ -11,6 +11,7 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { InventoryModule } from "./modules/inventory/inventory.module";
 import { AssetsModule } from "./modules/assets/assets.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
+import { TasksModule } from "./modules/tasks/tasks.module";
 import { OperationsModule } from "./modules/operations/operations.module";
 import { FinanceModule } from "./modules/finance/finance.module";
 import { AiModule } from "./modules/ai/ai.module";
@@ -38,6 +39,7 @@ import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
     InventoryModule,
     AssetsModule,
     ProjectsModule,
+    TasksModule,
     OperationsModule,
     FinanceModule,
     AiModule,
