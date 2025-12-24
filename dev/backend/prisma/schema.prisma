@@ -121,6 +121,7 @@ model User {
   managerId  String?
   manager    User?      @relation("UserManager", fields: [managerId], references: [id])
   reports    User[]     @relation("UserManager")
+  reportsToTitles Json?
   modulePermissions Json?
   mustChangePassword Boolean @default(false)
   vendorId   String?

@@ -19,6 +19,7 @@ interface SettingsUser {
   department: string | null;
   position: string | null;
   managerId?: string | null;
+  reportsToTitles?: any;
   modulePermissions?: any;
   mustChangePassword?: boolean;
   createdAt: string;
@@ -26,17 +27,124 @@ interface SettingsUser {
 }
 
 const MODULES = [
-  'HR',
-  'PROCUREMENT',
+  'DASHBOARD',
+  'APPROVALS',
   'INVENTORY',
-  'FINANCE',
+  'ASSETS',
+  'FLEET',
   'OPERATIONS',
+  'FINANCE',
+  'PROCUREMENT',
   'DOCUMENTS',
   'AI',
+  'HR',
+  'SAFETY',
+  'REPORTS',
   'SETTINGS',
 ] as const;
 
 type ModuleKey = (typeof MODULES)[number];
+
+const REPORTS_TO_TITLE_GROUPS = [
+  {
+    label: 'Executive / Senior Management',
+    items: ['Managing Director (MD)', 'Chief Operating Officer (COO)', 'Operations Manager', 'Deputy Manager'],
+  },
+  {
+    label: 'Finance & Administration',
+    items: ['Finance Manager', 'Accounts Manager', 'Senior Accountant', 'Budget & Cost Control Manager'],
+  },
+  {
+    label: 'Procurement & Supply Chain',
+    items: ['Procurement Manager', 'Supply Chain Manager', 'Logistics Manager', 'Warehouse Manager'],
+  },
+  {
+    label: 'Human Resources',
+    items: ['HR Manager', 'Training & Development Manager', 'Industrial Relations Manager'],
+  },
+  {
+    label: 'Information Technology',
+    items: ['IT Manager', 'Systems & Infrastructure Manager', 'Applications / ERP Manager'],
+  },
+  {
+    label: 'Mining & Technical Operations',
+    items: [
+      'Mine Manager',
+      'Plant Manager',
+      'Engineering Manager',
+      'Maintenance Manager',
+      'Exploration Manager',
+      'HSE Manager (Health, Safety & Environment)',
+      'Fleet / Transport Manager',
+    ],
+  },
+] as const;
+
+const REPORTS_TO_TITLES = REPORTS_TO_TITLE_GROUPS.flatMap((g) => g.items);
+
+const ROLE_GROUPS = [
+  ...REPORTS_TO_TITLE_GROUPS,
+  {
+    label: 'Junior Management / Officers - Finance',
+    items: ['Assistant Finance Manager', 'Accountant', 'Assistant Accountant', 'Payroll Officer'],
+  },
+  {
+    label: 'Junior Management / Officers - Procurement',
+    items: ['Senior Procurement Officer', 'Procurement Officer', 'Purchasing Officer'],
+  },
+  {
+    label: 'Junior Management / Officers - Human Resources',
+    items: ['Senior HR Officer', 'HR Officer', 'HR/Admin Officer'],
+  },
+  {
+    label: 'Junior Management / Officers - IT',
+    items: ['Senior IT Officer', 'IT Officer', 'IT Support Technician'],
+  },
+  {
+    label: 'Junior Management / Officers - Mining & Engineering',
+    items: [
+      'Senior Mining Engineer',
+      'Mining Engineer',
+      'Geologist',
+      'Surveyor',
+      'Mechanical Engineer',
+      'Electrical Engineer',
+    ],
+  },
+  {
+    label: 'Junior Management / Officers - HSE',
+    items: ['Senior Safety Officer', 'Safety Officer', 'Environmental Officer'],
+  },
+  {
+    label: 'Supervisors',
+    items: [
+      'Shift Supervisor',
+      'Pit Supervisor',
+      'Plant Supervisor',
+      'Maintenance Supervisor',
+      'Electrical Supervisor',
+      'Mechanical Supervisor',
+      'Drill & Blast Supervisor',
+      'Warehouse Supervisor',
+      'Fleet Supervisor',
+    ],
+  },
+  {
+    label: 'Field & Support Staff',
+    items: [
+      'Heavy Equipment Operators',
+      'Drill Operators',
+      'Machine Operators',
+      'Mechanics',
+      'Electricians',
+      'Welders',
+      'Drivers',
+      'Storekeepers',
+      'Security Personnel',
+      'General Laborers',
+    ],
+  },
+] as const;
 
 const buildDefaultModulePermissions = () => {
   const perms: Record<string, any> = {};
@@ -64,7 +172,9 @@ function UserManagementContent() {
     status: 'ACTIVE',
     department: '',
     position: '',
+    customPosition: '',
     managerId: '',
+    reportsToTitles: [] as string[],
     modulePermissions: buildDefaultModulePermissions(),
     password: '',
     mustChangePassword: true,
@@ -106,7 +216,9 @@ function UserManagementContent() {
       status: 'ACTIVE',
       department: '',
       position: '',
+      customPosition: '',
       managerId: '',
+      reportsToTitles: [],
       modulePermissions: buildDefaultModulePermissions(),
       password: '',
       mustChangePassword: true,
@@ -126,7 +238,9 @@ function UserManagementContent() {
       status: user.status,
       department: user.department || '',
       position: user.position || '',
+      customPosition: '',
       managerId: user.managerId || '',
+      reportsToTitles: (user.reportsToTitles as string[]) || [],
       modulePermissions: user.modulePermissions || buildDefaultModulePermissions(),
       password: '',
       mustChangePassword: !!user.mustChangePassword,
@@ -170,8 +284,12 @@ function UserManagementContent() {
       role: formData.role,
       status: formData.status,
       department: formData.department || undefined,
-      position: formData.position || undefined,
+      position:
+        formData.position === 'Other'
+          ? (formData.customPosition || undefined)
+          : formData.position || undefined,
       managerId: formData.managerId || undefined,
+      reportsToTitles: formData.reportsToTitles,
       modulePermissions: formData.modulePermissions,
       mustChangePassword: !!formData.mustChangePassword,
     };
@@ -482,31 +600,33 @@ function UserManagementContent() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                    <input
-                      type="text"
-                      value={formData.position}
-                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
+                  <div />
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Manager / Reports To</label>
-                    <select
-                      value={formData.managerId}
-                      onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
-                      <option value="">None</option>
-                      {users
-                        .filter((u) => !editingUser || u.id !== editingUser.id)
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.firstName} {u.lastName} ({u.email})
-                          </option>
+                    <div className="space-y-2">
+                      <select
+                        multiple
+                        value={formData.reportsToTitles}
+                        onChange={(e) => {
+                          const values = Array.from(e.target.selectedOptions).map((o) => o.value);
+                          setFormData({ ...formData, reportsToTitles: values });
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg h-48"
+                      >
+                        {REPORTS_TO_TITLE_GROUPS.map((g) => (
+                          <optgroup key={g.label} label={g.label}>
+                            {g.items.map((t) => (
+                              <option key={t} value={t}>
+                                {t}
+                              </option>
+                            ))}
+                          </optgroup>
                         ))}
-                    </select>
+                      </select>
+                      <p className="text-xs text-gray-500">
+                        Hold Ctrl (Windows) / Cmd (Mac) to select multiple.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -515,7 +635,7 @@ function UserManagementContent() {
                 <div>
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Role*</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">System Access Role*</label>
                       <select
                         required
                         value={formData.role}
@@ -545,6 +665,39 @@ function UserManagementContent() {
                         <option value="SUSPENDED">Suspended</option>
                       </select>
                     </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Role*</label>
+                      <select
+                        required
+                        value={formData.position}
+                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        {ROLE_GROUPS.map((g) => (
+                          <optgroup key={g.label} label={g.label}>
+                            {g.items.map((t) => (
+                              <option key={t} value={t}>
+                                {t}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {formData.position === 'Other' && (
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Specify Role / Job Title</label>
+                        <input
+                          type="text"
+                          value={formData.customPosition}
+                          onChange={(e) => setFormData({ ...formData, customPosition: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="border border-gray-200 rounded-lg overflow-hidden">

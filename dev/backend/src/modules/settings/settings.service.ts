@@ -96,6 +96,7 @@ export class SettingsService {
         department: true,
         position: true,
         managerId: true,
+        reportsToTitles: true,
         modulePermissions: true,
         mustChangePassword: true,
         createdAt: true,
@@ -122,6 +123,7 @@ export class SettingsService {
         department: true,
         position: true,
         managerId: true,
+        reportsToTitles: true,
         modulePermissions: true,
         mustChangePassword: true,
         createdAt: true,
@@ -141,6 +143,7 @@ export class SettingsService {
       department: data.department,
       position: data.position,
       managerId: data.managerId,
+      reportsToTitles: data.reportsToTitles,
       modulePermissions: data.modulePermissions,
       mustChangePassword: data.mustChangePassword,
     };
@@ -166,6 +169,7 @@ export class SettingsService {
         department: true,
         position: true,
         managerId: true,
+        reportsToTitles: true,
         modulePermissions: true,
         mustChangePassword: true,
       },
@@ -199,6 +203,7 @@ export class SettingsService {
         department: data.department,
         position: data.position,
         managerId: data.managerId,
+        reportsToTitles: data.reportsToTitles,
         modulePermissions: data.modulePermissions,
         mustChangePassword:
           typeof data.mustChangePassword === "boolean"
@@ -216,6 +221,7 @@ export class SettingsService {
         department: true,
         position: true,
         managerId: true,
+        reportsToTitles: true,
         modulePermissions: true,
         mustChangePassword: true,
       },
