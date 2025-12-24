@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Database, ArrowLeft, Save, Globe, DollarSign, Calendar, Clock, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { menuItems } from '@/lib/config/menu';
 
 interface SystemConfig {
   companyName: string;
@@ -24,6 +25,7 @@ interface SystemConfig {
     safety: boolean;
     ai: boolean;
     reports: boolean;
+    modules?: Record<string, boolean>;
   };
   notifications: {
     email: boolean;
@@ -31,6 +33,16 @@ interface SystemConfig {
     push: boolean;
   };
 }
+
+const getSidebarModuleToggles = () => {
+  return menuItems
+    .filter((m) => Boolean(m.path))
+    .map((m) => ({
+      id: m.id,
+      label: m.label,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+};
 
 function SystemConfigurationContent() {
   const [config, setConfig] = useState<SystemConfig | null>(null);
@@ -76,6 +88,20 @@ function SystemConfigurationContent() {
       features: {
         ...config.features,
         [feature]: !config.features[feature],
+      },
+    });
+  };
+
+  const toggleModule = (moduleId: string) => {
+    if (!config) return;
+    setConfig({
+      ...config,
+      features: {
+        ...config.features,
+        modules: {
+          ...(config.features.modules || {}),
+          [moduleId]: !(config.features.modules || {})[moduleId],
+        },
       },
     });
   };
@@ -243,7 +269,9 @@ function SystemConfigurationContent() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(config.features).map(([key, value]) => (
+            {Object.entries(config.features)
+              .filter(([key]) => key !== 'modules')
+              .map(([key, value]) => (
               <div key={key} className="flex items-center justify-between bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center space-x-3">
                   <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-gray-300'}`}></div>
@@ -267,6 +295,44 @@ function SystemConfigurationContent() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Sidebar Modules */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Database className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Modules (Sidebar)</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {getSidebarModuleToggles().map((m) => {
+              const enabled = config.features.modules?.[m.id] ?? true;
+              return (
+                <div key={m.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${enabled ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-sm font-medium text-gray-900">{m.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleModule(m.id)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      enabled ? 'bg-indigo-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        enabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-500 mt-4">
+            These toggles control which sidebar modules are enabled at the system level.
+          </p>
         </div>
 
         {/* Notification Settings */}

@@ -24,6 +24,6 @@ import { EmailService } from "./email.service";
     ScheduledExportService,
     EmailService,
   ],
-  exports: [CsvService],
+  exports: [CsvService, EmailService],
 })
 export class CsvModule {}

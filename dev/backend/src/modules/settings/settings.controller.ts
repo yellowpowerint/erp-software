@@ -31,6 +31,33 @@ export class SettingsController {
     return this.settingsService.updateSystemConfig(data);
   }
 
+  // Notifications
+  @Get("notifications/providers")
+  async getNotificationProvidersStatus() {
+    return this.settingsService.getNotificationProvidersStatus();
+  }
+
+  @Get("notifications/preferences")
+  async getUserNotificationPreferences(@CurrentUser() user: any) {
+    return this.settingsService.getUserNotificationPreferences(user.userId);
+  }
+
+  @Put("notifications/preferences")
+  async updateUserNotificationPreferences(
+    @CurrentUser() user: any,
+    @Body() prefs: any,
+  ) {
+    return this.settingsService.updateUserNotificationPreferences(user.userId, prefs);
+  }
+
+  @Post("notifications/test-email")
+  async sendTestEmail(
+    @CurrentUser() user: any,
+    @Body() data: { toEmail?: string },
+  ) {
+    return this.settingsService.sendTestEmail(user.userId, data?.toEmail);
+  }
+
   // AI Provider Settings (BYOK)
   @Get("ai")
   async getAiSettings() {

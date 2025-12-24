@@ -1,54 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Bell, ArrowLeft, Save, Mail, MessageSquare, Smartphone, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import api from '@/lib/api';
 
 function NotificationSettingsContent() {
-  const [settings, setSettings] = useState({
-    email: {
-      enabled: true,
-      approvalRequests: true,
-      approvalUpdates: true,
-      systemAlerts: true,
-      expenseApprovals: false,
-      inventoryAlerts: true,
-      safetyAlerts: true,
-      weeklyReports: false,
-    },
-    sms: {
-      enabled: false,
-      criticalAlerts: false,
-      approvalRequests: false,
-      safetyEmergencies: false,
-    },
-    push: {
-      enabled: true,
-      approvalRequests: true,
-      mentions: true,
-      systemAlerts: false,
-      taskReminders: true,
-    },
-  });
+  const [settings, setSettings] = useState<any | null>(null);
+  const [providers, setProviders] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [prefsRes, providersRes] = await Promise.all([
+          api.get('/settings/notifications/preferences'),
+          api.get('/settings/notifications/providers'),
+        ]);
+        setSettings(prefsRes.data);
+        setProviders(providersRes.data);
+      } catch (error) {
+        console.error('Failed to fetch notification settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setSaving(false);
+
+    try {
+      await api.put('/settings/notifications/preferences', settings);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    }, 1000);
+    } catch (error) {
+      console.error('Failed to save notification preferences:', error);
+      alert('Failed to save notification preferences. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    setSendingTest(true);
+    try {
+      await api.post('/settings/notifications/test-email', {
+        toEmail: testEmail.trim() || undefined,
+      });
+      alert('Test email sent (check inbox/spam).');
+    } catch (error) {
+      console.error('Failed to send test email:', error);
+      alert('Failed to send test email. Ensure SMTP is configured and try again.');
+    } finally {
+      setSendingTest(false);
+    }
   };
 
   const toggleEmailSetting = (key: string) => {
+    if (!settings) return;
     setSettings({
       ...settings,
       email: {
@@ -59,6 +79,7 @@ function NotificationSettingsContent() {
   };
 
   const toggleSmsSetting = (key: string) => {
+    if (!settings) return;
     setSettings({
       ...settings,
       sms: {
@@ -69,6 +90,7 @@ function NotificationSettingsContent() {
   };
 
   const togglePushSetting = (key: string) => {
+    if (!settings) return;
     setSettings({
       ...settings,
       push: {
@@ -77,6 +99,18 @@ function NotificationSettingsContent() {
       },
     });
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!settings) return null;
 
   return (
     <DashboardLayout>
@@ -103,6 +137,47 @@ function NotificationSettingsContent() {
       </div>
 
       <form onSubmit={handleSave}>
+        {/* Provider Status */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Provider Status</h2>
+          <div className="text-sm text-gray-700">
+            <div className="flex items-center justify-between py-2">
+              <span>Email (SMTP)</span>
+              <span className={providers?.email?.configured ? 'text-green-600 font-medium' : 'text-gray-600'}>
+                {providers?.email?.configured ? 'Configured' : 'Not configured'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <span>SMS</span>
+              <span className="text-gray-600">Not configured</span>
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <span>Push</span>
+              <span className="text-gray-600">Not configured</span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="Test email recipient (optional)"
+              className="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={handleSendTestEmail}
+              disabled={sendingTest}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
+            >
+              {sendingTest ? 'Sending…' : 'Send Test Email'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            To enable Email notifications, configure SMTP in backend environment variables (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`/`SMTP_PASSWORD`, optional `SMTP_FROM`).
+          </p>
+        </div>
         {/* Email Notifications */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-center justify-between mb-4">

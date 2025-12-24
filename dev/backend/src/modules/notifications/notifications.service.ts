@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { EmailService } from "../csv/email.service";
 
 export interface CreateNotificationDto {
   userId: string;
@@ -18,18 +19,108 @@ export interface CreateNotificationDto {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  private safeJsonParse<T>(raw: string | null, fallback: T): T {
+    if (!raw) return fallback;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private async getSetting(key: string): Promise<string | null> {
+    const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
+    const value = setting?.value?.trim();
+    return value && value.length > 0 ? value : null;
+  }
+
+  private async getGlobalChannelEnabled(channel: "email" | "sms" | "push") {
+    const raw = await this.getSetting("SYS_NOTIFICATIONS_JSON");
+    const parsed = this.safeJsonParse<any>(raw, null);
+    const v = parsed?.[channel];
+    return typeof v === "boolean" ? v : true;
+  }
+
+  private mapTypeToEmailPreferenceKey(type: CreateNotificationDto["type"]) {
+    if (type === "APPROVAL_REQUEST") return "approvalRequests";
+    if (
+      type === "APPROVAL_APPROVED" ||
+      type === "APPROVAL_REJECTED" ||
+      type === "APPROVAL_INFO_REQUEST"
+    ) {
+      return "approvalUpdates";
+    }
+    if (type === "SYSTEM_ALERT") return "systemAlerts";
+    return null;
+  }
+
+  private async shouldSendEmail(userId: string, type: CreateNotificationDto["type"]) {
+    const smtpConfigured =
+      !!process.env.SMTP_HOST &&
+      !!process.env.SMTP_USER &&
+      !!(process.env.SMTP_PASS || process.env.SMTP_PASSWORD);
+    if (!smtpConfigured) return false;
+
+    const globalEmailEnabled = await this.getGlobalChannelEnabled("email");
+    if (!globalEmailEnabled) return false;
+
+    const prefKey = this.mapTypeToEmailPreferenceKey(type);
+    if (!prefKey) return false;
+
+    const raw = await this.getSetting(`NOTIF_PREF_${userId}`);
+    const prefs = this.safeJsonParse<any>(raw, null);
+    const enabled = prefs?.email?.enabled;
+    if (typeof enabled === "boolean" && !enabled) return false;
+
+    const allowed = prefs?.email?.[prefKey];
+    if (typeof allowed === "boolean") return allowed;
+
+    return true;
+  }
+
+  private async trySendEmailNotification(n: CreateNotificationDto) {
+    try {
+      const should = await this.shouldSendEmail(n.userId, n.type);
+      if (!should) return;
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: n.userId },
+        select: { email: true },
+      });
+      const to = (user?.email || "").trim();
+      if (!to) return;
+
+      await this.emailService.sendEmail({
+        to: [to],
+        subject: n.title,
+        text: n.message,
+      });
+    } catch {
+      return;
+    }
+  }
 
   async createNotification(data: CreateNotificationDto) {
-    return this.prisma.notification.create({
+    const created = await this.prisma.notification.create({
       data,
     });
+
+    await this.trySendEmailNotification(data);
+    return created;
   }
 
   async createBulkNotifications(notifications: CreateNotificationDto[]) {
-    return this.prisma.notification.createMany({
+    const res = await this.prisma.notification.createMany({
       data: notifications,
     });
+
+    await Promise.all(notifications.map((n) => this.trySendEmailNotification(n)));
+    return res;
   }
 
   async getUserNotifications(userId: string, unreadOnly: boolean = false) {

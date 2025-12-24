@@ -6,16 +6,42 @@ import axios from "axios";
 export class AiService {
   constructor(private prisma: PrismaService) {}
 
-  private getOpenAiRuntime() {
-    const enabledRaw = process.env.AI_ENABLED ?? process.env.OPENAI_ENABLED;
+  private async getOpenAiRuntime() {
+    const keys = await this.prisma.systemSetting.findMany({
+      where: {
+        key: {
+          in: [
+            "AI_ENABLED",
+            "AI_DEFAULT_PROVIDER",
+            "AI_OPENAI_API_KEY",
+            "AI_OPENAI_MODEL",
+          ],
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const map = new Map(keys.map((k) => [k.key, k.value] as const));
+
+    const enabledRaw =
+      map.get("AI_ENABLED") ??
+      process.env.AI_ENABLED ??
+      process.env.OPENAI_ENABLED;
     const providerRaw =
-      process.env.AI_DEFAULT_PROVIDER ?? process.env.AI_PROVIDER ?? "OPENAI";
+      map.get("AI_DEFAULT_PROVIDER") ??
+      process.env.AI_DEFAULT_PROVIDER ??
+      process.env.AI_PROVIDER ??
+      "OPENAI";
     const apiKey =
+      map.get("AI_OPENAI_API_KEY") ??
       process.env.AI_OPENAI_API_KEY ??
       process.env.OPENAI_API_KEY ??
       null;
     const model =
-      process.env.AI_OPENAI_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+      map.get("AI_OPENAI_MODEL") ??
+      process.env.AI_OPENAI_MODEL ??
+      process.env.OPENAI_MODEL ??
+      "gpt-4o-mini";
 
     const enabled = enabledRaw === "true";
     const provider = typeof providerRaw === "string" ? providerRaw.toUpperCase() : "OPENAI";
@@ -82,7 +108,7 @@ export class AiService {
       }
     | null
   > {
-    const cfg = this.getOpenAiRuntime();
+    const cfg = await this.getOpenAiRuntime();
     if (!cfg.enabled || cfg.provider !== "OPENAI" || !cfg.apiKey) return null;
 
     const payload = {
@@ -496,7 +522,7 @@ export class AiService {
       bulkPurchaseOpportunities: this.identifyBulkOpportunities(lowStockItems),
     };
 
-    const cfg = this.getOpenAiRuntime();
+    const cfg = await this.getOpenAiRuntime();
     if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
       try {
         const out = await this.openAiJson<{ costSavingOpportunities?: string[] }>(
@@ -697,7 +723,7 @@ export class AiService {
 
     let summary = `System is managing ${projects} active projects with good operational health.`;
     let finalInsights = insights;
-    const cfg = this.getOpenAiRuntime();
+    const cfg = await this.getOpenAiRuntime();
     if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
       try {
         const out = await this.openAiJson<{ summary?: string; insights?: string[] }>({
@@ -801,7 +827,7 @@ export class AiService {
     predictions.sort((a, b) => b.riskScore - a.riskScore);
 
     let summary = this.generateMaintenanceSummary(predictions);
-    const cfg = this.getOpenAiRuntime();
+    const cfg = await this.getOpenAiRuntime();
     if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
       try {
         const out = await this.openAiJson<{ summary?: string }>({
@@ -1118,7 +1144,7 @@ export class AiService {
       };
     }
 
-    const cfg = this.getOpenAiRuntime();
+    const cfg = await this.getOpenAiRuntime();
     let answer: { text: string; confidence: number } | null = null;
     if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
       const sourcesForPrompt = relevantDocs.slice(0, 6).map((d) => ({
@@ -1407,7 +1433,7 @@ export class AiService {
     let rootCause = this.identifyRootCause(incident);
     let correctiveActions = this.generateCorrectiveActions(incident);
 
-    const cfg = this.getOpenAiRuntime();
+    const cfg = await this.getOpenAiRuntime();
     if (cfg.enabled && cfg.provider === "OPENAI" && cfg.apiKey) {
       try {
         const out = await this.openAiJson<{

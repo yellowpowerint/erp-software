@@ -18,12 +18,16 @@ export class EmailService {
     const host = this.configService.get<string>("SMTP_HOST");
     const port = Number(this.configService.get<string>("SMTP_PORT", "587"));
     const user = this.configService.get<string>("SMTP_USER");
-    const pass = this.configService.get<string>("SMTP_PASS");
+    const pass =
+      this.configService.get<string>("SMTP_PASS") ||
+      this.configService.get<string>("SMTP_PASSWORD");
     const secure =
       this.configService.get<string>("SMTP_SECURE", "false") === "true";
 
     if (!host || !user || !pass) {
-      throw new Error("SMTP is not configured (SMTP_HOST/SMTP_USER/SMTP_PASS)");
+      throw new Error(
+        "SMTP is not configured (SMTP_HOST/SMTP_USER/SMTP_PASS or SMTP_PASSWORD)",
+      );
     }
 
     return nodemailer.createTransport({

@@ -6,10 +6,14 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import * as bcrypt from "bcrypt";
+import { EmailService } from "../csv/email.service";
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   // Internal helper for system settings
   private async upsertSetting(key: string, value: string, isSecret = false) {
@@ -20,9 +24,24 @@ export class SettingsService {
     });
   }
 
+  private async getSetting(key: string): Promise<string | null> {
+    const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
+    const value = setting?.value?.trim();
+    return value && value.length > 0 ? value : null;
+  }
+
+  private safeJsonParse<T>(raw: string | null, fallback: T): T {
+    if (!raw) return fallback;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
   // System Configuration
   async getSystemConfig() {
-    return {
+    const defaults = {
       companyName: "Mining Operations Ltd",
       companyEmail: "info@miningops.com",
       companyPhone: "+233 XX XXX XXXX",
@@ -31,7 +50,6 @@ export class SettingsService {
       timezone: "Africa/Accra",
       dateFormat: "DD/MM/YYYY",
       fiscalYearStart: "01/01",
-      // Features
       features: {
         approvals: true,
         inventory: true,
@@ -40,23 +58,203 @@ export class SettingsService {
         safety: true,
         ai: true,
         reports: true,
+        modules: {} as Record<string, boolean>,
       },
-      // Notifications
       notifications: {
         email: true,
         sms: false,
         push: true,
       },
     };
+
+    const [
+      companyName,
+      companyEmail,
+      companyPhone,
+      address,
+      currency,
+      timezone,
+      dateFormat,
+      fiscalYearStart,
+      featuresJson,
+      notificationsJson,
+    ] = await Promise.all([
+      this.getSetting("SYS_COMPANY_NAME"),
+      this.getSetting("SYS_COMPANY_EMAIL"),
+      this.getSetting("SYS_COMPANY_PHONE"),
+      this.getSetting("SYS_ADDRESS"),
+      this.getSetting("SYS_CURRENCY"),
+      this.getSetting("SYS_TIMEZONE"),
+      this.getSetting("SYS_DATE_FORMAT"),
+      this.getSetting("SYS_FISCAL_YEAR_START"),
+      this.getSetting("SYS_FEATURES_JSON"),
+      this.getSetting("SYS_NOTIFICATIONS_JSON"),
+    ]);
+
+    const storedFeatures = this.safeJsonParse<Record<string, any>>(featuresJson, {});
+    const storedNotifications = this.safeJsonParse<Record<string, any>>(notificationsJson, {});
+
+    return {
+      companyName: companyName ?? defaults.companyName,
+      companyEmail: companyEmail ?? defaults.companyEmail,
+      companyPhone: companyPhone ?? defaults.companyPhone,
+      address: address ?? defaults.address,
+      currency: currency ?? defaults.currency,
+      timezone: timezone ?? defaults.timezone,
+      dateFormat: dateFormat ?? defaults.dateFormat,
+      fiscalYearStart: fiscalYearStart ?? defaults.fiscalYearStart,
+      features: {
+        ...defaults.features,
+        ...storedFeatures,
+        modules: {
+          ...(defaults.features.modules || {}),
+          ...(storedFeatures.modules || {}),
+        },
+      },
+      notifications: {
+        ...defaults.notifications,
+        ...storedNotifications,
+      },
+    };
   }
 
   async updateSystemConfig(data: any) {
-    // In a real system, this would update database settings
+    if (!data || typeof data !== "object") {
+      throw new BadRequestException("Invalid configuration payload");
+    }
+
+    const ops: Promise<unknown>[] = [];
+
+    if (typeof data.companyName === "string") {
+      ops.push(this.upsertSetting("SYS_COMPANY_NAME", data.companyName));
+    }
+    if (typeof data.companyEmail === "string") {
+      ops.push(this.upsertSetting("SYS_COMPANY_EMAIL", data.companyEmail));
+    }
+    if (typeof data.companyPhone === "string") {
+      ops.push(this.upsertSetting("SYS_COMPANY_PHONE", data.companyPhone));
+    }
+    if (typeof data.address === "string") {
+      ops.push(this.upsertSetting("SYS_ADDRESS", data.address));
+    }
+    if (typeof data.currency === "string") {
+      ops.push(this.upsertSetting("SYS_CURRENCY", data.currency));
+    }
+    if (typeof data.timezone === "string") {
+      ops.push(this.upsertSetting("SYS_TIMEZONE", data.timezone));
+    }
+    if (typeof data.dateFormat === "string") {
+      ops.push(this.upsertSetting("SYS_DATE_FORMAT", data.dateFormat));
+    }
+    if (typeof data.fiscalYearStart === "string") {
+      ops.push(this.upsertSetting("SYS_FISCAL_YEAR_START", data.fiscalYearStart));
+    }
+
+    if (data.features && typeof data.features === "object") {
+      ops.push(this.upsertSetting("SYS_FEATURES_JSON", JSON.stringify(data.features)));
+    }
+
+    if (data.notifications && typeof data.notifications === "object") {
+      ops.push(
+        this.upsertSetting("SYS_NOTIFICATIONS_JSON", JSON.stringify(data.notifications)),
+      );
+    }
+
+    if (ops.length > 0) {
+      await Promise.all(ops);
+    }
+
+    return this.getSystemConfig();
+  }
+
+  async getNotificationProvidersStatus() {
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+    const smtpFrom = process.env.SMTP_FROM;
+
+    const emailConfigured = !!smtpHost && !!smtpUser && !!smtpPass;
+
     return {
-      success: true,
-      message: "System configuration updated successfully",
-      data,
+      email: {
+        configured: emailConfigured,
+        fromConfigured: !!smtpFrom || !!smtpUser,
+      },
+      sms: {
+        configured: false,
+        provider: null,
+      },
+      push: {
+        configured: false,
+        provider: null,
+      },
     };
+  }
+
+  async getUserNotificationPreferences(userId: string) {
+    const raw = await this.getSetting(`NOTIF_PREF_${userId}`);
+    const defaults = {
+      email: {
+        enabled: true,
+        approvalRequests: true,
+        approvalUpdates: true,
+        systemAlerts: true,
+        expenseApprovals: false,
+        inventoryAlerts: true,
+        safetyAlerts: true,
+        weeklyReports: false,
+      },
+      sms: {
+        enabled: false,
+        criticalAlerts: false,
+        approvalRequests: false,
+        safetyEmergencies: false,
+      },
+      push: {
+        enabled: true,
+        approvalRequests: true,
+        mentions: true,
+        systemAlerts: false,
+        taskReminders: true,
+      },
+    };
+
+    const parsed = this.safeJsonParse<any>(raw, defaults);
+    return {
+      email: { ...defaults.email, ...(parsed?.email || {}) },
+      sms: { ...defaults.sms, ...(parsed?.sms || {}) },
+      push: { ...defaults.push, ...(parsed?.push || {}) },
+    };
+  }
+
+  async updateUserNotificationPreferences(userId: string, prefs: any) {
+    if (!prefs || typeof prefs !== "object") {
+      throw new BadRequestException("Invalid notification preferences payload");
+    }
+
+    await this.upsertSetting(`NOTIF_PREF_${userId}`, JSON.stringify(prefs));
+    return this.getUserNotificationPreferences(userId);
+  }
+
+  async sendTestEmail(userId: string, toEmail?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true, lastName: true },
+    });
+    if (!user) throw new NotFoundException("User not found");
+
+    const to = (toEmail || user.email || "").trim();
+    if (!to) throw new BadRequestException("Recipient email is required");
+
+    const name = `${user.firstName} ${user.lastName}`.trim();
+
+    await this.emailService.sendEmail({
+      to: [to],
+      subject: "Test Email - Mining ERP Notifications",
+      text: `Hello ${name || "there"},\n\nThis is a test email from Mining ERP notification settings.\n\nIf you received this, SMTP is configured correctly.`,
+    });
+
+    return { success: true };
   }
 
   // User Management
