@@ -1,13 +1,25 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
 export class ReportsService {
+  private readonly logger = new Logger(ReportsService.name);
+
   constructor(private prisma: PrismaService) {}
 
   // ==================== Dashboard Analytics ====================
 
   async getDashboardAnalytics() {
+    const safe = async <T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await fn();
+      } catch (err) {
+        const trace = err instanceof Error ? err.stack : undefined;
+        this.logger.error(`Dashboard analytics query failed: ${label}`, trace);
+        return fallback;
+      }
+    };
+
     const [
       // Inventory
       totalInventory,
@@ -28,24 +40,51 @@ export class ReportsService {
       pendingInspections,
       upcomingTrainings,
     ] = await Promise.all([
-      this.prisma.stockItem.count(),
-      this.prisma.stockItem.count({ where: { currentQuantity: { lte: 10 } } }),
-      this.prisma.asset.count(),
-      this.prisma.asset.count({ where: { status: "ACTIVE" } }),
-      this.prisma.project.count(),
-      this.prisma.project.count({
-        where: { status: { in: ["PLANNING", "ACTIVE"] } },
-      }),
-      this.prisma.budget.count(),
-      this.prisma.expense.count(),
-      this.prisma.employee.count(),
-      this.prisma.employee.count({ where: { status: "ACTIVE" } }),
-      this.prisma.safetyInspection.count({
-        where: { status: { in: ["SCHEDULED", "IN_PROGRESS"] } },
-      }),
-      this.prisma.safetyTraining.count({
-        where: { status: "SCHEDULED", scheduledDate: { gte: new Date() } },
-      }),
+      safe("stockItem.count", () => this.prisma.stockItem.count(), 0),
+      safe(
+        "stockItem.lowStock",
+        () => this.prisma.stockItem.count({ where: { currentQuantity: { lte: 10 } } }),
+        0,
+      ),
+      safe("asset.count", () => this.prisma.asset.count(), 0),
+      safe(
+        "asset.active",
+        () => this.prisma.asset.count({ where: { status: "ACTIVE" } }),
+        0,
+      ),
+      safe("project.count", () => this.prisma.project.count(), 0),
+      safe(
+        "project.active",
+        () =>
+          this.prisma.project.count({
+            where: { status: { in: ["PLANNING", "ACTIVE"] } },
+          }),
+        0,
+      ),
+      safe("budget.count", () => this.prisma.budget.count(), 0),
+      safe("expense.count", () => this.prisma.expense.count(), 0),
+      safe("employee.count", () => this.prisma.employee.count(), 0),
+      safe(
+        "employee.active",
+        () => this.prisma.employee.count({ where: { status: "ACTIVE" } }),
+        0,
+      ),
+      safe(
+        "safetyInspection.pending",
+        () =>
+          this.prisma.safetyInspection.count({
+            where: { status: { in: ["SCHEDULED", "IN_PROGRESS"] } },
+          }),
+        0,
+      ),
+      safe(
+        "safetyTraining.upcoming",
+        () =>
+          this.prisma.safetyTraining.count({
+            where: { status: "SCHEDULED", scheduledDate: { gte: new Date() } },
+          }),
+        0,
+      ),
     ]);
 
     return {

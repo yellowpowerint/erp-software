@@ -1,40 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import axios from 'axios';
 
 import { http } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
+import { API_BASE_URL } from '../config';
 
 export function HomeScreen() {
   const { me, signOut } = useAuth();
   const [dashboard, setDashboard] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
-      try {
-        setError(null);
-        const res = await http.get('/reports/dashboard');
-        if (!mounted) return;
-        setDashboard(res.data);
-      } catch (e: any) {
-        if (!mounted) return;
-        if (axios.isAxiosError(e) && e.response?.status === 401) {
-          await signOut();
-          return;
-        }
-        setError('Failed to load dashboard');
+  const loadDashboard = useCallback(async () => {
+    try {
+      setError(null);
+      const res = await http.get('/reports/dashboard');
+      setDashboard(res.data);
+    } catch (e: any) {
+      if (axios.isAxiosError(e) && e.response?.status === 401) {
+        await signOut();
+        return;
       }
-    };
 
-    load();
+      if (axios.isAxiosError(e)) {
+        const status = e.response?.status;
+        const apiMessage = (e.response?.data as any)?.message;
+        const messagePart = typeof apiMessage === 'string' && apiMessage.trim().length > 0 ? apiMessage : e.message;
+        setError(`Failed to load dashboard (${status ?? 'NO_RESPONSE'}): ${messagePart}\nAPI: ${API_BASE_URL}`);
+      } else {
+        setError(`Failed to load dashboard: ${String(e)}\nAPI: ${API_BASE_URL}`);
+      }
+    }
+  }, [signOut]);
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  useEffect(() => {
+    (async () => {
+      await loadDashboard();
+    })();
+  }, [loadDashboard]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -45,11 +48,18 @@ export function HomeScreen() {
         <Text style={styles.cardTitle}>Dashboard (raw)</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Text selectable style={styles.mono}>
-          {dashboard ? JSON.stringify(dashboard, null, 2) : 'Loading...'}
+          {dashboard ? JSON.stringify(dashboard, null, 2) : error ? '—' : 'Loading...'}
         </Text>
       </View>
 
       <View style={styles.actions}>
+        <Button
+          title="Retry"
+          onPress={async () => {
+            setDashboard(null);
+            await loadDashboard();
+          }}
+        />
         <Button title="Logout" onPress={signOut} />
       </View>
     </ScrollView>

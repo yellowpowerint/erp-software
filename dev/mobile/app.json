@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Mining ERP",
-    "slug": "mining-erp-mobile",
+    "name": "Yellow Power ERP",
+    "slug": "yellow-power-erp-mobile",
     "version": "1.0.0",
     "scheme": "miningerp",
     "orientation": "portrait",
