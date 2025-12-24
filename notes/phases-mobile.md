@@ -221,6 +221,18 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Preferences persist across reinstall/login
 
+**Status:** COMPLETE
+
+**Implementation Notes (M2.4)**
+- Backend already supports notification preferences via `GET/PUT /api/settings/notifications/preferences` and persists them per-user.
+- Mobile now includes a real **More** tab with a **Notification Preferences** screen that loads/saves channel toggles (Email/Push/SMS).
+- Push registration now respects the saved preference: disabling `push.enabled` triggers a best-effort device unregister and prevents re-registration.
+
+**Acceptance Checklist (M2.4)**
+- [x] Preferences UI present with channel toggles
+- [x] Preferences persist to backend and reflect on subsequent loads
+- [x] Preferences persist across reinstall/login (stored server-side)
+
 ---
 
 # Phase M3 — Work: Approvals + Tasks (4 sessions)

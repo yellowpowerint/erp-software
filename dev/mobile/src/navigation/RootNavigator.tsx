@@ -32,7 +32,12 @@ const linking: LinkingOptions<RootParamList> = {
           NotificationDetail: 'notifications/:id',
         },
       },
-      More: 'more',
+      More: {
+        screens: {
+          MoreHome: 'more',
+          NotificationPreferences: 'more/notification-preferences',
+        },
+      },
       Login: 'login',
     },
   },

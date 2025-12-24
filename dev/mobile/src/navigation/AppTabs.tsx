@@ -8,6 +8,8 @@ import type { HomeStackParamList } from './HomeStack';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { NotificationsStack } from './NotificationsStack';
 import type { NotificationsStackParamList } from './NotificationsStack';
+import { MoreStack } from './MoreStack';
+import type { MoreStackParamList } from './MoreStack';
 import { useNotifications } from '../notifications/NotificationsContext';
 
 export type AppTabsParamList = {
@@ -15,7 +17,7 @@ export type AppTabsParamList = {
   Work: undefined;
   Modules: undefined;
   Notifications: NavigatorScreenParams<NotificationsStackParamList> | undefined;
-  More: undefined;
+  More: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
@@ -39,7 +41,7 @@ export function AppTabs() {
           options={{ headerShown: false, tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
         />
       ) : null}
-      {flags?.more !== false ? <Tab.Screen name="More" children={() => <PlaceholderScreen title="More" />} /> : null}
+      {flags?.more !== false ? <Tab.Screen name="More" component={MoreStack} options={{ headerShown: false }} /> : null}
     </Tab.Navigator>
   );
 }

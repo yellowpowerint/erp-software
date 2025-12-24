@@ -6,6 +6,7 @@ import { Alert, Linking, Platform } from 'react-native';
 import { http } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
 import { APP_SCHEME } from '../config';
+import { useNotificationPreferences } from '../settings/NotificationPreferencesContext';
 import { getOrCreateDeviceId } from './deviceId';
 
 type Props = {
@@ -41,6 +42,7 @@ function normalizeDeepLink(raw: unknown): string | null {
 
 export function PushNotificationsProvider({ children }: Props) {
   const { token } = useAuth();
+  const { prefs } = useNotificationPreferences();
 
   const appVersion = useMemo(() => getInstalledVersion(), []);
 
@@ -65,6 +67,17 @@ export function PushNotificationsProvider({ children }: Props) {
 
   const ensurePushRegistration = useCallback(async () => {
     if (!token) return;
+
+    const pushEnabled = prefs?.push?.enabled !== false;
+    if (!pushEnabled) {
+      try {
+        const deviceId = await getOrCreateDeviceId();
+        await http.post('/mobile/devices/unregister', { deviceId });
+      } catch {
+        // best-effort
+      }
+      return;
+    }
 
     const perms = await Notifications.getPermissionsAsync();
     const status = perms.status === 'granted' ? 'granted' : (await Notifications.requestPermissionsAsync()).status;
@@ -95,7 +108,7 @@ export function PushNotificationsProvider({ children }: Props) {
     } catch {
       return;
     }
-  }, [token, registerOnBackend]);
+  }, [token, prefs?.push?.enabled, registerOnBackend]);
 
   const handleDeepLink = useCallback(async (raw: unknown) => {
     const url = normalizeDeepLink(raw);
