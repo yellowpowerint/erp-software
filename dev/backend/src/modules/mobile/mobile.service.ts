@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { PrismaService } from "@/common/prisma/prisma.service";
 
 type MobileFeatureFlags = {
   home: boolean;
@@ -42,6 +43,8 @@ function parseJsonObjectEnv(value: string | undefined): Record<string, unknown> 
 
 @Injectable()
 export class MobileService {
+  constructor(private readonly prisma: PrismaService) {}
+
   getMobileConfig(): MobileConfigResponse {
     const minimumIos = process.env.MOBILE_MIN_VERSION_IOS || "1.0.0";
     const minimumAndroid = process.env.MOBILE_MIN_VERSION_ANDROID || "1.0.0";
@@ -83,5 +86,52 @@ export class MobileService {
       featureFlags,
       serverTime: new Date().toISOString(),
     };
+  }
+
+  async registerDevice(userId: string, data: {
+    deviceId: string;
+    platform: string;
+    pushToken: string;
+    appVersion?: string;
+    deviceModel?: string;
+    osVersion?: string;
+  }) {
+    const now = new Date();
+
+    return this.prisma.mobileDevice.upsert({
+      where: {
+        userId_deviceId: {
+          userId,
+          deviceId: data.deviceId,
+        },
+      },
+      create: {
+        userId,
+        deviceId: data.deviceId,
+        platform: data.platform,
+        pushToken: data.pushToken,
+        appVersion: data.appVersion,
+        deviceModel: data.deviceModel,
+        osVersion: data.osVersion,
+        lastSeenAt: now,
+      },
+      update: {
+        platform: data.platform,
+        pushToken: data.pushToken,
+        appVersion: data.appVersion,
+        deviceModel: data.deviceModel,
+        osVersion: data.osVersion,
+        lastSeenAt: now,
+      },
+    });
+  }
+
+  async unregisterDevice(userId: string, deviceId: string) {
+    return this.prisma.mobileDevice.deleteMany({
+      where: {
+        userId,
+        deviceId,
+      },
+    });
   }
 }

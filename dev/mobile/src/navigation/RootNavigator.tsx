@@ -1,4 +1,5 @@
 import React from 'react';
+import type { LinkingOptions } from '@react-navigation/native';
 import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
@@ -7,7 +8,35 @@ import { useMobileConfig } from '../config/MobileConfigContext';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ForceUpdateScreen } from '../screens/ForceUpdateScreen';
 import { AuthStack } from './AuthStack';
+import type { AuthStackParamList } from './AuthStack';
 import { AppTabs } from './AppTabs';
+import type { AppTabsParamList } from './AppTabs';
+import { APP_SCHEME } from '../config';
+
+type RootParamList = AuthStackParamList & AppTabsParamList;
+
+const linking: LinkingOptions<RootParamList> = {
+  prefixes: [`${APP_SCHEME}://`],
+  config: {
+    screens: {
+      Home: {
+        screens: {
+          Home: 'home',
+        },
+      },
+      Work: 'work',
+      Modules: 'modules',
+      Notifications: {
+        screens: {
+          Notifications: 'notifications',
+          NotificationDetail: 'notifications/:id',
+        },
+      },
+      More: 'more',
+      Login: 'login',
+    },
+  },
+};
 
 export function RootNavigator() {
   const { isBooting, token } = useAuth();
@@ -54,7 +83,11 @@ export function RootNavigator() {
     );
   }
 
-  return <NavigationContainer>{token ? <AppTabs /> : <AuthStack />}</NavigationContainer>;
+  return (
+    <NavigationContainer<RootParamList> linking={linking}>
+      {token ? <AppTabs /> : <AuthStack />}
+    </NavigationContainer>
+  );
 }
 
 const styles = StyleSheet.create({

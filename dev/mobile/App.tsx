@@ -8,6 +8,7 @@ import { AuthProvider } from './src/auth/AuthContext';
 import { MobileConfigProvider } from './src/config/MobileConfigContext';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { NotificationsProvider } from './src/notifications/NotificationsContext';
+import { PushNotificationsProvider } from './src/push/PushNotificationsProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 export default function App() {
@@ -15,11 +16,13 @@ export default function App() {
     <MobileConfigProvider>
       <AuthProvider>
         <NotificationsProvider>
-          <SafeAreaView style={{ flex: 1 }}>
-            <OfflineBanner />
-            <RootNavigator />
-            <StatusBar style="auto" />
-          </SafeAreaView>
+          <PushNotificationsProvider>
+            <SafeAreaView style={{ flex: 1 }}>
+              <OfflineBanner />
+              <RootNavigator />
+              <StatusBar style="auto" />
+            </SafeAreaView>
+          </PushNotificationsProvider>
         </NotificationsProvider>
       </AuthProvider>
     </MobileConfigProvider>

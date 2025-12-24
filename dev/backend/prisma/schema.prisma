@@ -137,6 +137,7 @@ model User {
   createdPaymentRequests  PaymentRequest[]          @relation("PaymentRequestCreator")
   approvalActions         ApprovalHistory[]         @relation("ApprovalActor")
   notifications           Notification[]            @relation("UserNotifications")
+  mobileDevices           MobileDevice[]            @relation("UserMobileDevices")
   assignedApprovals       UserAssignment[]          @relation("AssignedUser")
   approvedPayments        FinancePayment[]
   submittedExpenses       Expense[]                 @relation("ExpenseSubmitter")
@@ -1165,6 +1166,27 @@ model Notification {
   @@index([read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model MobileDevice {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation("UserMobileDevices", fields: [userId], references: [id], onDelete: Cascade)
+  deviceId    String
+  platform    String
+  pushToken   String
+  appVersion  String?
+  deviceModel String?
+  osVersion   String?
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@index([pushToken])
+  @@index([lastSeenAt])
+  @@map("mobile_devices")
 }
 
 model UserAssignment {

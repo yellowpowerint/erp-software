@@ -197,6 +197,19 @@ This document defines the **session-by-session procedure** to develop the Mining
   - Push works in dev/staging (as applicable)
   - App handles missing/invalid deep links gracefully
 
+**Status:** COMPLETE
+
+**Implementation Notes (M2.3)**
+- Backend implements `POST /api/mobile/devices/register` and `POST /api/mobile/devices/unregister`, storing device + push token in `mobile_devices`.
+- Mobile uses `expo-notifications` to request permission, retrieve an Expo push token, and register it to the backend after login.
+- Push tap handling reads `data.deepLink` (or `data.url`) from the notification payload and routes via deep links (scheme: `miningerp://`).
+
+**Acceptance Checklist (M2.3)**
+- [x] Device successfully registers with backend (`/api/mobile/devices/register`)
+- [x] Push permission + token retrieval is handled on mobile
+- [x] Tapping push opens deep link destination (when provided)
+- [x] Missing/invalid deep links are handled gracefully with a safe fallback
+
 ## Session M2.4 — Notification Preferences
 - **Scope**
   - Preferences UI (channel toggles)

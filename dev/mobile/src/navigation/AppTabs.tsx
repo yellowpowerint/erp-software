@@ -7,13 +7,14 @@ import { HomeStack } from './HomeStack';
 import type { HomeStackParamList } from './HomeStack';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { NotificationsStack } from './NotificationsStack';
+import type { NotificationsStackParamList } from './NotificationsStack';
 import { useNotifications } from '../notifications/NotificationsContext';
 
 export type AppTabsParamList = {
   Home: NavigatorScreenParams<HomeStackParamList> | undefined;
   Work: undefined;
   Modules: undefined;
-  Notifications: undefined;
+  Notifications: NavigatorScreenParams<NotificationsStackParamList> | undefined;
   More: undefined;
 };
 

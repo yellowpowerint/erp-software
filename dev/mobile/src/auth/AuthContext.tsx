@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { http, setAuthToken, setUnauthorizedHandler } from '../api/http';
 import { clearAccessToken, getAccessToken, setAccessToken } from './authStorage';
 import type { LoginResponse, MeResponse } from './types';
+import { getExistingDeviceId } from '../push/deviceId';
 
 type AuthState = {
   isBooting: boolean;
@@ -75,6 +76,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    try {
+      const deviceId = await getExistingDeviceId();
+      if (deviceId) {
+        await http.post('/mobile/devices/unregister', { deviceId });
+      }
+    } catch {
+      // best-effort
+    }
+
     await clearAccessToken();
     setAuthToken(null);
     setState({ isBooting: false, token: null, me: null });
