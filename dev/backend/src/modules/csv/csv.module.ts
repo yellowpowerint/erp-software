@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { PrismaModule } from "../../common/prisma/prisma.module";
 import { DocumentsModule } from "../documents/documents.module";
 import { CsvController } from "./csv.controller";
@@ -12,7 +12,7 @@ import { ScheduledExportService } from "./scheduled-export.service";
 import { EmailService } from "./email.service";
 
 @Module({
-  imports: [PrismaModule, DocumentsModule],
+  imports: [PrismaModule, forwardRef(() => DocumentsModule)],
   controllers: [CsvController],
   providers: [
     CsvService,

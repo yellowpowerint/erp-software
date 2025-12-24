@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { DocumentsController } from "./documents.controller";
 import { DocumentsService } from "./documents.service";
 import { StorageService } from "./services/storage.service";
@@ -39,7 +39,7 @@ import { DocumentFinalizeQueueService } from "./services/document-finalize-queue
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, forwardRef(() => NotificationsModule)],
   controllers: [
     DocumentsController,
     OCRController,
