@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { EmailService } from "../csv/email.service";
 
@@ -23,6 +23,21 @@ export class NotificationsService {
     private prisma: PrismaService,
     private readonly emailService: EmailService,
   ) {}
+
+  async getNotificationById(notificationId: string, userId: string) {
+    const n = await this.prisma.notification.findFirst({
+      where: {
+        id: notificationId,
+        userId,
+      },
+    });
+
+    if (!n) {
+      throw new NotFoundException("Notification not found");
+    }
+
+    return n;
+  }
 
   private safeJsonParse<T>(raw: string | null, fallback: T): T {
     if (!raw) return fallback;

@@ -6,6 +6,8 @@ import { useMobileConfig } from '../config/MobileConfigContext';
 import { HomeStack } from './HomeStack';
 import type { HomeStackParamList } from './HomeStack';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { NotificationsStack } from './NotificationsStack';
+import { useNotifications } from '../notifications/NotificationsContext';
 
 export type AppTabsParamList = {
   Home: NavigatorScreenParams<HomeStackParamList> | undefined;
@@ -20,6 +22,7 @@ const Tab = createBottomTabNavigator<AppTabsParamList>();
 export function AppTabs() {
   const { config } = useMobileConfig();
   const flags = config?.featureFlags;
+  const { unreadCount } = useNotifications();
 
   return (
     <Tab.Navigator>
@@ -29,7 +32,11 @@ export function AppTabs() {
         <Tab.Screen name="Modules" children={() => <PlaceholderScreen title="Modules" />} />
       ) : null}
       {flags?.notifications !== false ? (
-        <Tab.Screen name="Notifications" children={() => <PlaceholderScreen title="Notifications" />} />
+        <Tab.Screen
+          name="Notifications"
+          component={NotificationsStack}
+          options={{ headerShown: false, tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
+        />
       ) : null}
       {flags?.more !== false ? <Tab.Screen name="More" children={() => <PlaceholderScreen title="More" />} /> : null}
     </Tab.Navigator>

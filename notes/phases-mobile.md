@@ -169,6 +169,20 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Notifications open correct detail screens
 
+**Status:** COMPLETE
+
+**Implementation Notes (M2.2)**
+- Backend exposes `GET /api/notifications/:id` to support inbox detail view scoped to the current user.
+- Mobile Notifications tab uses a stack navigator with inbox list + detail.
+- Unread badge is driven by `GET /api/notifications/unread-count` and updated when marking read/mark-all-read.
+
+**Acceptance Checklist (M2.2)**
+- [x] Notifications tab shows inbox list
+- [x] Unread state is visible and unread count badge updates
+- [x] Tapping a notification opens the correct detail screen
+- [x] Mark-as-read and mark-all-read update unread count
+- [x] Error/refresh handling present on list and detail
+
 ## Session M2.3 — Push Registration + Device Management
 - **Scope**
   - Setup push token retrieval
