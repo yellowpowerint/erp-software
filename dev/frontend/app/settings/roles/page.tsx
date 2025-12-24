@@ -7,21 +7,67 @@ import Link from "next/link";
 import { UserRole } from "@/types/auth";
 import { menuItems, type MenuItem } from "@/lib/config/menu";
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  [UserRole.SUPER_ADMIN]: "Super Admin",
-  [UserRole.CEO]: "CEO",
-  [UserRole.CFO]: "CFO",
-  [UserRole.DEPARTMENT_HEAD]: "Department Head",
-  [UserRole.ACCOUNTANT]: "Accountant",
-  [UserRole.PROCUREMENT_OFFICER]: "Procurement Officer",
-  [UserRole.OPERATIONS_MANAGER]: "Operations Manager",
-  [UserRole.IT_MANAGER]: "IT Manager",
-  [UserRole.HR_MANAGER]: "HR Manager",
-  [UserRole.SAFETY_OFFICER]: "Safety Officer",
-  [UserRole.WAREHOUSE_MANAGER]: "Warehouse Manager",
-  [UserRole.EMPLOYEE]: "Employee",
-  [UserRole.VENDOR]: "Vendor",
-};
+type CompanyRoleId =
+  | "SUPER_ADMIN"
+  | "EXEC_SENIOR_MANAGEMENT"
+  | "MIDDLE_MANAGEMENT"
+  | "JUNIOR_MANAGEMENT_OFFICERS"
+  | "SUPERVISORS"
+  | "FIELD_SUPPORT_STAFF";
+
+const COMPANY_ROLES: Array<{
+  id: CompanyRoleId;
+  label: string;
+  description: string;
+  mappedSystemRoles: UserRole[];
+}> = [
+  {
+    id: "SUPER_ADMIN",
+    label: "Super Admin",
+    description: "Full administrative access across the system.",
+    mappedSystemRoles: [UserRole.SUPER_ADMIN],
+  },
+  {
+    id: "EXEC_SENIOR_MANAGEMENT",
+    label: "Executive / Senior Management",
+    description: "High-level oversight and approvals across departments.",
+    mappedSystemRoles: [UserRole.CEO, UserRole.CFO],
+  },
+  {
+    id: "MIDDLE_MANAGEMENT",
+    label: "Middle Management (Department Heads & Supervision)",
+    description: "Department-level management and operational supervision.",
+    mappedSystemRoles: [
+      UserRole.DEPARTMENT_HEAD,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.IT_MANAGER,
+      UserRole.HR_MANAGER,
+      UserRole.WAREHOUSE_MANAGER,
+    ],
+  },
+  {
+    id: "JUNIOR_MANAGEMENT_OFFICERS",
+    label: "Junior Management / Officers",
+    description: "Officers responsible for day-to-day execution within their scope.",
+    mappedSystemRoles: [
+      UserRole.ACCOUNTANT,
+      UserRole.PROCUREMENT_OFFICER,
+      UserRole.SAFETY_OFFICER,
+    ],
+  },
+  {
+    id: "SUPERVISORS",
+    label: "Supervisors",
+    description: "On-the-ground supervision and task coordination.",
+    mappedSystemRoles: [UserRole.OPERATIONS_MANAGER],
+  },
+  {
+    id: "FIELD_SUPPORT_STAFF",
+    label: "Field & Support Staff",
+    description: "General staff and support roles with limited access.",
+    mappedSystemRoles: [UserRole.EMPLOYEE, UserRole.VENDOR],
+  },
+];
 
 const flattenMenu = (items: MenuItem[]): MenuItem[] => {
   const out: MenuItem[] = [];
@@ -56,8 +102,28 @@ const getRoleModules = (role: UserRole) => {
   return { modules: uniqueTop, keyPagesCount: items.length };
 };
 
+const getCompanyRoleModules = (mappedRoles: UserRole[]) => {
+  const roleSet = new Set<UserRole>(mappedRoles);
+
+  const accessibleItems = flattenMenu(menuItems)
+    .filter((m) => Boolean(m.path))
+    .filter((m) => (m.roles || []).some((r) => roleSet.has(r)));
+
+  const topLevelModules = menuItems
+    .filter((m) => Boolean(m.path))
+    .filter((m) => (m.roles || []).some((r) => roleSet.has(r)))
+    .map((m) => m.label);
+
+  const uniqueModules = Array.from(new Set(topLevelModules)).sort((a, b) =>
+    a.localeCompare(b),
+  );
+
+  const uniquePagesCount = new Set(accessibleItems.map((m) => m.path)).size;
+
+  return { modules: uniqueModules, keyPagesCount: uniquePagesCount };
+};
+
 function RolesPermissionsContent() {
-  const roles = Object.values(UserRole);
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -75,7 +141,7 @@ function RolesPermissionsContent() {
               Roles &amp; Permissions
             </h1>
             <p className="text-gray-600">
-              Overview of system roles and the modules each role can access.
+              Overview of company roles and the modules each role can access.
             </p>
           </div>
         </div>
@@ -98,20 +164,19 @@ function RolesPermissionsContent() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {roles.map((role) => {
-                const { modules, keyPagesCount } = getRoleModules(role);
+              {COMPANY_ROLES.map((role) => {
+                const { modules, keyPagesCount } = getCompanyRoleModules(
+                  role.mappedSystemRoles,
+                );
                 return (
-                <tr key={role} className="hover:bg-gray-50">
+                <tr key={role.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 align-top">
                     <div className="text-sm font-semibold text-gray-900">
-                      {ROLE_LABELS[role]}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {role.replace(/_/g, " ")}
+                      {role.label}
                     </div>
                   </td>
                   <td className="px-6 py-4 align-top text-sm text-gray-700">
-                    Access is derived from the current sidebar configuration.
+                    {role.description}
                     <div className="text-xs text-gray-500 mt-1">
                       {keyPagesCount} menu entries available
                     </div>
