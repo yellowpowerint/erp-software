@@ -24,7 +24,11 @@ const linking: LinkingOptions<RootParamList> = {
           Home: 'home',
         },
       },
-      Work: 'work',
+      Work: {
+        screens: {
+          ApprovalsList: 'work/approvals',
+        },
+      },
       Modules: 'modules',
       Notifications: {
         screens: {

@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Query, UseGuards } from "@nestjs/common";
 import { ApprovalsService } from "./approvals.service";
 import {
   CreateInvoiceDto,
   CreatePurchaseRequestDto,
   ApprovalActionDto,
+  ApprovalsListQueryDto,
 } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -14,6 +15,11 @@ import { RolesGuard } from "../auth/guards/roles.guard";
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
+
+  @Get()
+  async listApprovals(@CurrentUser() user: any, @Query() query: ApprovalsListQueryDto) {
+    return this.approvalsService.getApprovalsList(user.userId, user.role, query);
+  }
 
   // Invoice endpoints
   @Post("invoices")

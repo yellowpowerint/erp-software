@@ -248,6 +248,19 @@ This document defines the **session-by-session procedure** to develop the Mining
   - Role-based access enforced
   - Pagination works
 
+**Status:** COMPLETE
+
+**Implementation Notes (M3.1)**
+- Backend adds a unified approvals list endpoint: `GET /api/approvals` with query params `page`, `pageSize`, `type`, `status`, `search`.
+- The endpoint enforces role-based visibility per approval type (invoice/purchase request/IT request/payment request), matching existing module rules.
+- Mobile implements a real **Work** tab with an **Approvals** list screen that supports search, filters, pull-to-refresh, and infinite pagination.
+
+**Acceptance Checklist (M3.1)**
+- [x] Approvals list renders type/status, requester, amount (where applicable)
+- [x] Filters + search are functional
+- [x] Role-based access enforced (server-side)
+- [x] Pagination works
+
 ## Session M3.2 — Approval Detail + Actions
 - **Scope**
   - Approval detail view

@@ -6,6 +6,8 @@ import { useMobileConfig } from '../config/MobileConfigContext';
 import { HomeStack } from './HomeStack';
 import type { HomeStackParamList } from './HomeStack';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { WorkStack } from './WorkStack';
+import type { WorkStackParamList } from './WorkStack';
 import { NotificationsStack } from './NotificationsStack';
 import type { NotificationsStackParamList } from './NotificationsStack';
 import { MoreStack } from './MoreStack';
@@ -14,7 +16,7 @@ import { useNotifications } from '../notifications/NotificationsContext';
 
 export type AppTabsParamList = {
   Home: NavigatorScreenParams<HomeStackParamList> | undefined;
-  Work: undefined;
+  Work: NavigatorScreenParams<WorkStackParamList> | undefined;
   Modules: undefined;
   Notifications: NavigatorScreenParams<NotificationsStackParamList> | undefined;
   More: NavigatorScreenParams<MoreStackParamList> | undefined;
@@ -30,7 +32,7 @@ export function AppTabs() {
   return (
     <Tab.Navigator>
       {flags?.home !== false ? <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} /> : null}
-      {flags?.work !== false ? <Tab.Screen name="Work" children={() => <PlaceholderScreen title="Work" />} /> : null}
+      {flags?.work !== false ? <Tab.Screen name="Work" component={WorkStack} options={{ headerShown: false }} /> : null}
       {flags?.modules !== false ? (
         <Tab.Screen name="Modules" children={() => <PlaceholderScreen title="Modules" />} />
       ) : null}

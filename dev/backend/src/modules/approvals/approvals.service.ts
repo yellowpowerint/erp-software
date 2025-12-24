@@ -9,7 +9,34 @@ import {
   CreateInvoiceDto,
   CreatePurchaseRequestDto,
   ApprovalActionDto,
+  ApprovalsListQueryDto,
 } from "./dto";
+
+type ApprovalListItem = {
+  id: string;
+  type: "INVOICE" | "PURCHASE_REQUEST" | "IT_REQUEST" | "PAYMENT_REQUEST";
+  status: string;
+  referenceNumber: string;
+  title: string;
+  requester: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  };
+  amount: number | null;
+  currency: string | null;
+  createdAt: Date;
+};
+
+type ApprovalsListResponse = {
+  items: ApprovalListItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasNextPage: boolean;
+};
 
 @Injectable()
 export class ApprovalsService {
@@ -17,6 +44,256 @@ export class ApprovalsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
   ) {}
+
+  async getApprovalsList(
+    userId: string,
+    userRole: string,
+    query: ApprovalsListQueryDto,
+  ): Promise<ApprovalsListResponse> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const skip = (page - 1) * pageSize;
+    const takePerType = Math.min(skip + pageSize, 200);
+
+    const typeFilter = query.type ? String(query.type) : null;
+    const statusFilter = query.status ? String(query.status) : null;
+
+    const search = (query.search ?? "").trim();
+    const hasSearch = search.length > 0;
+
+    const invoiceCanSeeAll = ["CEO", "CFO", "ACCOUNTANT", "SUPER_ADMIN"].includes(userRole);
+    const prCanSeeAll = ["CEO", "CFO", "PROCUREMENT_OFFICER", "SUPER_ADMIN"].includes(userRole);
+    const itCanSeeAll = ["CEO", "CFO", "IT_MANAGER", "SUPER_ADMIN"].includes(userRole);
+    const payCanSeeAll = ["CEO", "CFO", "ACCOUNTANT", "SUPER_ADMIN"].includes(userRole);
+
+    const invoiceWhere: any = {
+      ...(invoiceCanSeeAll ? {} : { createdById: userId }),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(hasSearch
+        ? {
+            OR: [
+              { invoiceNumber: { contains: search, mode: "insensitive" } },
+              { supplierName: { contains: search, mode: "insensitive" } },
+              { description: { contains: search, mode: "insensitive" } },
+              { createdBy: { firstName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { lastName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { email: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+
+    const prWhere: any = {
+      ...(prCanSeeAll ? {} : { createdById: userId }),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(hasSearch
+        ? {
+            OR: [
+              { requestNumber: { contains: search, mode: "insensitive" } },
+              { title: { contains: search, mode: "insensitive" } },
+              { description: { contains: search, mode: "insensitive" } },
+              { category: { contains: search, mode: "insensitive" } },
+              { createdBy: { firstName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { lastName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { email: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+
+    const itWhere: any = {
+      ...(itCanSeeAll ? {} : { createdById: userId }),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(hasSearch
+        ? {
+            OR: [
+              { requestNumber: { contains: search, mode: "insensitive" } },
+              { title: { contains: search, mode: "insensitive" } },
+              { description: { contains: search, mode: "insensitive" } },
+              { justification: { contains: search, mode: "insensitive" } },
+              { createdBy: { firstName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { lastName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { email: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+
+    const payWhere: any = {
+      ...(payCanSeeAll ? {} : { createdById: userId }),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(hasSearch
+        ? {
+            OR: [
+              { requestNumber: { contains: search, mode: "insensitive" } },
+              { payeeName: { contains: search, mode: "insensitive" } },
+              { description: { contains: search, mode: "insensitive" } },
+              { createdBy: { firstName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { lastName: { contains: search, mode: "insensitive" } } },
+              { createdBy: { email: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+
+    const wantInvoices = !typeFilter || typeFilter === "INVOICE";
+    const wantPRs = !typeFilter || typeFilter === "PURCHASE_REQUEST";
+    const wantITs = !typeFilter || typeFilter === "IT_REQUEST";
+    const wantPays = !typeFilter || typeFilter === "PAYMENT_REQUEST";
+
+    const [invoiceCount, prCount, itCount, payCount, invoices, prs, its, pays] = await Promise.all([
+      wantInvoices ? this.prisma.invoice.count({ where: invoiceWhere }) : Promise.resolve(0),
+      wantPRs ? this.prisma.purchaseRequest.count({ where: prWhere }) : Promise.resolve(0),
+      wantITs ? this.prisma.iTRequest.count({ where: itWhere }) : Promise.resolve(0),
+      wantPays ? this.prisma.paymentRequest.count({ where: payWhere }) : Promise.resolve(0),
+
+      wantInvoices
+        ? this.prisma.invoice.findMany({
+            where: invoiceWhere,
+            orderBy: { createdAt: "desc" },
+            take: takePerType,
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      wantPRs
+        ? this.prisma.purchaseRequest.findMany({
+            where: prWhere,
+            orderBy: { createdAt: "desc" },
+            take: takePerType,
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      wantITs
+        ? this.prisma.iTRequest.findMany({
+            where: itWhere,
+            orderBy: { createdAt: "desc" },
+            take: takePerType,
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      wantPays
+        ? this.prisma.paymentRequest.findMany({
+            where: payWhere,
+            orderBy: { createdAt: "desc" },
+            take: takePerType,
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const items: ApprovalListItem[] = [];
+
+    for (const inv of invoices as any[]) {
+      items.push({
+        id: inv.id,
+        type: "INVOICE",
+        status: inv.status,
+        referenceNumber: inv.invoiceNumber,
+        title: inv.description,
+        requester: inv.createdBy,
+        amount: typeof inv.amount === "number" ? inv.amount : null,
+        currency: inv.currency ?? null,
+        createdAt: inv.createdAt,
+      });
+    }
+
+    for (const pr of prs as any[]) {
+      items.push({
+        id: pr.id,
+        type: "PURCHASE_REQUEST",
+        status: pr.status,
+        referenceNumber: pr.requestNumber,
+        title: pr.title,
+        requester: pr.createdBy,
+        amount: typeof pr.estimatedCost === "number" ? pr.estimatedCost : null,
+        currency: pr.currency ?? null,
+        createdAt: pr.createdAt,
+      });
+    }
+
+    for (const it of its as any[]) {
+      items.push({
+        id: it.id,
+        type: "IT_REQUEST",
+        status: it.status,
+        referenceNumber: it.requestNumber,
+        title: it.title,
+        requester: it.createdBy,
+        amount: typeof it.estimatedCost === "number" ? it.estimatedCost : null,
+        currency: it.currency ?? null,
+        createdAt: it.createdAt,
+      });
+    }
+
+    for (const pay of pays as any[]) {
+      const title = pay.description || pay.payeeName || "Payment Request";
+      items.push({
+        id: pay.id,
+        type: "PAYMENT_REQUEST",
+        status: pay.status,
+        referenceNumber: pay.requestNumber,
+        title,
+        requester: pay.createdBy,
+        amount: typeof pay.amount === "number" ? pay.amount : null,
+        currency: pay.currency ?? null,
+        createdAt: pay.createdAt,
+      });
+    }
+
+    items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const total = invoiceCount + prCount + itCount + payCount;
+    const pageItems = items.slice(skip, skip + pageSize);
+    const hasNextPage = skip + pageSize < total;
+
+    return {
+      items: pageItems,
+      page,
+      pageSize,
+      total,
+      hasNextPage,
+    };
+  }
 
   // Invoice Methods
   async createInvoice(userId: string, dto: CreateInvoiceDto) {
