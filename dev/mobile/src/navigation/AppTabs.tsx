@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
+import { useMobileConfig } from '../config/MobileConfigContext';
 import { HomeScreen } from '../screens/HomeScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 
@@ -15,13 +16,20 @@ export type AppTabsParamList = {
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 
 export function AppTabs() {
+  const { config } = useMobileConfig();
+  const flags = config?.featureFlags;
+
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Work" children={() => <PlaceholderScreen title="Work" />} />
-      <Tab.Screen name="Modules" children={() => <PlaceholderScreen title="Modules" />} />
-      <Tab.Screen name="Notifications" children={() => <PlaceholderScreen title="Notifications" />} />
-      <Tab.Screen name="More" children={() => <PlaceholderScreen title="More" />} />
+      {flags?.home !== false ? <Tab.Screen name="Home" component={HomeScreen} /> : null}
+      {flags?.work !== false ? <Tab.Screen name="Work" children={() => <PlaceholderScreen title="Work" />} /> : null}
+      {flags?.modules !== false ? (
+        <Tab.Screen name="Modules" children={() => <PlaceholderScreen title="Modules" />} />
+      ) : null}
+      {flags?.notifications !== false ? (
+        <Tab.Screen name="Notifications" children={() => <PlaceholderScreen title="Notifications" />} />
+      ) : null}
+      {flags?.more !== false ? <Tab.Screen name="More" children={() => <PlaceholderScreen title="More" />} /> : null}
     </Tab.Navigator>
   );
 }
