@@ -50,6 +50,17 @@ const toggleStringInArray = (values: string[], value: string) => {
   return [...values, value];
 };
 
+const SYSTEM_ACCESS_CATEGORIES = [
+  'Executive / Senior Management',
+  'Middle Management (Department Heads & Supervision)',
+  'Junior Management / Officers',
+  'Supervisors',
+  'Field & Support Staff',
+  'Other',
+] as const;
+
+type SystemAccessCategory = (typeof SYSTEM_ACCESS_CATEGORIES)[number];
+
 const REPORTS_TO_TITLE_GROUPS = [
   {
     label: 'Executive / Senior Management',
@@ -184,6 +195,100 @@ const ROLE_GROUPS = [
 
 const ROLE_TITLES: string[] = ROLE_GROUPS.flatMap((g) => g.items) as unknown as string[];
 
+const getSystemAccessCategoryForPosition = (position: string | null | undefined): SystemAccessCategory => {
+  if (!position) return 'Other';
+
+  const group = ROLE_GROUPS.find((g) => (g.items as readonly string[]).includes(position));
+  if (!group) return 'Other';
+
+  if (group.label === 'Executive / Senior Management') return 'Executive / Senior Management';
+  if (group.label.startsWith('Middle Management')) return 'Middle Management (Department Heads & Supervision)';
+  if (group.label.startsWith('Junior Management')) return 'Junior Management / Officers';
+  if (group.label === 'Supervisors') return 'Supervisors';
+  if (group.label === 'Field & Support Staff') return 'Field & Support Staff';
+
+  return 'Other';
+};
+
+const resolveUserRoleForSelection = (
+  category: SystemAccessCategory,
+  position: string,
+): UserRole => {
+  const title = position || '';
+
+  if (category === 'Supervisors' || category === 'Field & Support Staff') {
+    return UserRole.EMPLOYEE;
+  }
+
+  if (category === 'Other') {
+    return UserRole.EMPLOYEE;
+  }
+
+  if (title === 'Managing Director (MD)') return UserRole.CEO;
+  if (title === 'Chief Operating Officer (COO)') return UserRole.CEO;
+  if (title === 'Deputy Manager') return UserRole.DEPARTMENT_HEAD;
+  if (title === 'Operations Manager') return UserRole.OPERATIONS_MANAGER;
+
+  if (
+    title.includes('IT') ||
+    title.includes('Systems & Infrastructure') ||
+    title.includes('Applications / ERP')
+  ) {
+    return UserRole.IT_MANAGER;
+  }
+
+  if (title.includes('HR') || title.includes('Training') || title.includes('Industrial Relations')) {
+    return UserRole.HR_MANAGER;
+  }
+
+  if (
+    title.includes('HSE') ||
+    title.includes('Safety') ||
+    title.includes('Environmental')
+  ) {
+    return UserRole.SAFETY_OFFICER;
+  }
+
+  if (title.includes('Warehouse')) {
+    return UserRole.WAREHOUSE_MANAGER;
+  }
+
+  if (
+    title.includes('Procurement') ||
+    title.includes('Purchasing') ||
+    title.includes('Supply Chain') ||
+    title.includes('Logistics')
+  ) {
+    return UserRole.PROCUREMENT_OFFICER;
+  }
+
+  if (
+    title.includes('Finance') ||
+    title.includes('Account') ||
+    title.includes('Budget') ||
+    title.includes('Payroll')
+  ) {
+    return UserRole.ACCOUNTANT;
+  }
+
+  if (
+    title.includes('Mine') ||
+    title.includes('Plant') ||
+    title.includes('Engineering') ||
+    title.includes('Maintenance') ||
+    title.includes('Exploration') ||
+    title.includes('Fleet')
+  ) {
+    return UserRole.OPERATIONS_MANAGER;
+  }
+
+  if (category === 'Executive / Senior Management') return UserRole.CEO;
+  if (category === 'Middle Management (Department Heads & Supervision)') return UserRole.DEPARTMENT_HEAD;
+  if (category === 'Junior Management / Officers') return UserRole.EMPLOYEE;
+
+  return UserRole.EMPLOYEE;
+};
+
 const buildDefaultModulePermissions = () => {
   const perms: Record<string, any> = {};
   MODULES.forEach((m) => {
@@ -208,6 +313,7 @@ function UserManagementContent() {
     firstName: '',
     lastName: '',
     phone: '',
+    systemAccessCategory: 'Field & Support Staff' as SystemAccessCategory,
     role: 'EMPLOYEE',
     status: 'ACTIVE',
     department: '',
@@ -252,6 +358,7 @@ function UserManagementContent() {
       firstName: '',
       lastName: '',
       phone: '',
+      systemAccessCategory: 'Field & Support Staff',
       role: 'EMPLOYEE',
       status: 'ACTIVE',
       department: '',
@@ -269,6 +376,7 @@ function UserManagementContent() {
   const handleEditUser = (user: SettingsUser) => {
     const positionValue = user.position || '';
     const positionIsKnown = !positionValue || ROLE_TITLES.includes(positionValue);
+    const positionCategory = getSystemAccessCategoryForPosition(positionValue);
     setEditingUser(user);
     setWizardStep(0);
     setFormData({
@@ -276,6 +384,7 @@ function UserManagementContent() {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone || '',
+      systemAccessCategory: positionIsKnown ? positionCategory : 'Other',
       role: user.role,
       status: user.status,
       department: user.department || '',
@@ -328,18 +437,26 @@ function UserManagementContent() {
   const handleSave = async () => {
     if (!validateStep(wizardStep)) return;
 
+    const resolvedPosition =
+      formData.position === 'Other'
+        ? formData.customPosition
+        : formData.position;
+
+    const resolvedRole = resolveUserRoleForSelection(
+      formData.systemAccessCategory,
+      resolvedPosition,
+    );
+
     const payload: any = {
       email: formData.email,
       firstName: formData.firstName,
       lastName: formData.lastName,
       phone: formData.phone || undefined,
-      role: formData.role,
+      role: resolvedRole,
       status: formData.status,
       department: formData.department || undefined,
       position:
-        formData.position === 'Other'
-          ? (formData.customPosition || undefined)
-          : formData.position || undefined,
+        resolvedPosition ? resolvedPosition : undefined,
       managerId: formData.managerId || undefined,
       reportsToTitles: formData.reportsToTitles,
       modulePermissions: formData.modulePermissions,
@@ -704,18 +821,27 @@ function UserManagementContent() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">System Access Role*</label>
                       <select
                         required
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        value={formData.systemAccessCategory}
+                        onChange={(e) => {
+                          const selected = e.target.value as SystemAccessCategory;
+                          const resolvedPosition =
+                            formData.position === 'Other'
+                              ? formData.customPosition
+                              : formData.position;
+                          const resolvedRole = resolveUserRoleForSelection(selected, resolvedPosition);
+                          setFormData({
+                            ...formData,
+                            systemAccessCategory: selected,
+                            role: resolvedRole,
+                          });
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       >
-                        <option value="EMPLOYEE">Employee</option>
-                        <option value="DEPARTMENT_HEAD">Department Head</option>
-                        <option value="ACCOUNTANT">Accountant</option>
-                        <option value="HR_MANAGER">HR Manager</option>
-                        <option value="OPERATIONS_MANAGER">Operations Manager</option>
-                        <option value="CFO">CFO</option>
-                        <option value="CEO">CEO</option>
-                        <option value="SUPER_ADMIN">Super Admin</option>
+                        {SYSTEM_ACCESS_CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -762,10 +888,15 @@ function UserManagementContent() {
                                       onChange={() =>
                                         setFormData((prev) => {
                                           setIsPositionOpen(false);
+                                          const nextRole = resolveUserRoleForSelection(
+                                            prev.systemAccessCategory,
+                                            t,
+                                          );
                                           return {
                                             ...prev,
                                             position: t,
                                             customPosition: '',
+                                            role: nextRole,
                                           };
                                         })
                                       }
@@ -786,6 +917,10 @@ function UserManagementContent() {
                                   setFormData((prev) => ({
                                     ...prev,
                                     position: 'Other',
+                                    role: resolveUserRoleForSelection(
+                                      prev.systemAccessCategory,
+                                      prev.customPosition,
+                                    ),
                                   }))
                                 }
                               />
