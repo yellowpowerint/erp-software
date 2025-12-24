@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Users, ArrowLeft, Search, Plus, Edit, Trash2, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Users, ArrowLeft, Search, Plus, Edit, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { UserRole } from '@/types/auth';
 
-interface User {
+interface SettingsUser {
   id: string;
   email: string;
   firstName: string;
@@ -17,18 +18,43 @@ interface User {
   status: string;
   department: string | null;
   position: string | null;
+  managerId?: string | null;
+  modulePermissions?: any;
+  mustChangePassword?: boolean;
   createdAt: string;
   lastLogin: string | null;
 }
 
+const MODULES = [
+  'HR',
+  'PROCUREMENT',
+  'INVENTORY',
+  'FINANCE',
+  'OPERATIONS',
+  'DOCUMENTS',
+  'AI',
+  'SETTINGS',
+] as const;
+
+type ModuleKey = (typeof MODULES)[number];
+
+const buildDefaultModulePermissions = () => {
+  const perms: Record<string, any> = {};
+  MODULES.forEach((m) => {
+    perms[m] = { view: false, create: false, update: false, delete: false };
+  });
+  return perms;
+};
+
 function UserManagementContent() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<SettingsUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<SettingsUser | null>(null);
+  const [wizardStep, setWizardStep] = useState(0);
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -38,6 +64,10 @@ function UserManagementContent() {
     status: 'ACTIVE',
     department: '',
     position: '',
+    managerId: '',
+    modulePermissions: buildDefaultModulePermissions(),
+    password: '',
+    mustChangePassword: true,
   });
 
   useEffect(() => {
@@ -66,6 +96,7 @@ function UserManagementContent() {
 
   const handleCreateUser = () => {
     setEditingUser(null);
+    setWizardStep(0);
     setFormData({
       email: '',
       firstName: '',
@@ -75,12 +106,17 @@ function UserManagementContent() {
       status: 'ACTIVE',
       department: '',
       position: '',
+      managerId: '',
+      modulePermissions: buildDefaultModulePermissions(),
+      password: '',
+      mustChangePassword: true,
     });
     setShowModal(true);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: SettingsUser) => {
     setEditingUser(user);
+    setWizardStep(0);
     setFormData({
       email: user.email,
       firstName: user.firstName,
@@ -90,18 +126,65 @@ function UserManagementContent() {
       status: user.status,
       department: user.department || '',
       position: user.position || '',
+      managerId: user.managerId || '',
+      modulePermissions: user.modulePermissions || buildDefaultModulePermissions(),
+      password: '',
+      mustChangePassword: !!user.mustChangePassword,
     });
     setShowModal(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const validateStep = (step: number) => {
+    if (step === 0) {
+      if (!formData.firstName || !formData.lastName || !formData.email) {
+        alert('Please fill in First Name, Last Name, and Email.');
+        return false;
+      }
+    }
+    if (step === 3) {
+      if (!editingUser && formData.password && formData.password.length < 8) {
+        alert('Temporary password must be at least 8 characters long.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateStep(wizardStep)) return;
+    setWizardStep((s) => Math.min(s + 1, 3));
+  };
+
+  const handleBack = () => {
+    setWizardStep((s) => Math.max(s - 1, 0));
+  };
+
+  const handleSave = async () => {
+    if (!validateStep(wizardStep)) return;
+
+    const payload: any = {
+      email: formData.email,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phone: formData.phone || undefined,
+      role: formData.role,
+      status: formData.status,
+      department: formData.department || undefined,
+      position: formData.position || undefined,
+      managerId: formData.managerId || undefined,
+      modulePermissions: formData.modulePermissions,
+      mustChangePassword: !!formData.mustChangePassword,
+    };
+
+    if (!editingUser && formData.password) {
+      payload.password = formData.password;
+    }
+
     try {
       if (editingUser) {
-        await api.put(`/settings/users/${editingUser.id}`, formData);
+        await api.put(`/settings/users/${editingUser.id}`, payload);
       } else {
-        await api.post('/settings/users', formData);
+        await api.post('/settings/users', payload);
       }
       setShowModal(false);
       fetchUsers();
@@ -111,7 +194,24 @@ function UserManagementContent() {
     }
   };
 
-  const handleToggleStatus = async (user: User) => {
+  const updateModulePermission = (
+    moduleKey: ModuleKey,
+    permission: 'view' | 'create' | 'update' | 'delete',
+    value: boolean,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      modulePermissions: {
+        ...(prev.modulePermissions || {}),
+        [moduleKey]: {
+          ...(prev.modulePermissions?.[moduleKey] || {}),
+          [permission]: value,
+        },
+      },
+    }));
+  };
+
+  const handleToggleStatus = async (user: SettingsUser) => {
     try {
       if (user.status === 'ACTIVE') {
         await api.post(`/settings/users/${user.id}/deactivate`);
@@ -312,8 +412,22 @@ function UserManagementContent() {
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 {editingUser ? 'Edit User' : 'Create New User'}
               </h2>
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="flex items-center justify-between mb-6">
+                <div className="text-sm text-gray-600">
+                  Step {wizardStep + 1} of 4
+                </div>
+                <div className="flex items-center space-x-2">
+                  {[0, 1, 2, 3].map((s) => (
+                    <div
+                      key={s}
+                      className={`h-2 w-10 rounded-full ${s <= wizardStep ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {wizardStep === 0 && (
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">First Name*</label>
                     <input
@@ -354,37 +468,11 @@ function UserManagementContent() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Role*</label>
-                    <select
-                      required
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
-                      <option value="EMPLOYEE">Employee</option>
-                      <option value="DEPARTMENT_HEAD">Department Head</option>
-                      <option value="ACCOUNTANT">Accountant</option>
-                      <option value="HR_MANAGER">HR Manager</option>
-                      <option value="OPERATIONS_MANAGER">Operations Manager</option>
-                      <option value="CFO">CFO</option>
-                      <option value="CEO">CEO</option>
-                      <option value="SUPER_ADMIN">Super Admin</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status*</label>
-                    <select
-                      required
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
-                      <option value="ACTIVE">Active</option>
-                      <option value="INACTIVE">Inactive</option>
-                      <option value="SUSPENDED">Suspended</option>
-                    </select>
-                  </div>
+                </div>
+              )}
+
+              {wizardStep === 1 && (
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
                     <input
@@ -403,24 +491,158 @@ function UserManagementContent() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Manager / Reports To</label>
+                    <select
+                      value={formData.managerId}
+                      onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">None</option>
+                      {users
+                        .filter((u) => !editingUser || u.id !== editingUser.id)
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.firstName} {u.lastName} ({u.email})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
+              )}
 
-                <div className="flex justify-end space-x-3 mt-6">
+              {wizardStep === 2 && (
+                <div>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Role*</label>
+                      <select
+                        required
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="EMPLOYEE">Employee</option>
+                        <option value="DEPARTMENT_HEAD">Department Head</option>
+                        <option value="ACCOUNTANT">Accountant</option>
+                        <option value="HR_MANAGER">HR Manager</option>
+                        <option value="OPERATIONS_MANAGER">Operations Manager</option>
+                        <option value="CFO">CFO</option>
+                        <option value="CEO">CEO</option>
+                        <option value="SUPER_ADMIN">Super Admin</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Status*</label>
+                      <select
+                        required
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                        <option value="SUSPENDED">Suspended</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="grid grid-cols-5 bg-gray-50 text-xs font-medium text-gray-600 px-4 py-3">
+                      <div>Module</div>
+                      <div className="text-center">View</div>
+                      <div className="text-center">Create</div>
+                      <div className="text-center">Update</div>
+                      <div className="text-center">Delete</div>
+                    </div>
+                    {MODULES.map((m) => (
+                      <div key={m} className="grid grid-cols-5 items-center px-4 py-3 border-t border-gray-100">
+                        <div className="text-sm text-gray-900">{m.replace(/_/g, ' ')}</div>
+                        {(['view', 'create', 'update', 'delete'] as const).map((p) => (
+                          <div key={p} className="flex justify-center">
+                            <input
+                              type="checkbox"
+                              checked={!!formData.modulePermissions?.[m]?.[p]}
+                              onChange={(e) => updateModulePermission(m, p, e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {wizardStep === 3 && (
+                <div className="space-y-4">
+                  {!editingUser && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Temporary Password (optional)</label>
+                      <input
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        If left blank, the system will set a default password.
+                      </p>
+                    </div>
+                  )}
+
+                  <label className="flex items-center space-x-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={!!formData.mustChangePassword}
+                      onChange={(e) => setFormData({ ...formData, mustChangePassword: e.target.checked })}
+                      className="h-4 w-4"
+                    />
+                    <span>Force user to change password on first login</span>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex justify-between space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    setWizardStep(0);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+
+                <div className="flex space-x-3">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    onClick={handleBack}
+                    disabled={wizardStep === 0}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                   >
-                    Cancel
+                    Back
                   </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                  >
-                    {editingUser ? 'Update User' : 'Create User'}
-                  </button>
+                  {wizardStep < 3 ? (
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
+                      {editingUser ? 'Update User' : 'Create User'}
+                    </button>
+                  )}
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
@@ -431,7 +653,7 @@ function UserManagementContent() {
 
 export default function UserManagementPage() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
       <UserManagementContent />
     </ProtectedRoute>
   );

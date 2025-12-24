@@ -30,6 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const currentUser = await authService.getMe();
           setUser(currentUser);
           authService.saveUser(currentUser);
+
+          if (currentUser.mustChangePassword) {
+            router.push('/change-password');
+          }
         } catch (error) {
           authService.removeToken();
           setUser(null);
@@ -47,7 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authService.saveToken(response.access_token);
       authService.saveUser(response.user);
       setUser(response.user);
-      router.push('/dashboard');
+
+      if (response.user.mustChangePassword) {
+        router.push('/change-password');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error) {
       throw error;
     }

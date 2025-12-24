@@ -1,4 +1,9 @@
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import * as bcrypt from "bcrypt";
 
@@ -90,6 +95,9 @@ export class SettingsService {
         status: true,
         department: true,
         position: true,
+        managerId: true,
+        modulePermissions: true,
+        mustChangePassword: true,
         createdAt: true,
         updatedAt: true,
         lastLogin: true,
@@ -113,6 +121,9 @@ export class SettingsService {
         status: true,
         department: true,
         position: true,
+        managerId: true,
+        modulePermissions: true,
+        mustChangePassword: true,
         createdAt: true,
         updatedAt: true,
         lastLogin: true,
@@ -129,6 +140,9 @@ export class SettingsService {
       status: data.status,
       department: data.department,
       position: data.position,
+      managerId: data.managerId,
+      modulePermissions: data.modulePermissions,
+      mustChangePassword: data.mustChangePassword,
     };
 
     // Remove undefined values
@@ -151,11 +165,23 @@ export class SettingsService {
         status: true,
         department: true,
         position: true,
+        managerId: true,
+        modulePermissions: true,
+        mustChangePassword: true,
       },
     });
   }
 
   async createUser(data: any) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: data.email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      throw new ConflictException("Email already exists");
+    }
+
     const hashedPassword = await bcrypt.hash(
       data.password || "Password123!",
       10,
@@ -172,6 +198,12 @@ export class SettingsService {
         status: data.status || "ACTIVE",
         department: data.department,
         position: data.position,
+        managerId: data.managerId,
+        modulePermissions: data.modulePermissions,
+        mustChangePassword:
+          typeof data.mustChangePassword === "boolean"
+            ? data.mustChangePassword
+            : true,
       },
       select: {
         id: true,
@@ -183,6 +215,9 @@ export class SettingsService {
         status: true,
         department: true,
         position: true,
+        managerId: true,
+        modulePermissions: true,
+        mustChangePassword: true,
       },
     });
   }
@@ -225,7 +260,7 @@ export class SettingsService {
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundException("User not found");
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -233,14 +268,14 @@ export class SettingsService {
       user.password,
     );
     if (!isPasswordValid) {
-      throw new Error("Current password is incorrect");
+      throw new BadRequestException("Current password is incorrect");
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, mustChangePassword: false },
     });
 
     return {
@@ -254,7 +289,7 @@ export class SettingsService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, mustChangePassword: true },
     });
 
     return {

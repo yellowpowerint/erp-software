@@ -118,6 +118,11 @@ model User {
   status     UserStatus @default(ACTIVE)
   department String?
   position   String?
+  managerId  String?
+  manager    User?      @relation("UserManager", fields: [managerId], references: [id])
+  reports    User[]     @relation("UserManager")
+  modulePermissions Json?
+  mustChangePassword Boolean @default(false)
   vendorId   String?
   vendor     Vendor?    @relation("VendorPortalUser", fields: [vendorId], references: [id])
   createdAt  DateTime   @default(now())

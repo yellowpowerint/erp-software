@@ -30,6 +30,9 @@ export interface User {
   status: UserStatus;
   department?: string;
   position?: string;
+  managerId?: string | null;
+  modulePermissions?: any;
+  mustChangePassword?: boolean;
   vendorId?: string;
   createdAt: string;
   updatedAt: string;
