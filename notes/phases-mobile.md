@@ -145,6 +145,19 @@ This document defines the **session-by-session procedure** to develop the Mining
   - Home loads within acceptable time on good network
   - Widgets navigate to correct lists
 
+**Status**: COMPLETE
+
+**Implementation Notes (M2.1)**
+- Mobile Home uses `GET /api/reports/dashboard` and renders role-appropriate widget cards.
+- Each widget navigates to a working list screen (Inventory/Assets/Projects/Expenses/Employees/Safety).
+- Quick actions sheet is implemented and includes “Open {widget}” actions + Logout.
+
+**Acceptance Checklist (M2.1)**
+- [x] Home dashboard renders role-appropriate cards
+- [x] Quick actions sheet UI present and functional
+- [x] Home loads within acceptable time on good network
+- [x] Widgets navigate to correct lists
+
 ## Session M2.2 — In-App Notification Inbox
 - **Scope**
   - Implement notifications list + detail

@@ -1,12 +1,14 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import { useMobileConfig } from '../config/MobileConfigContext';
-import { HomeScreen } from '../screens/HomeScreen';
+import { HomeStack } from './HomeStack';
+import type { HomeStackParamList } from './HomeStack';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 
 export type AppTabsParamList = {
-  Home: undefined;
+  Home: NavigatorScreenParams<HomeStackParamList> | undefined;
   Work: undefined;
   Modules: undefined;
   Notifications: undefined;
@@ -21,7 +23,7 @@ export function AppTabs() {
 
   return (
     <Tab.Navigator>
-      {flags?.home !== false ? <Tab.Screen name="Home" component={HomeScreen} /> : null}
+      {flags?.home !== false ? <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} /> : null}
       {flags?.work !== false ? <Tab.Screen name="Work" children={() => <PlaceholderScreen title="Work" />} /> : null}
       {flags?.modules !== false ? (
         <Tab.Screen name="Modules" children={() => <PlaceholderScreen title="Modules" />} />
