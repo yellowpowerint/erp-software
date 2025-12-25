@@ -633,6 +633,31 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Large PDFs load reliably
 
+**Status:** COMPLETE
+
+**Implementation Notes (M5.2)**
+- Mobile adds a **Documents** entry under the **More** tab.
+- Mobile implements **Documents List** (server-side search via `GET /api/documents?search=...`).
+- Mobile implements **Document Viewer** (view-first) that loads:
+  - `GET /api/documents/:id` (document details)
+  - `GET /api/documents/:id/my-permissions` (effective permissions)
+  - `GET /api/documents/:id/download` (signed download URL)
+- Role-based gating is enforced via `my-permissions`:
+  - Download button requires `canDownload`
+  - Share button requires `canShare`
+- Large PDFs load reliably by downloading to local cache first (progress UI) and then opening the cached file.
+- 403 responses render a dedicated **No access** state.
+
+**Acceptance Checklist (M5.2)**
+- [x] Document list implemented
+- [x] Document viewer implemented
+- [x] Download/share controls are role-based (gated via `my-permissions`)
+- [x] Large PDFs load reliably (download-to-cache + open)
+
+**Verification (M5.2)**
+- [x] `prod/verify-m5-2.ps1`
+- [x] `prod/verify-m5-2.sh`
+
 ## Session M5.3 — Attachments to Workflows
 - **Scope**
   - Attach uploads to approvals/incidents/expenses
