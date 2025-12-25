@@ -21,6 +21,18 @@ export function MoreScreen() {
         <Text style={styles.sectionTitle}>Settings</Text>
 
         <Pressable
+          onPress={() => navigation.navigate('LeaveRequestSubmit')}
+          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
+          accessibilityRole="button"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowTitle}>Leave Request</Text>
+            <Text style={styles.rowSubtitle}>Submit a leave request for approval</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
+
+        <Pressable
           onPress={() => navigation.navigate('NotificationPreferences')}
           style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
           accessibilityRole="button"

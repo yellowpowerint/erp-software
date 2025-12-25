@@ -21,8 +21,12 @@ import { CsvService } from "../csv/csv.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { CreateLeaveRequestDto } from "./dto/create-leave-request.dto";
+import { UpdateLeaveStatusDto } from "./dto/update-leave-status.dto";
 
 @Controller("hr")
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class HrController {
   constructor(
     private readonly hrService: HrService,
@@ -87,27 +91,33 @@ export class HrController {
 
   // Leave Requests
   @Post("leave-requests")
-  createLeaveRequest(@Body() body: any) {
-    return this.hrService.createLeaveRequest(body);
+  createLeaveRequest(@CurrentUser() user: any, @Body() body: CreateLeaveRequestDto) {
+    return this.hrService.createLeaveRequestForUser(body, user);
   }
 
   @Get("leave-requests")
   getLeaveRequests(
+    @CurrentUser() user: any,
     @Query("employeeId") employeeId?: string,
     @Query("status") status?: string,
     @Query("leaveType") leaveType?: string,
   ) {
-    return this.hrService.getLeaveRequests({ employeeId, status, leaveType });
+    return this.hrService.getLeaveRequestsForUser({ employeeId, status, leaveType }, user);
   }
 
   @Get("leave-requests/:id")
-  getLeaveRequestById(@Param("id") id: string) {
-    return this.hrService.getLeaveRequestById(id);
+  getLeaveRequestById(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.hrService.getLeaveRequestByIdForUser(id, user);
   }
 
   @Put("leave-requests/:id/status")
-  updateLeaveStatus(@Param("id") id: string, @Body() body: any) {
-    return this.hrService.updateLeaveStatus(id, body);
+  @Roles("SUPER_ADMIN", "HR_MANAGER")
+  updateLeaveStatus(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() body: UpdateLeaveStatusDto,
+  ) {
+    return this.hrService.updateLeaveStatusForUser(id, body, user);
   }
 
   // Performance Reviews

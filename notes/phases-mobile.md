@@ -514,6 +514,23 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Validation and error handling correct
 
+**Status:** COMPLETE
+
+**Implementation Notes (M4.6)**
+- Backend `POST /api/hr/leave-requests` is now JWT-protected and validated via `CreateLeaveRequestDto`.
+- Backend binds leave requests to the authenticated employee (by matching `user.email` to `Employee.email`) so clients cannot spoof `employeeId`.
+- HR roles (`SUPER_ADMIN`, `HR_MANAGER`) can optionally submit on behalf of another employee via `employeeId`.
+- Server-side validation includes date ordering, computed inclusive `totalDays`, and prevention of overlapping pending/approved leave.
+- Mobile adds a **Leave Request** submission screen accessible from the **More** tab; it uses consistent API error parsing and client-side validation UX.
+
+**Acceptance Checklist (M4.6)**
+- [x] Leave request submission implemented (mobile UI + backend endpoint)
+- [x] Validation and error handling correct (dates, reason, overlap prevention, server messages surfaced)
+
+**Verification (M4.6)**
+- [x] `prod/verify-m4-6.ps1`
+- [x] `prod/verify-m4-6.sh`
+
 ## Session M4.7 — Finance: Expenses (Receipt Capture, View-First)
 - **Scope**
   - Submit expense with receipt (optional MVP)

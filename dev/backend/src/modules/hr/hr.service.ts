@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { UserRole } from "@prisma/client";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { LeaveStatus, LeaveType, UserRole } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CreateLeaveRequestDto } from "./dto/create-leave-request.dto";
+import { UpdateLeaveStatusDto } from "./dto/update-leave-status.dto";
 
 @Injectable()
 export class HrService {
@@ -56,6 +58,30 @@ export class HrService {
         employeeId,
         employmentType: data.employmentType as any,
       },
+    });
+  }
+
+  async updateLeaveStatusForUser(id: string, dto: UpdateLeaveStatusDto, user: any) {
+    if (!this.isHrRole(user?.role)) {
+      throw new BadRequestException("You do not have permission to update leave status");
+    }
+
+    if (dto.status === LeaveStatus.REJECTED) {
+      const reason = String(dto.rejectionReason ?? "").trim();
+      if (reason.length < 2) {
+        throw new BadRequestException("rejectionReason is required when rejecting");
+      }
+    }
+
+    return this.prisma.leaveRequest.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        approvedById: user?.userId ?? undefined,
+        approvedAt: dto.status === LeaveStatus.APPROVED ? new Date() : undefined,
+        rejectionReason: dto.status === LeaveStatus.REJECTED ? dto.rejectionReason ?? undefined : undefined,
+      },
+      include: { employee: true },
     });
   }
 
@@ -228,6 +254,120 @@ export class HrService {
 
   // ==================== Leave Requests ====================
 
+  private isHrRole(role?: UserRole) {
+    return role === "SUPER_ADMIN" || role === "HR_MANAGER";
+  }
+
+  private async resolveEmployeeForUser(user: { email?: string }, allowMissing = false) {
+    const email = String(user?.email ?? "").trim().toLowerCase();
+    if (!email) {
+      if (allowMissing) return null;
+      throw new BadRequestException("Authenticated user email is missing");
+    }
+
+    const employee = await this.prisma.employee.findUnique({ where: { email } });
+    if (!employee) {
+      if (allowMissing) return null;
+      throw new NotFoundException(
+        "Employee record not found for current user. Ask HR to create/link your employee profile.",
+      );
+    }
+    return employee;
+  }
+
+  private parseLeaveDates(startDate: string, endDate: string) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException("Invalid startDate/endDate (must be ISO 8601 date string)");
+    }
+    if (start.getTime() > end.getTime()) {
+      throw new BadRequestException("startDate must be on or before endDate");
+    }
+    return { start, end };
+  }
+
+  private computeTotalDaysInclusive(start: Date, end: Date) {
+    const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+    const endUtc = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+    const diffDays = Math.floor((endUtc - startUtc) / (1000 * 60 * 60 * 24));
+    const totalDays = diffDays + 1;
+    if (!Number.isFinite(totalDays) || totalDays <= 0) {
+      throw new BadRequestException("totalDays must be at least 1");
+    }
+    if (totalDays > 365) {
+      throw new BadRequestException("Leave request is too long (max 365 days)");
+    }
+    return totalDays;
+  }
+
+  private async ensureNoOverlappingLeave(employeeId: string, start: Date, end: Date) {
+    const existing = await this.prisma.leaveRequest.findFirst({
+      where: {
+        employeeId,
+        status: { in: [LeaveStatus.PENDING, LeaveStatus.APPROVED] },
+        startDate: { lte: end },
+        endDate: { gte: start },
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        "This leave request overlaps with an existing pending/approved leave.",
+      );
+    }
+  }
+
+  async createLeaveRequestForUser(dto: CreateLeaveRequestDto, user: any) {
+    const reason = String(dto.reason ?? "").trim();
+    if (!reason || reason.length < 2) {
+      throw new BadRequestException("reason is required (min 2 characters)");
+    }
+
+    const { start, end } = this.parseLeaveDates(dto.startDate, dto.endDate);
+    const totalDays = this.computeTotalDaysInclusive(start, end);
+
+    let employeeId: string;
+    if (dto.employeeId && this.isHrRole(user?.role)) {
+      const employee = await this.prisma.employee.findUnique({
+        where: { id: dto.employeeId },
+        select: { id: true },
+      });
+      if (!employee) {
+        throw new NotFoundException("Employee not found");
+      }
+      employeeId = employee.id;
+    } else {
+      const employee = await this.resolveEmployeeForUser(user);
+      employeeId = employee.id;
+    }
+
+    await this.ensureNoOverlappingLeave(employeeId, start, end);
+
+    return this.prisma.leaveRequest.create({
+      data: {
+        employeeId,
+        leaveType: dto.leaveType as LeaveType,
+        startDate: start,
+        endDate: end,
+        totalDays,
+        reason,
+      },
+      include: {
+        employee: {
+          select: {
+            employeeId: true,
+            firstName: true,
+            lastName: true,
+            department: true,
+            position: true,
+          },
+        },
+      },
+    });
+  }
+
   async createLeaveRequest(data: {
     employeeId: string;
     leaveType: string;
@@ -271,6 +411,18 @@ export class HrService {
     });
   }
 
+  async getLeaveRequestsForUser(
+    filters: { employeeId?: string; status?: string; leaveType?: string },
+    user: any,
+  ) {
+    if (this.isHrRole(user?.role)) {
+      return this.getLeaveRequests(filters);
+    }
+
+    const employee = await this.resolveEmployeeForUser(user);
+    return this.getLeaveRequests({ ...filters, employeeId: employee.id });
+  }
+
   async getLeaveRequestById(id: string) {
     const leave = await this.prisma.leaveRequest.findUnique({
       where: { id },
@@ -280,6 +432,18 @@ export class HrService {
     });
 
     if (!leave) {
+      throw new NotFoundException("Leave request not found");
+    }
+
+    return leave;
+  }
+
+  async getLeaveRequestByIdForUser(id: string, user: any) {
+    const leave = await this.getLeaveRequestById(id);
+    if (this.isHrRole(user?.role)) return leave;
+
+    const employee = await this.resolveEmployeeForUser(user);
+    if (leave.employeeId !== employee.id) {
       throw new NotFoundException("Leave request not found");
     }
 
