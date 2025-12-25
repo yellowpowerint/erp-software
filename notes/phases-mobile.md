@@ -447,6 +447,30 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Permissions enforced
 
+**Implementation Notes (M4.4)**
+- Backend now supports incident browsing via:
+  - `GET /api/safety/incidents` (paged list + search/filters; server-enforced “mine vs all” visibility)
+  - `GET /api/safety/incidents/:id` (detail; server-enforced access)
+- Mobile includes:
+  - **Incident Reports** list screen (pagination, search, status filter, mine/all toggle where permitted)
+  - **Incident Detail** screen (photos + details; 403 renders “No access”)
+- Navigation:
+  - `HomeStack` includes `SafetyIncidents` and `SafetyIncidentDetail`
+  - Entry points added from Home Quick Actions + Safety Inspections/Trainings screens
+
+**Acceptance Checklist (M4.4)**
+- [x] Incident list screen implemented (search + filtering + pagination)
+- [x] Incident detail screen implemented (photos + fields)
+- [x] Permissions enforced server-side (own incidents vs broader roles)
+- [x] 403 “no access” UI handled gracefully
+- [x] Navigation integrated (Home + Safety screens)
+
+**Verification (M4.4)**
+- [x] Mobile: `npm run typecheck` (in `dev/mobile`)
+- [x] Backend: `npm run build` (in `dev/backend`)
+- [x] Backend: `npm run test` (in `dev/backend`)
+- [x] Backend: `npx eslint "{src,apps,libs,test}/**/*.ts"` (passes; formatting issues may appear as warnings)
+
 ## Session M4.5 — HR: Employee Directory (Limited Fields)
 - **Scope**
   - Directory list + limited profile

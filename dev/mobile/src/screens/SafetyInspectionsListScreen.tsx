@@ -80,6 +80,13 @@ export function SafetyInspectionsListScreen() {
           >
             <Text style={styles.secondaryButtonText}>Outbox ({incidentOutboxCount})</Text>
           </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('SafetyIncidents')}
+            style={({ pressed }) => [styles.secondaryButton, pressed ? styles.secondaryButtonPressed : null]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.secondaryButtonText}>Incidents</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -197,6 +204,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   secondaryButton: {
+    flex: 1,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 12,

@@ -1,10 +1,24 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
-import { CreateSafetyIncidentDto } from "./dto";
+import { CreateSafetyIncidentDto, SafetyIncidentsListQueryDto } from "./dto";
 
 @Injectable()
 export class SafetyService {
   constructor(private prisma: PrismaService) {}
+
+  private canSeeAllIncidents(role: string) {
+    return [
+      "SUPER_ADMIN",
+      "SAFETY_OFFICER",
+      "OPERATIONS_MANAGER",
+      "DEPARTMENT_HEAD",
+    ].includes(String(role));
+  }
 
   async createIncident(userId: string, dto: CreateSafetyIncidentDto) {
     const incidentDate = new Date(dto.incidentDate);
@@ -35,9 +49,14 @@ export class SafetyService {
   }
 
   async appendIncidentPhotos(incidentId: string, photoUrls: string[]) {
-    const urls = (photoUrls ?? []).map(String).map((u) => u.trim()).filter(Boolean);
+    const urls = (photoUrls ?? [])
+      .map(String)
+      .map((u) => u.trim())
+      .filter(Boolean);
     if (urls.length === 0) {
-      return this.prisma.safetyIncident.findUnique({ where: { id: incidentId } });
+      return this.prisma.safetyIncident.findUnique({
+        where: { id: incidentId },
+      });
     }
 
     const incident = await this.prisma.safetyIncident.findUnique({
@@ -47,7 +66,9 @@ export class SafetyService {
       throw new NotFoundException("Incident not found");
     }
 
-    const merged = Array.from(new Set([...(incident.photoUrls ?? []), ...urls]));
+    const merged = Array.from(
+      new Set([...(incident.photoUrls ?? []), ...urls]),
+    );
 
     return this.prisma.safetyIncident.update({
       where: { id: incidentId },
@@ -55,6 +76,98 @@ export class SafetyService {
         photoUrls: merged,
       },
     });
+  }
+
+  async listIncidents(user: any, query: SafetyIncidentsListQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const skip = (page - 1) * pageSize;
+
+    const search = (query.search ?? "").trim();
+    const hasSearch = search.length > 0;
+
+    const mustBeMine =
+      !this.canSeeAllIncidents(user?.role) || query.mine === true;
+    const userId = String(user?.userId ?? "").trim();
+
+    if (mustBeMine && !userId) {
+      return {
+        items: [],
+        page,
+        pageSize,
+        total: 0,
+        hasNextPage: false,
+      };
+    }
+
+    const where: any = {
+      ...(query.type ? { type: query.type } : {}),
+      ...(query.severity ? { severity: query.severity } : {}),
+      ...(query.status ? { status: query.status } : {}),
+      ...(mustBeMine ? { reportedBy: userId } : {}),
+      ...(hasSearch
+        ? {
+            OR: [
+              { incidentNumber: { contains: search, mode: "insensitive" } },
+              { location: { contains: search, mode: "insensitive" } },
+              { description: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
+
+    const [total, items] = await Promise.all([
+      this.prisma.safetyIncident.count({ where }),
+      this.prisma.safetyIncident.findMany({
+        where,
+        select: {
+          id: true,
+          incidentNumber: true,
+          type: true,
+          severity: true,
+          status: true,
+          location: true,
+          incidentDate: true,
+          reportedAt: true,
+          oshaReportable: true,
+          photoUrls: true,
+          reportedBy: true,
+        },
+        orderBy: { incidentDate: "desc" },
+        skip,
+        take: pageSize,
+      }),
+    ]);
+
+    return {
+      items,
+      page,
+      pageSize,
+      total,
+      hasNextPage: skip + items.length < total,
+    };
+  }
+
+  async getIncidentById(user: any, id: string) {
+    const incident = await this.prisma.safetyIncident.findUnique({
+      where: { id },
+    });
+
+    if (!incident) {
+      throw new NotFoundException("Incident not found");
+    }
+
+    if (!this.canSeeAllIncidents(user?.role)) {
+      const userId = String(user?.userId ?? "").trim();
+      if (!userId) {
+        throw new ForbiddenException("You do not have access to this incident");
+      }
+      if (String(incident.reportedBy) !== userId) {
+        throw new ForbiddenException("You do not have access to this incident");
+      }
+    }
+
+    return incident;
   }
 
   // ==================== Safety Inspections ====================

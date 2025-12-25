@@ -34,7 +34,7 @@ type Widget = {
   title: string;
   value: string;
   subtitle: string;
-  route: Exclude<keyof HomeStackParamList, 'InventoryItemDetail' | 'ReceiveStock'>;
+  route: Exclude<keyof HomeStackParamList, 'InventoryItemDetail' | 'ReceiveStock' | 'SafetyIncidentDetail'>;
 };
 
 export function HomeScreen() {
@@ -149,7 +149,7 @@ export function HomeScreen() {
       key: w.key,
       title: `Open ${w.title}`,
       subtitle: w.subtitle,
-      onPress: () => navigation.navigate(w.route),
+      onPress: () => navigation.navigate({ name: w.route, params: undefined }),
     }));
 
     if (
@@ -162,6 +162,12 @@ export function HomeScreen() {
         'EMPLOYEE',
       ].includes(me.role)
     ) {
+      actions.push({
+        key: 'incident_reports',
+        title: 'Incident reports',
+        subtitle: 'Browse safety incidents',
+        onPress: () => navigation.navigate('SafetyIncidents'),
+      });
       actions.push({
         key: 'incident_capture',
         title: 'Report incident',
@@ -217,7 +223,7 @@ export function HomeScreen() {
           {widgets.map((w) => (
             <Pressable
               key={w.key}
-              onPress={() => navigation.navigate(w.route)}
+              onPress={() => navigation.navigate({ name: w.route, params: undefined })}
               style={({ pressed }) => [styles.widgetCard, pressed ? styles.widgetCardPressed : null]}
               accessibilityRole="button"
             >

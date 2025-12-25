@@ -17,7 +17,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { CreateSafetyIncidentDto } from "./dto";
+import { CreateSafetyIncidentDto, SafetyIncidentsListQueryDto } from "./dto";
 import { UserRole } from "@prisma/client";
 
 @Controller("safety")
@@ -36,7 +36,10 @@ export class SafetyController {
     UserRole.DEPARTMENT_HEAD,
     UserRole.EMPLOYEE,
   )
-  createIncident(@CurrentUser() user: any, @Body() dto: CreateSafetyIncidentDto) {
+  createIncident(
+    @CurrentUser() user: any,
+    @Body() dto: CreateSafetyIncidentDto,
+  ) {
     return this.safetyService.createIncident(user.userId, dto);
   }
 
@@ -53,6 +56,33 @@ export class SafetyController {
     @Body() body: { photoUrls: string[] },
   ) {
     return this.safetyService.appendIncidentPhotos(id, body?.photoUrls ?? []);
+  }
+
+  @Get("incidents")
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.SAFETY_OFFICER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.EMPLOYEE,
+  )
+  listIncidents(
+    @CurrentUser() user: any,
+    @Query() query: SafetyIncidentsListQueryDto,
+  ) {
+    return this.safetyService.listIncidents(user, query);
+  }
+
+  @Get("incidents/:id")
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.SAFETY_OFFICER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.EMPLOYEE,
+  )
+  getIncidentById(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.safetyService.getIncidentById(user, id);
   }
 
   // Inspections

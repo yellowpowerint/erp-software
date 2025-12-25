@@ -11,6 +11,8 @@ import { ExpensesListScreen } from '../screens/ExpensesListScreen';
 import { EmployeesListScreen } from '../screens/EmployeesListScreen';
 import { SafetyInspectionsListScreen } from '../screens/SafetyInspectionsListScreen';
 import { SafetyTrainingsListScreen } from '../screens/SafetyTrainingsListScreen';
+import { SafetyIncidentsListScreen } from '../screens/SafetyIncidentsListScreen';
+import { SafetyIncidentDetailScreen } from '../screens/SafetyIncidentDetailScreen';
 import { IncidentCaptureScreen } from '../screens/IncidentCaptureScreen';
 import { IncidentOutboxScreen } from '../screens/IncidentOutboxScreen';
 
@@ -25,6 +27,8 @@ export type HomeStackParamList = {
   Employees: undefined;
   SafetyInspections: undefined;
   SafetyTrainings: undefined;
+  SafetyIncidents: undefined;
+  SafetyIncidentDetail: { id: string };
   IncidentCapture: undefined;
   IncidentOutbox: undefined;
 };
@@ -51,6 +55,16 @@ export function HomeStack() {
         name="SafetyTrainings"
         component={SafetyTrainingsListScreen}
         options={{ title: 'Trainings' }}
+      />
+      <Stack.Screen
+        name="SafetyIncidents"
+        component={SafetyIncidentsListScreen}
+        options={{ title: 'Incident reports' }}
+      />
+      <Stack.Screen
+        name="SafetyIncidentDetail"
+        component={SafetyIncidentDetailScreen}
+        options={{ title: 'Incident' }}
       />
       <Stack.Screen
         name="IncidentCapture"
