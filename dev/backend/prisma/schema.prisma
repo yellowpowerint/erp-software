@@ -3141,6 +3141,7 @@ model Document {
   mimeType     String
   fileUrl      String
   fileHash     String?
+  clientUploadId String?
   category     DocumentCategory
   module       String
   referenceId  String?
@@ -3178,6 +3179,7 @@ model Document {
   @@index([category])
   @@index([uploadedById])
   @@index([fileHash])
+  @@unique([uploadedById, clientUploadId])
   @@map("documents")
 }
 

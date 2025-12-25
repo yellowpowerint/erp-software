@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Tex
 
 import { ErrorBanner } from '../components/ErrorBanner';
 import { useIncidentQueue, type IncidentDraft } from '../safety/IncidentQueueContext';
+import { pickImageFromCamera, pickImageFromLibrary } from '../uploads/imagePicker';
 
 type PhotoAsset = { uri: string; fileName?: string; mimeType?: string };
 
@@ -59,30 +60,34 @@ export function IncidentCaptureScreen() {
 
   const canQueue = useMemo(() => Boolean(form.location.trim() && form.description.trim() && form.incidentDate.trim()), [form]);
 
-  const pickPhotoFromCamera = useCallback(async () => {
-    try {
-      const ImagePicker = require('expo-image-picker') as any;
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm?.granted) {
-        Alert.alert('Camera permission required', 'Please enable camera access to capture an incident photo.');
-        return;
+  const addPhoto = useCallback(
+    async (picker: 'camera' | 'library') => {
+      try {
+        const result = picker === 'camera' ? await pickImageFromCamera() : await pickImageFromLibrary();
+        if (!result.ok) {
+          if ('permissionDenied' in result) {
+            Alert.alert(
+              picker === 'camera' ? 'Camera permission required' : 'Photo library permission required',
+              picker === 'camera'
+                ? 'Please enable camera access to capture an incident photo.'
+                : 'Please enable photo library access to attach an incident photo.',
+            );
+          }
+          return;
+        }
+
+        const photo: PhotoAsset = {
+          uri: result.file.uri,
+          fileName: result.file.fileName,
+          mimeType: result.file.mimeType,
+        };
+        await update({ ...form, photos: [...(form.photos ?? []), photo] });
+      } catch (e: any) {
+        Alert.alert('Unable to attach photo', String(e?.message || e));
       }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
-      });
-
-      if (result?.canceled) return;
-      const asset = Array.isArray(result?.assets) ? result.assets[0] : null;
-      if (!asset?.uri) return;
-
-      const photo: PhotoAsset = { uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType };
-      await update({ ...form, photos: [...(form.photos ?? []), photo] });
-    } catch (e: any) {
-      Alert.alert('Unable to capture photo', String(e?.message || e));
-    }
-  }, [form, update]);
+    },
+    [form, update]
+  );
 
   const removePhoto = useCallback(
     async (uri: string) => {
@@ -207,9 +212,20 @@ export function IncidentCaptureScreen() {
 
       <View style={styles.card}>
         <Text style={styles.label}>Photos (optional)</Text>
-        <Pressable onPress={() => void pickPhotoFromCamera()} style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}>
-          <Text style={styles.secondaryButtonText}>Capture photo</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable
+            onPress={() => void addPhoto('camera')}
+            style={({ pressed }) => [styles.secondaryButton, { flex: 1 }, pressed ? styles.pressed : null]}
+          >
+            <Text style={styles.secondaryButtonText}>Capture photo</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void addPhoto('library')}
+            style={({ pressed }) => [styles.secondaryButton, { flex: 1 }, pressed ? styles.pressed : null]}
+          >
+            <Text style={styles.secondaryButtonText}>Choose photo</Text>
+          </Pressable>
+        </View>
 
         {(form.photos ?? []).map((p) => (
           <View key={p.uri} style={{ gap: 10, marginTop: 10 }}>

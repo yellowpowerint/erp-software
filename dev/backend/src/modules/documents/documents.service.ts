@@ -18,6 +18,7 @@ export interface CreateDocumentDto {
   referenceId?: string;
   description?: string;
   tags?: string[];
+  clientUploadId?: string;
 }
 
 export interface UpdateDocumentDto {
@@ -68,6 +69,33 @@ export class DocumentsService {
   ) {
     this.fileUploadService.validateFile(file);
 
+    const clientUploadId = createDto.clientUploadId
+      ? String(createDto.clientUploadId).trim()
+      : undefined;
+
+    if (clientUploadId) {
+      const existing = await this.prisma.document.findFirst({
+        where: {
+          uploadedById: userId,
+          clientUploadId,
+        },
+        include: {
+          uploadedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (existing) {
+        return existing;
+      }
+    }
+
     const fileHash = this.computeFileHash(file.buffer);
 
     const uploadResult = await this.storageService.uploadFile(
@@ -75,32 +103,74 @@ export class DocumentsService {
       createDto.module,
     );
 
-    const document = await this.prisma.document.create({
-      data: {
-        fileName: uploadResult.key,
-        originalName: file.originalname,
-        fileSize: file.size,
-        mimeType: file.mimetype,
-        fileUrl: uploadResult.url,
-        fileHash,
-        category: createDto.category,
-        module: createDto.module,
-        referenceId: createDto.referenceId,
-        description: createDto.description,
-        tags: createDto.tags || [],
-        uploadedById: userId,
-      },
-      include: {
-        uploadedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+    let document: any;
+    try {
+      document = await this.prisma.document.create({
+        data: {
+          fileName: uploadResult.key,
+          originalName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          fileUrl: uploadResult.url,
+          fileHash,
+          clientUploadId,
+          category: createDto.category,
+          module: createDto.module,
+          referenceId: createDto.referenceId,
+          description: createDto.description,
+          tags: createDto.tags || [],
+          uploadedById: userId,
+        },
+        include: {
+          uploadedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (error: any) {
+      // Handle concurrent retries: unique(uploadedById, clientUploadId)
+      if (clientUploadId && error?.code === "P2002") {
+        try {
+          await this.storageService.deleteFile(
+            uploadResult.key,
+            uploadResult.provider,
+          );
+        } catch (cleanupError) {
+          this.logger.warn(
+            `Failed to cleanup duplicate upload blob for clientUploadId ${clientUploadId}`,
+            cleanupError as any,
+          );
+        }
+
+        const existing = await this.prisma.document.findFirst({
+          where: {
+            uploadedById: userId,
+            clientUploadId,
+          },
+          include: {
+            uploadedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        });
+
+        if (existing) {
+          return existing;
+        }
+      }
+
+      throw error;
+    }
 
     // Create initial metadata
     await this.prisma.documentMetadata.create({
@@ -196,9 +266,16 @@ export class DocumentsService {
   ) {
     this.fileUploadService.validateMultipleFiles(files);
 
-    const uploadPromises = files.map((file) =>
-      this.uploadDocument(file, createDto, userId),
-    );
+    const uploadPromises = files.map((file, index) => {
+      const nextDto: CreateDocumentDto = {
+        ...createDto,
+        clientUploadId: createDto.clientUploadId
+          ? `${String(createDto.clientUploadId).trim()}:${index}`
+          : undefined,
+      };
+
+      return this.uploadDocument(file, nextDto, userId);
+    });
 
     const documents = await Promise.all(uploadPromises);
 

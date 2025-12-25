@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { http } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
+import { uploadDocument } from '../uploads/uploadDocument';
 
 export type ReceiptPhoto = {
   uri: string;
@@ -26,6 +27,8 @@ type QueueState = {
   isBooting: boolean;
   items: ExpenseReceiptQueueItem[];
   isFlushing: boolean;
+  activeItemId: string | null;
+  activeProgress: number;
 };
 
 type ExpenseReceiptQueueContextValue = QueueState & {
@@ -61,6 +64,8 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
     isBooting: true,
     items: [],
     isFlushing: false,
+    activeItemId: null,
+    activeProgress: 0,
   });
 
   const flushInProgress = useRef(false);
@@ -77,7 +82,7 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
   const bootstrap = useCallback(async () => {
     const queueRaw = await AsyncStorage.getItem(STORAGE_KEYS.queue);
     const items = safeJsonParse<ExpenseReceiptQueueItem[]>(queueRaw) ?? [];
-    setState({ isBooting: false, items, isFlushing: false });
+    setState({ isBooting: false, items, isFlushing: false, activeItemId: null, activeProgress: 0 });
   }, []);
 
   useEffect(() => {
@@ -118,7 +123,7 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
     if (flushInProgress.current) return;
 
     flushInProgress.current = true;
-    setState((s) => ({ ...s, isFlushing: true }));
+    setState((s) => ({ ...s, isFlushing: true, activeItemId: null, activeProgress: 0 }));
 
     try {
       const net = await NetInfo.fetch();
@@ -131,22 +136,29 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
       const remaining: ExpenseReceiptQueueItem[] = [];
 
       for (const item of itemsSnapshot) {
+        setState((s) => ({ ...s, activeItemId: item.id, activeProgress: 0 }));
         try {
-          const formData = new FormData();
-          const name = item.photo.fileName || `expense-receipt-${Date.now()}.jpg`;
-          const type = item.photo.mimeType || 'image/jpeg';
+          const doc = await uploadDocument<any>(
+            {
+              file: item.photo,
+              category: 'RECEIPT',
+              module: 'finance_expenses',
+              referenceId: item.expenseId,
+              description: 'Expense receipt (mobile)',
+              clientUploadId: item.id,
+            },
+            {
+              onProgress: (p) => {
+                setState((s) => ({
+                  ...s,
+                  activeItemId: item.id,
+                  activeProgress: p,
+                }));
+              },
+            }
+          );
 
-          formData.append('file', { uri: item.photo.uri, name, type } as any);
-          formData.append('category', 'RECEIPT');
-          formData.append('module', 'finance_expenses');
-          formData.append('referenceId', item.expenseId);
-          formData.append('description', 'Expense receipt (mobile)');
-
-          const docRes = await http.post<any>('/documents/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-
-          const receiptUrl = docRes.data?.fileUrl;
+          const receiptUrl = (doc as any)?.fileUrl;
           if (!receiptUrl) {
             throw new Error('Receipt upload succeeded but returned no fileUrl');
           }
@@ -166,11 +178,11 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
         }
       }
 
-      setState((s) => ({ ...s, items: remaining }));
+      setState((s) => ({ ...s, items: remaining, activeItemId: null, activeProgress: 0 }));
       await persistQueue(remaining);
     } finally {
       flushInProgress.current = false;
-      setState((s) => ({ ...s, isFlushing: false }));
+      setState((s) => ({ ...s, isFlushing: false, activeItemId: null, activeProgress: 0 }));
     }
   }, [persistQueue, token]);
 

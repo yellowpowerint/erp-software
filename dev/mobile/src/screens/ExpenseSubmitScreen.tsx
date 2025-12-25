@@ -6,6 +6,7 @@ import { parseApiError } from '../api/errors';
 import { API_BASE_URL } from '../config';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { useExpenseReceiptQueue, type ReceiptPhoto } from '../finance/ExpenseReceiptQueueContext';
+import { pickImageFromCamera, pickImageFromLibrary } from '../uploads/imagePicker';
 
 type ExpenseCategory =
   | 'OPERATIONS'
@@ -71,31 +72,28 @@ export function ExpenseSubmitScreen() {
     );
   }, [amountText, description, expenseDate, category]);
 
-  const pickReceiptFromCamera = useCallback(async () => {
+  const pickReceipt = useCallback(async (picker: 'camera' | 'library') => {
     try {
-      const ImagePicker = require('expo-image-picker') as any;
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm?.granted) {
-        Alert.alert('Camera permission required', 'Please enable camera access to capture a receipt photo.');
+      const result = picker === 'camera' ? await pickImageFromCamera() : await pickImageFromLibrary();
+      if (!result.ok) {
+        if ('permissionDenied' in result) {
+          Alert.alert(
+            picker === 'camera' ? 'Camera permission required' : 'Photo library permission required',
+            picker === 'camera'
+              ? 'Please enable camera access to capture a receipt photo.'
+              : 'Please enable photo library access to attach a receipt photo.'
+          );
+        }
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
-      });
-
-      if (result?.canceled) return;
-      const asset = Array.isArray(result?.assets) ? result.assets[0] : null;
-      if (!asset?.uri) return;
-
       setPhoto({
-        uri: asset.uri,
-        fileName: asset.fileName,
-        mimeType: asset.mimeType,
+        uri: result.file.uri,
+        fileName: result.file.fileName,
+        mimeType: result.file.mimeType,
       });
     } catch (e: any) {
-      Alert.alert('Unable to capture receipt', String(e?.message || e));
+      Alert.alert('Unable to attach receipt', String(e?.message || e));
     }
   }, []);
 
@@ -257,9 +255,20 @@ export function ExpenseSubmitScreen() {
             </Pressable>
           </View>
         ) : (
-          <Pressable onPress={() => void pickReceiptFromCamera()} style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}>
-            <Text style={styles.secondaryButtonText}>Capture receipt</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Pressable
+              onPress={() => void pickReceipt('camera')}
+              style={({ pressed }) => [styles.secondaryButton, { flex: 1 }, pressed ? styles.pressed : null]}
+            >
+              <Text style={styles.secondaryButtonText}>Capture receipt</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => void pickReceipt('library')}
+              style={({ pressed }) => [styles.secondaryButton, { flex: 1 }, pressed ? styles.pressed : null]}
+            >
+              <Text style={styles.secondaryButtonText}>Choose receipt</Text>
+            </Pressable>
+          </View>
         )}
       </View>
 

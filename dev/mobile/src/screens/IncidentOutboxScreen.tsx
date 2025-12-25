@@ -4,7 +4,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { useIncidentQueue } from '../safety/IncidentQueueContext';
 
 export function IncidentOutboxScreen() {
-  const { items, pendingCount, isFlushing, flush, removeItem } = useIncidentQueue();
+  const { items, pendingCount, isFlushing, flush, removeItem, activeItemId, activeProgress } = useIncidentQueue();
 
   const retryAll = useCallback(async () => {
     await flush();
@@ -42,6 +42,9 @@ export function IncidentOutboxScreen() {
         <View key={item.id} style={styles.card}>
           <Text style={styles.title}>{item.draft.location || 'Incident'}</Text>
           <Text style={styles.muted}>Status: {item.status} • Attempts: {item.attempts}</Text>
+          {isFlushing && activeItemId === item.id ? (
+            <Text style={styles.muted}>Upload progress: {Math.round((activeProgress || 0) * 100)}%</Text>
+          ) : null}
           {item.lastError ? <Text style={styles.errorText}>Last error: {item.lastError}</Text> : null}
 
           <View style={styles.footerRow}>

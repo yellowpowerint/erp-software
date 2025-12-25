@@ -19,6 +19,8 @@ import { parseApiError } from '../api/errors';
 import { API_BASE_URL } from '../config';
 import { ErrorBanner } from '../components/ErrorBanner';
 import type { HomeStackParamList } from '../navigation/HomeStack';
+import { pickImageFromCamera, pickImageFromLibrary } from '../uploads/imagePicker';
+import { uploadDocument } from '../uploads/uploadDocument';
 
 type StockItemDetail = {
   id: string;
@@ -61,6 +63,7 @@ export function ReceiveStockScreen() {
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
   const [photo, setPhoto] = useState<PhotoAsset | null>(null);
+  const [photoUploadProgress, setPhotoUploadProgress] = useState(0);
 
   const trimmedItemId = useMemo(() => String(itemId ?? '').trim(), [itemId]);
 
@@ -90,31 +93,28 @@ export function ReceiveStockScreen() {
     void load();
   }, [load]);
 
-  const pickPhotoFromCamera = useCallback(async () => {
+  const pickPhoto = useCallback(async (picker: 'camera' | 'library') => {
     try {
-      const ImagePicker = require('expo-image-picker') as any;
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm?.granted) {
-        Alert.alert('Camera permission required', 'Please enable camera access to take a delivery note photo.');
+      const result = picker === 'camera' ? await pickImageFromCamera() : await pickImageFromLibrary();
+      if (!result.ok) {
+        if ('permissionDenied' in result) {
+          Alert.alert(
+            picker === 'camera' ? 'Camera permission required' : 'Photo library permission required',
+            picker === 'camera'
+              ? 'Please enable camera access to take a delivery note photo.'
+              : 'Please enable photo library access to attach a delivery note photo.'
+          );
+        }
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
-      });
-
-      if (result?.canceled) return;
-      const asset = Array.isArray(result?.assets) ? result.assets[0] : null;
-      if (!asset?.uri) return;
-
       setPhoto({
-        uri: asset.uri,
-        fileName: asset.fileName,
-        mimeType: asset.mimeType,
+        uri: result.file.uri,
+        fileName: result.file.fileName,
+        mimeType: result.file.mimeType,
       });
     } catch (e: any) {
-      Alert.alert('Unable to capture photo', String(e?.message || e));
+      Alert.alert('Unable to attach photo', String(e?.message || e));
     }
   }, []);
 
@@ -135,6 +135,7 @@ export function ReceiveStockScreen() {
     }
 
     setSubmitting(true);
+    setPhotoUploadProgress(0);
     setError(null);
 
     let createdMovement: StockMovement | null = null;
@@ -151,21 +152,19 @@ export function ReceiveStockScreen() {
       createdMovement = movementRes.data;
 
       if (photo?.uri) {
-        const formData = new FormData();
-        const name = photo.fileName || `delivery-note-${Date.now()}.jpg`;
-        const type = photo.mimeType || 'image/jpeg';
-
-        formData.append('file', { uri: photo.uri, name, type } as any);
-        formData.append('category', 'RECEIPT');
-        formData.append('module', 'inventory_movements');
-        formData.append('referenceId', createdMovement.id);
-        formData.append('description', 'Delivery note photo (mobile receiving)');
-
-        await http.post('/documents/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
+        await uploadDocument<any>(
+          {
+            file: photo,
+            category: 'RECEIPT',
+            module: 'inventory_movements',
+            referenceId: createdMovement.id,
+            description: 'Delivery note photo (mobile receiving)',
+            clientUploadId: `inventory_movement:${createdMovement.id}:delivery_note`,
           },
-        });
+          {
+            onProgress: (p) => setPhotoUploadProgress(p),
+          }
+        );
       }
 
       Alert.alert('Received', 'Stock movement recorded successfully.');
@@ -257,6 +256,9 @@ export function ReceiveStockScreen() {
             {photo?.uri ? (
               <View style={{ gap: 10 }}>
                 <Image source={{ uri: photo.uri }} style={styles.photo} />
+                {submitting && photoUploadProgress > 0 ? (
+                  <Text style={styles.muted}>Upload progress: {Math.round(photoUploadProgress * 100)}%</Text>
+                ) : null}
                 <Pressable
                   onPress={clearPhoto}
                   style={({ pressed }) => [styles.secondaryButton, pressed ? styles.buttonPressed : null]}
@@ -266,13 +268,22 @@ export function ReceiveStockScreen() {
                 </Pressable>
               </View>
             ) : (
-              <Pressable
-                onPress={pickPhotoFromCamera}
-                style={({ pressed }) => [styles.secondaryButton, pressed ? styles.buttonPressed : null]}
-                accessibilityRole="button"
-              >
-                <Text style={styles.secondaryButtonText}>Take photo</Text>
-              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Pressable
+                  onPress={() => void pickPhoto('camera')}
+                  style={({ pressed }) => [styles.secondaryButton, { flex: 1 }, pressed ? styles.buttonPressed : null]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.secondaryButtonText}>Take photo</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => void pickPhoto('library')}
+                  style={({ pressed }) => [styles.secondaryButton, { flex: 1 }, pressed ? styles.buttonPressed : null]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.secondaryButtonText}>Choose photo</Text>
+                </Pressable>
+              </View>
             )}
           </View>
 

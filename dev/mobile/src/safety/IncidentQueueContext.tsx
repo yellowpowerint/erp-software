@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { http } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
+import { uploadDocument } from '../uploads/uploadDocument';
 
 export type IncidentType =
   | 'INJURY'
@@ -45,6 +46,8 @@ type QueueState = {
   draft: IncidentDraft | null;
   items: IncidentQueueItem[];
   isFlushing: boolean;
+  activeItemId: string | null;
+  activeProgress: number;
 };
 
 type IncidentQueueContextValue = QueueState & {
@@ -83,6 +86,8 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
     draft: null,
     items: [],
     isFlushing: false,
+    activeItemId: null,
+    activeProgress: 0,
   });
 
   const flushInProgress = useRef(false);
@@ -113,7 +118,7 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
     const draft = safeJsonParse<IncidentDraft>(draftRaw);
     const items = safeJsonParse<IncidentQueueItem[]>(queueRaw) ?? [];
 
-    setState({ isBooting: false, draft, items, isFlushing: false });
+    setState({ isBooting: false, draft, items, isFlushing: false, activeItemId: null, activeProgress: 0 });
   }, []);
 
   useEffect(() => {
@@ -163,7 +168,7 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
     if (flushInProgress.current) return;
 
     flushInProgress.current = true;
-    setState((s) => ({ ...s, isFlushing: true }));
+    setState((s) => ({ ...s, isFlushing: true, activeItemId: null, activeProgress: 0 }));
 
     try {
       const net = await NetInfo.fetch();
@@ -176,6 +181,7 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
       const remaining: IncidentQueueItem[] = [];
 
       for (const item of itemsSnapshot) {
+        setState((s) => ({ ...s, activeItemId: item.id, activeProgress: 0 }));
         try {
           const witnesses = (item.draft.witnessesText ?? '')
             .split(',')
@@ -200,22 +206,30 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
           }
           const photoUrls: string[] = [];
 
-          for (const photo of item.draft.photos ?? []) {
-            const form = new FormData();
-            const name = photo.fileName || `incident-${Date.now()}.jpg`;
-            const type = photo.mimeType || 'image/jpeg';
+          const photos = item.draft.photos ?? [];
+          for (let index = 0; index < photos.length; index++) {
+            const photo = photos[index];
+            const doc = await uploadDocument<any>(
+              {
+                file: photo,
+                category: 'INCIDENT_REPORT',
+                module: 'safety_incidents',
+                referenceId: incidentId,
+                description: 'Safety incident photo (mobile)',
+                clientUploadId: `${item.id}:${index}`,
+              },
+              {
+                onProgress: (p) => {
+                  setState((s) => ({
+                    ...s,
+                    activeItemId: item.id,
+                    activeProgress: p,
+                  }));
+                },
+              }
+            );
 
-            form.append('file', { uri: photo.uri, name, type } as any);
-            form.append('category', 'INCIDENT_REPORT');
-            form.append('module', 'safety_incidents');
-            form.append('referenceId', incidentId);
-            form.append('description', 'Safety incident photo (mobile)');
-
-            const docRes = await http.post<any>('/documents/upload', form, {
-              headers: { 'Content-Type': 'multipart/form-data' },
-            });
-
-            const url = docRes.data?.fileUrl;
+            const url = (doc as any)?.fileUrl;
             if (url) photoUrls.push(String(url));
           }
 
@@ -234,11 +248,11 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
         }
       }
 
-      setState((s) => ({ ...s, items: remaining }));
+      setState((s) => ({ ...s, items: remaining, activeItemId: null, activeProgress: 0 }));
       await persistQueue(remaining);
     } finally {
       flushInProgress.current = false;
-      setState((s) => ({ ...s, isFlushing: false }));
+      setState((s) => ({ ...s, isFlushing: false, activeItemId: null, activeProgress: 0 }));
     }
   }, [persistQueue, token]);
 

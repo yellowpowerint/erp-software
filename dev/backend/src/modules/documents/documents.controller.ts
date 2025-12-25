@@ -348,6 +348,10 @@ export class DocumentsController {
     const createDto: CreateDocumentDto = {
       ...body,
       tags: this.parseTags(body.tags),
+      clientUploadId:
+        body?.clientUploadId !== undefined && body?.clientUploadId !== null
+          ? String(body.clientUploadId)
+          : undefined,
     };
     return this.documentsService.uploadDocument(
       file,

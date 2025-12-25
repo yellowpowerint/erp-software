@@ -618,6 +618,10 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Upload retries do not duplicate attachments
 
+**Verification (M5.1)**
+- [x] `prod/verify-m5-1.ps1`
+- [x] `prod/verify-m5-1.sh`
+
 ## Session M5.2 — Document Viewer
 - **Scope**
   - Document list + viewer
