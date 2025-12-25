@@ -3,6 +3,47 @@ import * as Sentry from '@sentry/react-native';
 
 import type { MeResponse } from '../auth/types';
 
+const SENSITIVE_KEY_RE = /^(authorization|cookie|set-cookie|password|pass|access_token|refresh_token|id_token|token)$/i;
+
+function redactString(value: string) {
+  let v = value;
+  v = v.replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]');
+  v = v.replace(
+    /\b(access_token|refresh_token|id_token|token)=([^&\s]+)/gi,
+    (_m, k: string) => `${String(k)}=[REDACTED]`
+  );
+  v = v.replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED_JWT]');
+  return v;
+}
+
+function sanitize(value: any, key?: string, depth = 0): any {
+  if (depth > 8) return value;
+  if (value == null) return value;
+
+  if (key && SENSITIVE_KEY_RE.test(key)) {
+    return '[REDACTED]';
+  }
+
+  if (typeof value === 'string') {
+    return redactString(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((v) => sanitize(v, undefined, depth + 1));
+  }
+
+  if (typeof value === 'object') {
+    for (const k of Object.keys(value)) {
+      try {
+        value[k] = sanitize(value[k], k, depth + 1);
+      } catch {}
+    }
+    return value;
+  }
+
+  return value;
+}
+
 function parseSampleRate(value: unknown, fallback: number) {
   const n = typeof value === 'string' ? Number(value) : typeof value === 'number' ? value : NaN;
   return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : fallback;
@@ -37,6 +78,19 @@ export function initSentry() {
     release,
     tracesSampleRate,
     integrations: navigationIntegration ? [navigationIntegration] : [],
+    sendDefaultPii: false,
+    beforeBreadcrumb(breadcrumb) {
+      try {
+        sanitize(breadcrumb);
+      } catch {}
+      return breadcrumb;
+    },
+    beforeSend(event) {
+      try {
+        sanitize(event);
+      } catch {}
+      return event;
+    },
   });
 }
 

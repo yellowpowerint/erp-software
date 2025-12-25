@@ -767,6 +767,27 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - No tokens/PII in logs
 
+**Status: COMPLETE**
+
+**Implementation Notes (M6.3)**
+- Confirmed access tokens are stored using `expo-secure-store` with device-only accessibility.
+- Confirmed session invalidation behavior:
+  - On HTTP `401`, the mobile client triggers sign-out and clears stored access token.
+- Hardened monitoring to prevent leakage of sensitive values:
+  - Added `beforeSend` / `beforeBreadcrumb` redaction for token-like values and sensitive keys.
+  - Disabled default PII collection for Sentry (`sendDefaultPii: false`).
+
+**Acceptance Checklist (M6.3)**
+- [x] Access token stored in secure storage (no plain AsyncStorage)
+- [x] Session invalidation clears token and returns user to signed-out state on `401`
+- [x] No explicit logs of tokens, passwords, or PII in the mobile app code
+- [x] Monitoring is hardened to redact Authorization/Bearer tokens, cookies, and password/token fields
+- [x] DoD met: no tokens/PII are emitted via app logs or monitoring payloads
+
+**Verification (M6.3)**
+- [x] `prod/verify-m6-3.ps1`
+- [x] `prod/verify-m6-3.sh`
+
 ---
 
 # Phase M7 — Release & Store Submission (3 sessions)
