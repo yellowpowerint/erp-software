@@ -668,6 +668,28 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Attachments visible from detail screens
 
+**Status: COMPLETE**
+
+**Implementation Notes (M5.3)**
+- Added a reusable `AttachmentsCard` for listing documents by `module + referenceId`, uploading via camera/library, and opening items in the existing `DocumentViewer`.
+- Integrated attachments into workflow detail screens:
+  - `ApprovalDetailScreen` (module: `approvals`)
+  - `SafetyIncidentDetailScreen` (module: `safety_incidents`)
+  - `ExpenseDetailScreen` (module: `finance_expenses`)
+- Added `ExpenseDetailScreen` and HomeStack routing so expenses have a detail view where attachments are visible.
+
+**Acceptance Checklist (M5.3)**
+- [x] Approvals show an attachments section on the approval detail screen
+- [x] Incidents show an attachments section on the incident detail screen
+- [x] Expenses show an attachments section on the expense detail screen
+- [x] Existing attachments are listed from `/documents/by-module/:module/:referenceId`
+- [x] New attachments can be uploaded (camera/library) and appear in the list
+- [x] Attachments can be opened in the existing `DocumentViewer`
+
+**Verification (M5.3)**
+- [x] `prod/verify-m5-3.ps1`
+- [x] `prod/verify-m5-3.sh`
+
 ---
 
 # Phase M6 — Hardening (2–4 sessions)

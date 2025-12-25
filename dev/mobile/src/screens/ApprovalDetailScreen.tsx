@@ -9,6 +9,7 @@ import { http } from '../api/http';
 import { parseApiError } from '../api/errors';
 import { API_BASE_URL } from '../config';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { AttachmentsCard } from '../components/AttachmentsCard';
 import type { WorkStackParamList } from '../navigation/WorkStack';
 
 type ApprovalType = 'INVOICE' | 'PURCHASE_REQUEST' | 'IT_REQUEST' | 'PAYMENT_REQUEST';
@@ -59,6 +60,13 @@ export function ApprovalDetailScreen() {
     () => ['INVOICE', 'PURCHASE_REQUEST', 'IT_REQUEST', 'PAYMENT_REQUEST'].includes(normalizedType),
     [normalizedType]
   );
+
+  const attachmentCategory = useMemo(() => {
+    if (normalizedType === 'INVOICE') return 'INVOICE';
+    if (normalizedType === 'PURCHASE_REQUEST') return 'PURCHASE_ORDER';
+    if (normalizedType === 'PAYMENT_REQUEST') return 'RECEIPT';
+    return 'OTHER';
+  }, [normalizedType]);
 
   const canAct = useMemo(() => detail?.status === 'PENDING', [detail?.status]);
 
@@ -199,6 +207,16 @@ export function ApprovalDetailScreen() {
               </Pressable>
             ) : null}
           </View>
+
+          <AttachmentsCard
+            title="Attachments"
+            module="approvals"
+            referenceId={detail.id}
+            upload={{
+              category: attachmentCategory,
+              description: `Approval attachment (${normalizedType}) (mobile)`,
+            }}
+          />
 
           <View style={styles.card}>
             <Text style={styles.h2}>History</Text>

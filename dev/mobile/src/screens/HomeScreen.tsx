@@ -29,15 +29,16 @@ type WidgetKey =
   | 'inspections'
   | 'trainings';
 
+type NoParamHomeRoutes = {
+  [K in keyof HomeStackParamList]: HomeStackParamList[K] extends undefined ? K : never;
+}[keyof HomeStackParamList];
+
 type Widget = {
   key: WidgetKey;
   title: string;
   value: string;
   subtitle: string;
-  route: Exclude<
-    keyof HomeStackParamList,
-    'InventoryItemDetail' | 'ReceiveStock' | 'SafetyIncidentDetail' | 'EmployeeDetail' | 'ProjectDetail'
-  >;
+  route: NoParamHomeRoutes;
 };
 
 export function HomeScreen() {

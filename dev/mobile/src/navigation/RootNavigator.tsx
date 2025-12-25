@@ -43,6 +43,8 @@ const linking: LinkingOptions<RootParamList> = {
           Home: 'home',
           Projects: 'home/projects',
           ProjectDetail: 'home/projects/:id',
+          Expenses: 'home/expenses',
+          ExpenseDetail: 'home/expenses/:id',
         },
       },
       Work: {

@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ErrorBanner } from '../components/ErrorBanner';
 import { parseApiError } from '../api/errors';
 import { http } from '../api/http';
 import { API_BASE_URL } from '../config';
+import type { HomeStackParamList } from '../navigation/HomeStack';
 
 type Expense = {
   id: string;
@@ -27,6 +30,8 @@ function formatMoney(amount: number, currency?: string) {
 }
 
 export function ExpensesListScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList, 'Expenses'>>();
+
   const [expenses, setExpenses] = useState<Expense[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,7 +92,11 @@ export function ExpensesListScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <View style={styles.row}>
+            <Pressable
+              onPress={() => navigation.navigate('ExpenseDetail', { id: item.id })}
+              style={({ pressed }) => [styles.row, pressed ? styles.pressed : null]}
+              accessibilityRole="button"
+            >
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle} numberOfLines={1}>
                   {item.description}
@@ -100,7 +109,7 @@ export function ExpensesListScreen() {
               <View style={styles.amountWrap}>
                 <Text style={styles.amount}>{formatMoney(item.amount, item.currency)}</Text>
               </View>
-            </View>
+            </Pressable>
           )}
           ListEmptyComponent={
             <View style={styles.center}>
@@ -176,6 +185,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: '#111827',
+  },
+  pressed: {
+    opacity: 0.9,
   },
   empty: {
     color: '#6b7280',

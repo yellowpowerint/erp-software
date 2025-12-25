@@ -48,3 +48,13 @@ export async function getDocumentDownloadUrl(id: string): Promise<{ url: string;
   const res = await http.get<{ url: string; filename: string }>(`/documents/${encodeURIComponent(id)}/download`);
   return res.data;
 }
+
+export async function getDocumentsByModule(module: string, referenceId: string): Promise<DocumentItem[]> {
+  const m = String(module ?? '').trim();
+  const r = String(referenceId ?? '').trim();
+  if (!m || !r) return [];
+  const res = await http.get<DocumentItem[]>(
+    `/documents/by-module/${encodeURIComponent(m)}/${encodeURIComponent(r)}`
+  );
+  return res.data;
+}

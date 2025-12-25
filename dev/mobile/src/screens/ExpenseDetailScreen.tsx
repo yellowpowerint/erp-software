@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 
@@ -10,59 +10,64 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { AttachmentsCard } from '../components/AttachmentsCard';
 import type { HomeStackParamList } from '../navigation/HomeStack';
 
-type IncidentStatus = 'REPORTED' | 'INVESTIGATING' | 'RESOLVED' | 'CLOSED';
-type IncidentSeverity = 'MINOR' | 'MODERATE' | 'SERIOUS' | 'CRITICAL' | 'FATAL';
-type IncidentType =
-  | 'INJURY'
-  | 'NEAR_MISS'
-  | 'EQUIPMENT_DAMAGE'
-  | 'ENVIRONMENTAL'
-  | 'SECURITY'
-  | 'FIRE'
-  | 'CHEMICAL_SPILL'
-  | 'OTHER';
-
-type SafetyIncidentDetail = {
+type ExpenseDetail = {
   id: string;
-  incidentNumber: string;
-  type: IncidentType;
-  severity: IncidentSeverity;
-  status: IncidentStatus;
-  location: string;
-  incidentDate: string;
-  reportedBy: string;
-  reportedAt: string;
+  expenseNumber?: string;
+  category?: string;
   description: string;
-  injuries: string | null;
-  witnesses: string[];
-  photoUrls: string[];
-  oshaReportable: boolean;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
+  amount: number;
+  currency?: string;
+  status?: string;
+  expenseDate?: string;
+  notes?: string | null;
+  receipt?: string | null;
+  project?: {
+    id?: string;
+    projectCode?: string;
+    name?: string;
+  };
+  submittedBy?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+  approvedBy?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-function formatDateTime(value: string | null | undefined) {
+function formatMoney(amount: number, currency?: string) {
+  const c = (currency ?? 'GHS').toUpperCase();
+  if (!Number.isFinite(amount)) return `${c} —`;
+  return `${c} ${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function formatDateTime(value?: string | null) {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return String(value);
   return d.toLocaleString();
 }
 
-export function SafetyIncidentDetailScreen() {
-  const route = useRoute<RouteProp<HomeStackParamList, 'SafetyIncidentDetail'>>();
+export function ExpenseDetailScreen() {
+  const route = useRoute<RouteProp<HomeStackParamList, 'ExpenseDetail'>>();
   const id = route.params?.id;
-
   const trimmedId = useMemo(() => String(id ?? '').trim(), [id]);
 
-  const [detail, setDetail] = useState<SafetyIncidentDetail | null>(null);
+  const [detail, setDetail] = useState<ExpenseDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noAccess, setNoAccess] = useState(false);
 
   const load = useCallback(async () => {
     if (!trimmedId) {
-      setError('Missing incident id.');
+      setError('Missing expense id.');
       setDetail(null);
       setNoAccess(false);
       return;
@@ -73,7 +78,7 @@ export function SafetyIncidentDetailScreen() {
     setNoAccess(false);
 
     try {
-      const res = await http.get<SafetyIncidentDetail>(`/safety/incidents/${encodeURIComponent(trimmedId)}`);
+      const res = await http.get<ExpenseDetail>(`/finance/expenses/${encodeURIComponent(trimmedId)}`);
       setDetail(res.data);
     } catch (e: any) {
       const parsed = parseApiError(e, API_BASE_URL);
@@ -84,7 +89,7 @@ export function SafetyIncidentDetailScreen() {
         return;
       }
       const statusPart = parsed.status ? ` (${parsed.status})` : '';
-      setError(`Failed to load incident${statusPart}: ${parsed.message}\nAPI: ${API_BASE_URL}`);
+      setError(`Failed to load expense${statusPart}: ${parsed.message}\nAPI: ${API_BASE_URL}`);
       setDetail(null);
     } finally {
       setLoading(false);
@@ -95,11 +100,26 @@ export function SafetyIncidentDetailScreen() {
     void load();
   }, [load]);
 
+  const openReceipt = useCallback(async () => {
+    const url = String(detail?.receipt ?? '').trim();
+    if (!url) return;
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (!ok) {
+        Alert.alert('Unable to open', 'This receipt link cannot be opened on this device.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Unable to open', 'Failed to open receipt link.');
+    }
+  }, [detail?.receipt]);
+
   if (loading && !detail && !noAccess && !error) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
-        <Text style={styles.muted}>Loading incident…</Text>
+        <Text style={styles.muted}>Loading expense…</Text>
       </View>
     );
   }
@@ -108,7 +128,7 @@ export function SafetyIncidentDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.noAccessTitle}>No access</Text>
-        <Text style={styles.muted}>You do not have permission to view this incident.</Text>
+        <Text style={styles.muted}>You do not have permission to view this expense.</Text>
         <Pressable onPress={() => void load()} style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}>
           <Text style={styles.secondaryButtonText}>Retry</Text>
         </Pressable>
@@ -123,66 +143,44 @@ export function SafetyIncidentDetailScreen() {
       {detail ? (
         <>
           <View style={styles.card}>
-            <Text style={styles.h1}>{detail.incidentNumber}</Text>
-            <Text style={styles.meta}>
-              {detail.type} • {detail.severity} • {detail.status}
-            </Text>
-            <Text style={styles.meta}>Location: {detail.location}</Text>
-            <Text style={styles.meta}>Incident: {formatDateTime(detail.incidentDate)}</Text>
-            <Text style={styles.meta}>Reported: {formatDateTime(detail.reportedAt)}</Text>
-            <Text style={styles.meta}>OSHA reportable: {detail.oshaReportable ? 'YES' : 'NO'}</Text>
+            <Text style={styles.h1}>{detail.expenseNumber || 'Expense'}</Text>
+            <Text style={styles.meta}>{(detail.category ?? '—') + (detail.status ? ` • ${detail.status}` : '')}</Text>
+            <Text style={styles.meta}>Amount: {formatMoney(detail.amount, detail.currency)}</Text>
+            <Text style={styles.meta}>Date: {formatDateTime(detail.expenseDate)}</Text>
+            <Text style={styles.meta}>Project: {detail.project?.projectCode ?? '—'}</Text>
+            <Text style={styles.meta}>Updated: {formatDateTime(detail.updatedAt)}</Text>
           </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Description</Text>
             <Text style={styles.body}>{detail.description}</Text>
-
-            {detail.injuries ? (
-              <>
-                <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Injuries</Text>
-                <Text style={styles.body}>{detail.injuries}</Text>
-              </>
-            ) : null}
-
-            {Array.isArray(detail.witnesses) && detail.witnesses.length > 0 ? (
-              <>
-                <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Witnesses</Text>
-                <Text style={styles.body}>{detail.witnesses.join(', ')}</Text>
-              </>
-            ) : null}
-
             {detail.notes ? (
               <>
                 <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Notes</Text>
                 <Text style={styles.body}>{detail.notes}</Text>
               </>
             ) : null}
-          </View>
 
-          {Array.isArray(detail.photoUrls) && detail.photoUrls.length > 0 ? (
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Photos</Text>
-              <View style={styles.photosGrid}>
-                {detail.photoUrls.map((u) => (
-                  <Image key={u} source={{ uri: u }} style={styles.photo} />
-                ))}
-              </View>
-            </View>
-          ) : null}
+            {detail.receipt ? (
+              <Pressable onPress={() => void openReceipt()} style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}>
+                <Text style={styles.secondaryButtonText}>Open receipt</Text>
+              </Pressable>
+            ) : null}
+          </View>
 
           <AttachmentsCard
             title="Attachments"
-            module="safety_incidents"
+            module="finance_expenses"
             referenceId={detail.id}
             upload={{
-              category: 'INCIDENT_REPORT',
-              description: 'Safety incident attachment (mobile)',
+              category: 'RECEIPT',
+              description: 'Expense attachment (mobile)',
             }}
           />
         </>
       ) : (
         <View style={styles.center}>
-          <Text style={styles.muted}>Incident not loaded.</Text>
+          <Text style={styles.muted}>Expense not loaded.</Text>
           <Pressable onPress={() => void load()} style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}>
             <Text style={styles.secondaryButtonText}>Retry</Text>
           </Pressable>
@@ -246,18 +244,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     lineHeight: 18,
-  },
-  photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 4,
-  },
-  photo: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: '#e5e7eb',
   },
   secondaryButton: {
     borderWidth: 1,
