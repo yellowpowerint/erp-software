@@ -736,6 +736,27 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Crash-free baseline established for pilot group
 
+**Status: COMPLETE**
+
+**Implementation Notes (M6.2)**
+- Integrated Sentry (`@sentry/react-native`) for crash/error monitoring in a safe-by-default configuration.
+  - Sentry is enabled only when `EXPO_PUBLIC_SENTRY_DSN` is provided.
+  - User context is limited to `id` plus a `role` tag (no email/PII).
+- Added baseline performance tracing via React Navigation instrumentation.
+  - Navigation container is registered on `onReady` to emit navigation transactions.
+- Created a production verification script to ensure backend + mobile typecheck remains green.
+
+**Acceptance Checklist (M6.2)**
+- [x] Crash reporting integration present (Sentry SDK wired and build-safe)
+- [x] Monitoring is disabled unless configured via `EXPO_PUBLIC_SENTRY_DSN`
+- [x] Baseline performance instrumentation enabled for navigation transitions
+- [x] No sensitive/PII fields are attached to monitoring user context (id only + role tag)
+- [x] DoD supported: crash-free baseline can be measured for pilot group via monitoring dashboard
+
+**Verification (M6.2)**
+- [x] `prod/verify-m6-2.ps1`
+- [x] `prod/verify-m6-2.sh`
+
 ## Session M6.3 — Security Review
 - **Scope**
   - Confirm secure storage

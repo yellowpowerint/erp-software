@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LinkingOptions } from '@react-navigation/native';
-import { getStateFromPath, NavigationContainer } from '@react-navigation/native';
+import { createNavigationContainerRef, getStateFromPath, NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '../auth/AuthContext';
@@ -12,8 +12,11 @@ import type { AuthStackParamList } from './AuthStack';
 import { AppTabs } from './AppTabs';
 import type { AppTabsParamList } from './AppTabs';
 import { APP_SCHEME } from '../config';
+import { registerNavigationContainer } from '../monitoring/sentry';
 
 type RootParamList = AuthStackParamList & AppTabsParamList;
+
+const navigationRef = createNavigationContainerRef<RootParamList>();
 
 function normalizeLegacyPath(path: string): string {
   const p0 = String(path || '').trim();
@@ -132,7 +135,13 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer<RootParamList> linking={linking}>
+    <NavigationContainer<RootParamList>
+      linking={linking}
+      ref={navigationRef}
+      onReady={() => {
+        registerNavigationContainer(navigationRef);
+      }}
+    >
       {token ? <AppTabs /> : <AuthStack />}
     </NavigationContainer>
   );

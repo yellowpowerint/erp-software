@@ -4,6 +4,7 @@ import { http, setAuthToken, setUnauthorizedHandler } from '../api/http';
 import { clearAccessToken, getAccessToken, setAccessToken } from './authStorage';
 import type { LoginResponse, MeResponse } from './types';
 import { getExistingDeviceId } from '../push/deviceId';
+import { setSentryUser } from '../monitoring/sentry';
 
 type AuthState = {
   isBooting: boolean;
@@ -30,6 +31,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token: null,
     me: null,
   });
+
+  useEffect(() => {
+    setSentryUser(state.me);
+  }, [state.me]);
 
   const bootstrap = useCallback(async () => {
     try {
