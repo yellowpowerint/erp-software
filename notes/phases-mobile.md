@@ -847,6 +847,37 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - App Store review feedback addressed
 
+**Status: READY (requires Apple/Expo credentials to execute upload/submit)**
+
+**Implementation Notes (M7.2)**
+- Added scripts to generate an iOS submission package template and to run EAS build/submit.
+- iOS TestFlight distribution uses EAS and requires Apple/Expo credentials at execution time.
+- Added verification scripts for M7.2 to keep backend + mobile checks green.
+
+**Acceptance Checklist (M7.2)**
+- [x] Submission package template can be generated into `prod/submission-m7-2-ios.zip`
+- [x] iOS build command is scripted for repeatability (`prod/eas-ios-testflight-build.*`)
+- [x] iOS submit command is scripted for repeatability (`prod/eas-ios-testflight-submit.*`)
+- [x] Verification scripts exist and pass (backend build/test/lint + mobile typecheck + release validation)
+- [ ] TestFlight build uploaded (run `prod/eas-ios-testflight-build.*`)
+- [ ] TestFlight submission completed (run `prod/eas-ios-testflight-submit.*`)
+- [ ] App Store review feedback addressed (iterate via build/submit scripts as needed)
+
+**Runbook (M7.2)**
+- Generate submission package:
+  - PowerShell: `pwsh -File prod/make-ios-submission-package.ps1`
+  - Bash: `bash prod/make-ios-submission-package.sh`
+- Build for TestFlight (requires Expo/EAS login + Apple credentials):
+  - PowerShell: `pwsh -File prod/eas-ios-testflight-build.ps1`
+  - Bash: `bash prod/eas-ios-testflight-build.sh`
+- Submit latest iOS build to TestFlight (requires Apple credentials):
+  - PowerShell: `pwsh -File prod/eas-ios-testflight-submit.ps1`
+  - Bash: `bash prod/eas-ios-testflight-submit.sh`
+
+**Verification (M7.2)**
+- [x] `prod/verify-m7-2.ps1`
+- [x] `prod/verify-m7-2.sh`
+
 ## Session M7.3 — Play Store Tracks
 - **Scope**
   - Internal testing -> closed testing -> production

@@ -1,0 +1,1 @@
+iPhone: required\n iPad: if supportsTablet=true
