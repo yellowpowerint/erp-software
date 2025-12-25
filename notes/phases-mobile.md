@@ -703,6 +703,30 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - No silent failures for queued items
 
+**Status: COMPLETE**
+
+**Implementation Notes (M6.1)**
+- Added a unified `OutboxScreen` (queue inspection) in the `More` tab to view queued items across modules.
+- Hardened offline queues for incidents and expense receipts:
+  - Exponential backoff via `nextAttemptAt` with periodic due checks + auto-flush when connectivity returns.
+  - Stored richer failure metadata (`lastError`, `lastStatus`, `nextAttemptAt`) to prevent silent failures.
+  - Incident queue preserves `remoteIncidentId` to avoid duplicate incident creation on retry.
+- Added actionable conflict/permission guidance based on common HTTP status codes.
+- Updated entry points to Outbox so users can always find and manage queued items.
+
+**Acceptance Checklist (M6.1)**
+- [x] Queue inspection screen available (More → Outbox) listing all queued items
+- [x] Each queued item shows status, attempts, last error, and next retry time
+- [x] Users can retry individual items and retry all queued items
+- [x] Users can remove individual queued items and clear the outbox
+- [x] Retry policy uses exponential backoff and respects `nextAttemptAt`
+- [x] Conflict guidance is shown for common server responses (401/403/404/409/413/422)
+- [x] DoD met: no silent failures (failures remain visible with details)
+
+**Verification (M6.1)**
+- [x] `prod/verify-m6-1.ps1`
+- [x] `prod/verify-m6-1.sh`
+
 ## Session M6.2 — Monitoring + Performance
 - **Scope**
   - Crash reporting integration

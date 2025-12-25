@@ -6,6 +6,7 @@ import { NotificationPreferencesScreen } from '../screens/NotificationPreference
 import { LeaveRequestSubmitScreen } from '../screens/LeaveRequestSubmitScreen';
 import { ExpenseSubmitScreen } from '../screens/ExpenseSubmitScreen';
 import { ExpenseReceiptOutboxScreen } from '../screens/ExpenseReceiptOutboxScreen';
+import { OutboxScreen } from '../screens/OutboxScreen';
 import { DocumentsListScreen } from '../screens/DocumentsListScreen';
 import { DocumentViewerScreen } from '../screens/DocumentViewerScreen';
 
@@ -15,6 +16,7 @@ export type MoreStackParamList = {
   LeaveRequestSubmit: undefined;
   ExpenseSubmit: undefined;
   ExpenseReceiptOutbox: undefined;
+  Outbox: undefined;
   Documents: undefined;
   DocumentViewer: { id: string };
 };
@@ -41,6 +43,7 @@ export function MoreStack() {
         component={ExpenseReceiptOutboxScreen}
         options={{ title: 'Receipt outbox' }}
       />
+      <Stack.Screen name="Outbox" component={OutboxScreen} options={{ title: 'Outbox' }} />
       <Stack.Screen name="Documents" component={DocumentsListScreen} options={{ title: 'Documents' }} />
       <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} options={{ title: 'Document' }} />
     </Stack.Navigator>

@@ -74,7 +74,7 @@ export function SafetyInspectionsListScreen() {
             <Text style={styles.primaryButtonText}>Report incident</Text>
           </Pressable>
           <Pressable
-            onPress={() => navigation.navigate('IncidentOutbox')}
+            onPress={() => (navigation.getParent() as any)?.navigate('More', { screen: 'Outbox' })}
             style={({ pressed }) => [styles.secondaryButton, pressed ? styles.secondaryButtonPressed : null]}
             accessibilityRole="button"
           >

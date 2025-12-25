@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
 
 import { http } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
@@ -20,6 +21,8 @@ export type ExpenseReceiptQueueItem = {
   attempts: number;
   status: 'PENDING' | 'FAILED';
   lastError?: string;
+  lastStatus?: number;
+  nextAttemptAt?: string;
   photo: ReceiptPhoto;
 };
 
@@ -34,7 +37,8 @@ type QueueState = {
 type ExpenseReceiptQueueContextValue = QueueState & {
   enqueue: (expenseId: string, photo: ReceiptPhoto) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
-  flush: () => Promise<void>;
+  retryItem: (id: string) => Promise<void>;
+  flush: (opts?: { force?: boolean }) => Promise<void>;
   pendingCount: number;
 };
 
@@ -55,6 +59,22 @@ function safeJsonParse<T>(value: string | null): T | null {
 
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function computeNextAttemptAtIso(attempts: number) {
+  const a = Math.max(0, Number(attempts) || 0);
+  const baseMs = 5000;
+  const maxMs = 10 * 60 * 1000;
+  const delay = Math.min(baseMs * Math.pow(2, a), maxMs);
+  const jitter = Math.floor(Math.random() * 2000);
+  return new Date(Date.now() + delay + jitter).toISOString();
+}
+
+function shouldAttemptNow(item: ExpenseReceiptQueueItem) {
+  if (!item.nextAttemptAt) return true;
+  const t = new Date(item.nextAttemptAt).getTime();
+  if (Number.isNaN(t)) return true;
+  return t <= Date.now();
 }
 
 export function ExpenseReceiptQueueProvider({ children }: { children: React.ReactNode }) {
@@ -99,6 +119,7 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
         updatedAt: now,
         attempts: 0,
         status: 'PENDING',
+        nextAttemptAt: now,
         photo,
       };
 
@@ -118,9 +139,25 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
     [persistQueue]
   );
 
-  const flush = useCallback(async () => {
+  const retryItem = useCallback(
+    async (id: string) => {
+      const now = new Date().toISOString();
+      const next = itemsRef.current.map((x): ExpenseReceiptQueueItem => {
+        if (x.id !== id) return x;
+        return { ...x, status: 'PENDING', updatedAt: now, nextAttemptAt: now };
+      });
+      setState((s) => ({ ...s, items: next }));
+      await persistQueue(next);
+      await flush({ force: true });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [persistQueue, token]
+  );
+
+  const flush = useCallback(async (opts?: { force?: boolean }) => {
     if (!token) return;
     if (flushInProgress.current) return;
+    const force = opts?.force === true;
 
     flushInProgress.current = true;
     setState((s) => ({ ...s, isFlushing: true, activeItemId: null, activeProgress: 0 }));
@@ -136,6 +173,11 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
       const remaining: ExpenseReceiptQueueItem[] = [];
 
       for (const item of itemsSnapshot) {
+        if (!force && !shouldAttemptNow(item)) {
+          remaining.push(item);
+          continue;
+        }
+
         setState((s) => ({ ...s, activeItemId: item.id, activeProgress: 0 }));
         try {
           const doc = await uploadDocument<any>(
@@ -168,12 +210,15 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
           });
         } catch (e: any) {
           const now = new Date().toISOString();
+          const status = axios.isAxiosError(e) ? e.response?.status : undefined;
           remaining.push({
             ...item,
             updatedAt: now,
             attempts: (item.attempts ?? 0) + 1,
             status: 'FAILED',
             lastError: String(e?.message || e),
+            lastStatus: status,
+            nextAttemptAt: computeNextAttemptAtIso((item.attempts ?? 0) + 1),
           });
         }
       }
@@ -185,6 +230,17 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
       setState((s) => ({ ...s, isFlushing: false, activeItemId: null, activeProgress: 0 }));
     }
   }, [persistQueue, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const timer = setInterval(() => {
+      const due = itemsRef.current.some((x) => shouldAttemptNow(x));
+      if (due) {
+        void flush();
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [token, flush]);
 
   useEffect(() => {
     if (!token) return;
@@ -206,10 +262,11 @@ export function ExpenseReceiptQueueProvider({ children }: { children: React.Reac
       ...state,
       enqueue,
       removeItem,
+      retryItem,
       flush,
       pendingCount,
     }),
-    [state, enqueue, removeItem, flush, pendingCount]
+    [state, enqueue, removeItem, retryItem, flush, pendingCount]
   );
 
   return <ExpenseReceiptQueueContext.Provider value={value}>{children}</ExpenseReceiptQueueContext.Provider>;

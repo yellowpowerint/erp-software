@@ -78,6 +78,7 @@ const linking: LinkingOptions<RootParamList> = {
           NotificationPreferences: 'more/notification-preferences',
           ExpenseSubmit: 'more/expenses/submit',
           ExpenseReceiptOutbox: 'more/expenses/receipt-outbox',
+          Outbox: 'more/outbox',
         },
       },
       Login: 'login',

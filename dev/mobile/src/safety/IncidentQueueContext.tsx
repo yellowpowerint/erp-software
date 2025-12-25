@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
 
 import { http } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
@@ -38,6 +39,9 @@ export type IncidentQueueItem = {
   attempts: number;
   status: 'PENDING' | 'FAILED';
   lastError?: string;
+  lastStatus?: number;
+  nextAttemptAt?: string;
+  remoteIncidentId?: string;
   draft: IncidentDraft;
 };
 
@@ -54,7 +58,8 @@ type IncidentQueueContextValue = QueueState & {
   saveDraft: (draft: IncidentDraft | null) => Promise<void>;
   enqueueFromDraft: (draft: IncidentDraft, opts?: { clearDraft?: boolean }) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
-  flush: () => Promise<void>;
+  retryItem: (id: string) => Promise<void>;
+  flush: (opts?: { force?: boolean }) => Promise<void>;
   pendingCount: number;
 };
 
@@ -76,6 +81,22 @@ function safeJsonParse<T>(value: string | null): T | null {
 
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function computeNextAttemptAtIso(attempts: number) {
+  const a = Math.max(0, Number(attempts) || 0);
+  const baseMs = 5000;
+  const maxMs = 10 * 60 * 1000;
+  const delay = Math.min(baseMs * Math.pow(2, a), maxMs);
+  const jitter = Math.floor(Math.random() * 2000);
+  return new Date(Date.now() + delay + jitter).toISOString();
+}
+
+function shouldAttemptNow(item: IncidentQueueItem) {
+  if (!item.nextAttemptAt) return true;
+  const t = new Date(item.nextAttemptAt).getTime();
+  if (Number.isNaN(t)) return true;
+  return t <= Date.now();
 }
 
 export function IncidentQueueProvider({ children }: { children: React.ReactNode }) {
@@ -143,6 +164,7 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
         updatedAt: now,
         attempts: 0,
         status: 'PENDING',
+        nextAttemptAt: now,
         draft,
       };
 
@@ -163,9 +185,25 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
     [persistQueue]
   );
 
-  const flush = useCallback(async () => {
+  const retryItem = useCallback(
+    async (id: string) => {
+      const now = new Date().toISOString();
+      const next = itemsRef.current.map((x): IncidentQueueItem => {
+        if (x.id !== id) return x;
+        return { ...x, status: 'PENDING', updatedAt: now, nextAttemptAt: now };
+      });
+      setState((s) => ({ ...s, items: next }));
+      await persistQueue(next);
+      await flush({ force: true });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [persistQueue, token]
+  );
+
+  const flush = useCallback(async (opts?: { force?: boolean }) => {
     if (!token) return;
     if (flushInProgress.current) return;
+    const force = opts?.force === true;
 
     flushInProgress.current = true;
     setState((s) => ({ ...s, isFlushing: true, activeItemId: null, activeProgress: 0 }));
@@ -181,28 +219,41 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
       const remaining: IncidentQueueItem[] = [];
 
       for (const item of itemsSnapshot) {
+        if (!force && !shouldAttemptNow(item)) {
+          remaining.push(item);
+          continue;
+        }
+
         setState((s) => ({ ...s, activeItemId: item.id, activeProgress: 0 }));
+        let workingItem: IncidentQueueItem = item;
         try {
+          const itemWithRemote: IncidentQueueItem = { ...workingItem };
+
           const witnesses = (item.draft.witnessesText ?? '')
             .split(',')
             .map((s) => s.trim())
             .filter((s) => s.length > 0);
 
-          const createRes = await http.post<{ id: string }>('/safety/incidents', {
-            type: item.draft.type,
-            severity: item.draft.severity,
-            location: item.draft.location,
-            incidentDate: item.draft.incidentDate,
-            description: item.draft.description,
-            injuries: item.draft.injuries?.trim() || undefined,
-            witnesses: witnesses.length > 0 ? witnesses : undefined,
-            oshaReportable: item.draft.oshaReportable,
-            notes: item.draft.notes?.trim() || undefined,
-          });
-
-          const incidentId = (createRes.data as any)?.id;
+          let incidentId = String(itemWithRemote.remoteIncidentId ?? '').trim();
           if (!incidentId) {
-            throw new Error('Incident creation failed: missing id');
+            const createRes = await http.post<{ id: string }>('/safety/incidents', {
+              type: item.draft.type,
+              severity: item.draft.severity,
+              location: item.draft.location,
+              incidentDate: item.draft.incidentDate,
+              description: item.draft.description,
+              injuries: item.draft.injuries?.trim() || undefined,
+              witnesses: witnesses.length > 0 ? witnesses : undefined,
+              oshaReportable: item.draft.oshaReportable,
+              notes: item.draft.notes?.trim() || undefined,
+            });
+
+            incidentId = String((createRes.data as any)?.id ?? '').trim();
+            if (!incidentId) {
+              throw new Error('Incident creation failed: missing id');
+            }
+            itemWithRemote.remoteIncidentId = incidentId;
+            workingItem = itemWithRemote;
           }
           const photoUrls: string[] = [];
 
@@ -238,12 +289,15 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
           }
         } catch (e: any) {
           const now = new Date().toISOString();
+          const status = axios.isAxiosError(e) ? e.response?.status : undefined;
           remaining.push({
-            ...item,
+            ...workingItem,
             updatedAt: now,
-            attempts: (item.attempts ?? 0) + 1,
+            attempts: (workingItem.attempts ?? 0) + 1,
             status: 'FAILED',
             lastError: String(e?.message || e),
+            lastStatus: status,
+            nextAttemptAt: computeNextAttemptAtIso((workingItem.attempts ?? 0) + 1),
           });
         }
       }
@@ -255,6 +309,17 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
       setState((s) => ({ ...s, isFlushing: false, activeItemId: null, activeProgress: 0 }));
     }
   }, [persistQueue, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const timer = setInterval(() => {
+      const due = itemsRef.current.some((x) => shouldAttemptNow(x));
+      if (due) {
+        void flush();
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [token, flush]);
 
   useEffect(() => {
     if (!token) return;
@@ -277,10 +342,11 @@ export function IncidentQueueProvider({ children }: { children: React.ReactNode 
       saveDraft,
       enqueueFromDraft,
       removeItem,
+      retryItem,
       flush,
       pendingCount,
     }),
-    [state, saveDraft, enqueueFromDraft, removeItem, flush, pendingCount]
+    [state, saveDraft, enqueueFromDraft, removeItem, retryItem, flush, pendingCount]
   );
 
   return <IncidentQueueContext.Provider value={value}>{children}</IncidentQueueContext.Provider>;

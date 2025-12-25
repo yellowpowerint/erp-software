@@ -6,11 +6,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../auth/AuthContext';
 import type { MoreStackParamList } from '../navigation/MoreStack';
 import { useExpenseReceiptQueue } from '../finance/ExpenseReceiptQueueContext';
+import { useIncidentQueue } from '../safety/IncidentQueueContext';
 
 export function MoreScreen() {
   const { me, signOut } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const { pendingCount } = useExpenseReceiptQueue();
+  const { pendingCount: incidentPendingCount } = useIncidentQueue();
+
+  const totalPending = pendingCount + incidentPendingCount;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -71,13 +75,13 @@ export function MoreScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => navigation.navigate('ExpenseReceiptOutbox')}
+          onPress={() => navigation.navigate('Outbox')}
           style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
           accessibilityRole="button"
         >
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Receipt Outbox</Text>
-            <Text style={styles.rowSubtitle}>{pendingCount > 0 ? `${pendingCount} pending/failed uploads` : 'No pending uploads'}</Text>
+            <Text style={styles.rowTitle}>Outbox</Text>
+            <Text style={styles.rowSubtitle}>{totalPending > 0 ? `${totalPending} pending/failed items` : 'No pending items'}</Text>
           </View>
           <Text style={styles.chevron}>›</Text>
         </Pressable>
