@@ -1,9 +1,31 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { UserRole } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
 export class HrService {
   constructor(private prisma: PrismaService) {}
+
+  private canViewSensitiveEmployeeFields(role?: UserRole) {
+    return role === "SUPER_ADMIN" || role === "HR_MANAGER";
+  }
+
+  private employeeDirectorySelect() {
+    return {
+      id: true,
+      employeeId: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      department: true,
+      position: true,
+      status: true,
+      hireDate: true,
+      createdAt: true,
+      updatedAt: true,
+    };
+  }
 
   // ==================== Employees ====================
 
@@ -37,23 +59,51 @@ export class HrService {
     });
   }
 
-  async getEmployees(filters?: {
+  async getEmployees(
+    filters?: {
+      search?: string;
     department?: string;
     status?: string;
     employmentType?: string;
-  }) {
+    },
+  ) {
     const where: any = {};
+    const q = String(filters?.search ?? "").trim();
+    if (q) {
+      where.OR = [
+        { employeeId: { contains: q, mode: "insensitive" } },
+        { firstName: { contains: q, mode: "insensitive" } },
+        { lastName: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+        { department: { contains: q, mode: "insensitive" } },
+        { position: { contains: q, mode: "insensitive" } },
+      ];
+    }
     if (filters?.department) where.department = filters.department;
     if (filters?.status) where.status = filters.status;
     if (filters?.employmentType) where.employmentType = filters.employmentType;
 
     return this.prisma.employee.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      select: this.employeeDirectorySelect(),
     });
   }
 
-  async getEmployeeById(id: string) {
+  async getEmployeeDirectoryProfile(id: string, _requesterRole?: UserRole) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      select: this.employeeDirectorySelect(),
+    });
+
+    if (!employee) {
+      throw new NotFoundException("Employee not found");
+    }
+
+    return employee;
+  }
+
+  private async getEmployeeByIdFull(id: string) {
     const employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
@@ -79,8 +129,16 @@ export class HrService {
     return employee;
   }
 
+  async getEmployeeById(id: string, requesterRole?: UserRole) {
+    if (this.canViewSensitiveEmployeeFields(requesterRole)) {
+      return this.getEmployeeByIdFull(id);
+    }
+
+    return this.getEmployeeDirectoryProfile(id, requesterRole);
+  }
+
   async updateEmployee(id: string, data: any) {
-    await this.getEmployeeById(id);
+    await this.getEmployeeByIdFull(id);
 
     return this.prisma.employee.update({
       where: { id },
@@ -95,7 +153,7 @@ export class HrService {
   }
 
   async deleteEmployee(id: string) {
-    await this.getEmployeeById(id);
+    await this.getEmployeeByIdFull(id);
     return this.prisma.employee.delete({ where: { id } });
   }
 

@@ -481,6 +481,29 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Sensitive fields hidden for non-authorized roles
 
+**Status:** COMPLETE
+
+**Implementation Notes (M4.5)**
+- Backend HR employee endpoints now support directory-safe responses:
+  - `GET /api/hr/employees` supports `search` and returns **limited fields only** (id, employeeId, name, email/phone, department, position, status, hireDate, timestamps).
+  - `GET /api/hr/employees/:id` returns:
+    - Full employee record (including sensitive fields) for `SUPER_ADMIN` and `HR_MANAGER`.
+    - Redacted directory profile for all other roles.
+- Mobile includes:
+  - **Employees** list screen with server-side search + pull-to-refresh.
+  - **Employee Detail** screen for the limited profile.
+  - Row tap navigates from directory list → profile.
+
+**Acceptance Checklist (M4.5)**
+- [x] Directory list screen implemented
+- [x] Limited profile screen implemented
+- [x] Directory search is supported (server-side `search`)
+- [x] Sensitive fields are hidden for non-authorized roles (server-side redaction)
+
+**Verification (M4.5)**
+- [x] `prod/verify-m4-5.ps1`
+- [x] `prod/verify-m4-5.sh`
+
 ## Session M4.6 — HR: Leave Requests (Submit)
 - **Scope**
   - Submit leave request

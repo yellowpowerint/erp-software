@@ -34,7 +34,10 @@ type Widget = {
   title: string;
   value: string;
   subtitle: string;
-  route: Exclude<keyof HomeStackParamList, 'InventoryItemDetail' | 'ReceiveStock' | 'SafetyIncidentDetail'>;
+  route: Exclude<
+    keyof HomeStackParamList,
+    'InventoryItemDetail' | 'ReceiveStock' | 'SafetyIncidentDetail' | 'EmployeeDetail'
+  >;
 };
 
 export function HomeScreen() {

@@ -31,30 +31,37 @@ export class HrController {
 
   // Employees
   @Post("employees")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "HR_MANAGER")
   createEmployee(@Body() body: any) {
     return this.hrService.createEmployee(body);
   }
 
   @Get("employees")
   getEmployees(
+    @Query("search") search?: string,
     @Query("department") department?: string,
     @Query("status") status?: string,
     @Query("employmentType") employmentType?: string,
   ) {
-    return this.hrService.getEmployees({ department, status, employmentType });
+    return this.hrService.getEmployees({ search, department, status, employmentType });
   }
 
   @Get("employees/:id")
-  getEmployeeById(@Param("id") id: string) {
-    return this.hrService.getEmployeeById(id);
+  getEmployeeById(@Request() req: any, @Param("id") id: string) {
+    return this.hrService.getEmployeeById(id, req.user?.role);
   }
 
   @Put("employees/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "HR_MANAGER")
   updateEmployee(@Param("id") id: string, @Body() body: any) {
     return this.hrService.updateEmployee(id, body);
   }
 
   @Delete("employees/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "HR_MANAGER")
   deleteEmployee(@Param("id") id: string) {
     return this.hrService.deleteEmployee(id);
   }

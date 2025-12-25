@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ErrorBanner } from '../components/ErrorBanner';
-import { parseApiError } from '../api/errors';
 import { http } from '../api/http';
+import { parseApiError } from '../api/errors';
 import { API_BASE_URL } from '../config';
+import type { HomeStackParamList } from '../navigation/HomeStack';
 
 type Employee = {
   id: string;
@@ -12,14 +15,19 @@ type Employee = {
   firstName?: string;
   lastName?: string;
   department?: string;
+  position?: string;
   status?: string;
 };
 
 export function EmployeesListScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList, 'Employees'>>();
   const [employees, setEmployees] = useState<Employee[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const activeCount = useMemo(() => {
     if (!employees) return 0;
@@ -30,7 +38,9 @@ export function EmployeesListScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await http.get<Employee[]>('/hr/employees');
+      const q = searchQuery.trim();
+      const qs = q.length ? `?search=${encodeURIComponent(q)}` : '';
+      const res = await http.get<Employee[]>(`/hr/employees${qs}`);
       setEmployees(res.data);
     } catch (e: any) {
       const parsed = parseApiError(e, API_BASE_URL);
@@ -40,7 +50,7 @@ export function EmployeesListScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchQuery]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -52,6 +62,13 @@ export function EmployeesListScreen() {
   }, [load]);
 
   useEffect(() => {
+    const handle = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
+  useEffect(() => {
     load();
   }, [load]);
 
@@ -61,6 +78,15 @@ export function EmployeesListScreen() {
         <Text style={styles.title}>Employees</Text>
         <Text style={styles.meta}>{employees ? `${employees.length} total • ${activeCount} active` : '—'}</Text>
       </View>
+
+      <TextInput
+        value={searchInput}
+        onChangeText={setSearchInput}
+        placeholder="Search by name, ID, email, department…"
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.search}
+      />
 
       {error ? <ErrorBanner message={error} onRetry={load} /> : null}
 
@@ -76,19 +102,30 @@ export function EmployeesListScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <View style={styles.row}>
+            <Pressable
+              onPress={() => navigation.navigate('EmployeeDetail', { id: item.id })}
+              style={({ pressed }) => [styles.row, pressed ? { opacity: 0.9 } : null]}
+              accessibilityRole="button"
+            >
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>
                   {[item.firstName, item.lastName].filter(Boolean).join(' ') || '—'}
                 </Text>
                 <Text style={styles.rowSub}>
-                  {(item.employeeId ? `${item.employeeId} • ` : '') + (item.department ?? '—')}
+                  {[
+                    item.employeeId ? String(item.employeeId) : '',
+                    item.department ?? '',
+                    item.position ?? '',
+                  ]
+                    .map((p) => String(p).trim())
+                    .filter(Boolean)
+                    .join(' • ') || '—'}
                 </Text>
               </View>
               <View style={styles.statusWrap}>
                 <Text style={styles.status}>{item.status ?? '—'}</Text>
               </View>
-            </View>
+            </Pressable>
           )}
           ListEmptyComponent={
             <View style={styles.center}>
@@ -120,6 +157,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     fontWeight: '600',
+  },
+  search: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#f9fafb',
   },
   center: {
     flex: 1,
