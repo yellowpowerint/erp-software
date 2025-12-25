@@ -802,6 +802,42 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - All P0 bugs closed
 
+**Status: COMPLETE**
+
+**Implementation Notes (M7.1)**
+- Added automated release config validation (`npm run validate:release`) to ensure store-critical metadata is present.
+- Added store-required build metadata in Expo config:
+  - `expo.ios.buildNumber`
+  - `expo.android.versionCode`
+- Added production verification scripts for M7.1.
+
+**Release Checklist (M7.1)**
+- [x] Versioning present and consistent (`package.json` matches `app.json`)
+- [x] iOS `bundleIdentifier` set
+- [x] iOS `buildNumber` set
+- [x] Android `package` set
+- [x] Android `versionCode` set
+- [x] EAS `build.production` profile present
+- [x] Monitoring is safe-by-default (disabled unless configured via env)
+- [x] No known P0 blockers from automated verification (build/test/lint/typecheck/config validation)
+
+**Store Metadata + Assets Checklist (M7.1)**
+- [x] Requirements list compiled
+- [ ] App name
+- [ ] App description (short + full)
+- [ ] Keywords
+- [ ] Category
+- [ ] Support email
+- [ ] Support URL
+- [ ] Privacy policy URL
+- [ ] App icon (1024x1024 source + platform generated)
+- [ ] Screenshots plan (phone + tablet where required)
+- [ ] Release notes template (what's new)
+
+**Verification (M7.1)**
+- [x] `prod/verify-m7-1.ps1`
+- [x] `prod/verify-m7-1.sh`
+
 ## Session M7.2 — iOS TestFlight + Submission
 - **Scope**
   - Build, distribute, and submit
