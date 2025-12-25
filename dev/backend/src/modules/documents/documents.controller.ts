@@ -337,6 +337,7 @@ export class DocumentsController {
     UserRole.HR_MANAGER,
     UserRole.SAFETY_OFFICER,
     UserRole.WAREHOUSE_MANAGER,
+    UserRole.EMPLOYEE,
   )
   @UseInterceptors(FileInterceptor("file", multerConfig))
   async uploadDocument(
@@ -368,6 +369,7 @@ export class DocumentsController {
     UserRole.HR_MANAGER,
     UserRole.SAFETY_OFFICER,
     UserRole.WAREHOUSE_MANAGER,
+    UserRole.EMPLOYEE,
   )
   @UseInterceptors(FilesInterceptor("files", 10, multerConfig))
   async uploadMultipleDocuments(

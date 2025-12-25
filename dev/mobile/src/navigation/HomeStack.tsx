@@ -11,6 +11,8 @@ import { ExpensesListScreen } from '../screens/ExpensesListScreen';
 import { EmployeesListScreen } from '../screens/EmployeesListScreen';
 import { SafetyInspectionsListScreen } from '../screens/SafetyInspectionsListScreen';
 import { SafetyTrainingsListScreen } from '../screens/SafetyTrainingsListScreen';
+import { IncidentCaptureScreen } from '../screens/IncidentCaptureScreen';
+import { IncidentOutboxScreen } from '../screens/IncidentOutboxScreen';
 
 export type HomeStackParamList = {
   Home: undefined;
@@ -23,6 +25,8 @@ export type HomeStackParamList = {
   Employees: undefined;
   SafetyInspections: undefined;
   SafetyTrainings: undefined;
+  IncidentCapture: undefined;
+  IncidentOutbox: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -48,6 +52,12 @@ export function HomeStack() {
         component={SafetyTrainingsListScreen}
         options={{ title: 'Trainings' }}
       />
+      <Stack.Screen
+        name="IncidentCapture"
+        component={IncidentCaptureScreen}
+        options={{ title: 'Report incident' }}
+      />
+      <Stack.Screen name="IncidentOutbox" component={IncidentOutboxScreen} options={{ title: 'Incident outbox' }} />
     </Stack.Navigator>
   );
 }

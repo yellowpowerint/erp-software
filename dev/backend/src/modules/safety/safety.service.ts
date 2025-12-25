@@ -1,9 +1,61 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CreateSafetyIncidentDto } from "./dto";
 
 @Injectable()
 export class SafetyService {
   constructor(private prisma: PrismaService) {}
+
+  async createIncident(userId: string, dto: CreateSafetyIncidentDto) {
+    const incidentDate = new Date(dto.incidentDate);
+    if (Number.isNaN(incidentDate.getTime())) {
+      throw new BadRequestException("Invalid incidentDate");
+    }
+
+    const count = await this.prisma.safetyIncident.count();
+    const incidentNumber = `INC-${Date.now()}-${count + 1}`;
+
+    return this.prisma.safetyIncident.create({
+      data: {
+        incidentNumber,
+        type: dto.type,
+        severity: dto.severity,
+        status: "REPORTED",
+        location: dto.location,
+        incidentDate,
+        reportedBy: userId,
+        description: dto.description,
+        injuries: dto.injuries,
+        witnesses: dto.witnesses ?? [],
+        photoUrls: [],
+        oshaReportable: dto.oshaReportable ?? false,
+        notes: dto.notes,
+      },
+    });
+  }
+
+  async appendIncidentPhotos(incidentId: string, photoUrls: string[]) {
+    const urls = (photoUrls ?? []).map(String).map((u) => u.trim()).filter(Boolean);
+    if (urls.length === 0) {
+      return this.prisma.safetyIncident.findUnique({ where: { id: incidentId } });
+    }
+
+    const incident = await this.prisma.safetyIncident.findUnique({
+      where: { id: incidentId },
+    });
+    if (!incident) {
+      throw new NotFoundException("Incident not found");
+    }
+
+    const merged = Array.from(new Set([...(incident.photoUrls ?? []), ...urls]));
+
+    return this.prisma.safetyIncident.update({
+      where: { id: incidentId },
+      data: {
+        photoUrls: merged,
+      },
+    });
+  }
 
   // ==================== Safety Inspections ====================
 

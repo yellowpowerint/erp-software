@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ErrorBanner } from '../components/ErrorBanner';
 import { parseApiError } from '../api/errors';
 import { http } from '../api/http';
 import { API_BASE_URL } from '../config';
+import type { HomeStackParamList } from '../navigation/HomeStack';
+import { useIncidentQueue } from '../safety/IncidentQueueContext';
 
 type SafetyInspection = {
   id: string;
@@ -15,6 +19,8 @@ type SafetyInspection = {
 };
 
 export function SafetyInspectionsListScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+  const { pendingCount: incidentOutboxCount } = useIncidentQueue();
   const [items, setItems] = useState<SafetyInspection[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,6 +65,22 @@ export function SafetyInspectionsListScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Safety Inspections</Text>
         <Text style={styles.meta}>{items ? `${items.length} records • ${pendingCount} pending` : '—'}</Text>
+        <View style={styles.actionsRow}>
+          <Pressable
+            onPress={() => navigation.navigate('IncidentCapture')}
+            style={({ pressed }) => [styles.primaryButton, pressed ? styles.primaryButtonPressed : null]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.primaryButtonText}>Report incident</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('IncidentOutbox')}
+            style={({ pressed }) => [styles.secondaryButton, pressed ? styles.secondaryButtonPressed : null]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.secondaryButtonText}>Outbox ({incidentOutboxCount})</Text>
+          </Pressable>
+        </View>
       </View>
 
       {error ? <ErrorBanner message={error} onRetry={load} /> : null}
@@ -104,6 +126,11 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 2,
+  },
+  actionsRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 10,
   },
   title: {
     fontSize: 18,
@@ -153,5 +180,37 @@ const styles = StyleSheet.create({
   empty: {
     color: '#6b7280',
     fontWeight: '700',
+  },
+  primaryButton: {
+    flex: 1,
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonPressed: {
+    opacity: 0.9,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontWeight: '900',
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  secondaryButtonPressed: {
+    opacity: 0.9,
+  },
+  secondaryButtonText: {
+    color: '#111827',
+    fontWeight: '900',
   },
 });

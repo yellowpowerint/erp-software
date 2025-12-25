@@ -417,6 +417,25 @@ This document defines the **session-by-session procedure** to develop the Mining
   - Draft persists across app restarts
   - Pending submission state visible
 
+**Implementation Notes (M4.3)**
+- Backend now supports incident capture via `POST /api/safety/incidents` (JWT + RBAC) with validation (`CreateSafetyIncidentDto`).
+- Mobile includes an offline-first **Incident Capture** screen and **Incident Outbox** screen.
+- Draft persistence uses `AsyncStorage` and survives app restarts.
+- Queued submissions auto-retry when connectivity is restored (NetInfo listener), and can be manually retried from the Outbox.
+- Optional photo capture supported via `expo-image-picker`, uploaded via `POST /api/documents/upload` with `category=INCIDENT_REPORT`, `module=safety_incidents`, `referenceId={incidentId}`.
+- After upload, incident photo URLs are appended via `PUT /api/safety/incidents/:id/photos`.
+
+**Acceptance Checklist (M4.3)**
+- [x] New incident form implemented (type, severity, location, date, description, optional fields)
+- [x] Offline draft persists across app restarts
+- [x] Incidents can be queued offline and submitted later
+- [x] Pending/failed submission state visible (Outbox + header badge)
+- [x] Optional photo capture + upload supported
+
+**Verification (M4.3)**
+- [x] Mobile: `npm run typecheck`
+- [x] Backend: `npm run test:e2e`
+
 ## Session M4.4 — Safety: Incident List + Detail
 - **Scope**
   - List + detail

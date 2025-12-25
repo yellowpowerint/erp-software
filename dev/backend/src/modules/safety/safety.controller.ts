@@ -16,13 +16,44 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { CreateSafetyIncidentDto } from "./dto";
+import { UserRole } from "@prisma/client";
 
 @Controller("safety")
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class SafetyController {
   constructor(
     private readonly safetyService: SafetyService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @Post("incidents")
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.SAFETY_OFFICER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.EMPLOYEE,
+  )
+  createIncident(@CurrentUser() user: any, @Body() dto: CreateSafetyIncidentDto) {
+    return this.safetyService.createIncident(user.userId, dto);
+  }
+
+  @Put("incidents/:id/photos")
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.SAFETY_OFFICER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.EMPLOYEE,
+  )
+  appendIncidentPhotos(
+    @Param("id") id: string,
+    @Body() body: { photoUrls: string[] },
+  ) {
+    return this.safetyService.appendIncidentPhotos(id, body?.photoUrls ?? []);
+  }
 
   // Inspections
   @Post("inspections")

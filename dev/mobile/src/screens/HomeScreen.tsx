@@ -152,6 +152,24 @@ export function HomeScreen() {
       onPress: () => navigation.navigate(w.route),
     }));
 
+    if (
+      me?.role &&
+      [
+        'SUPER_ADMIN',
+        'SAFETY_OFFICER',
+        'OPERATIONS_MANAGER',
+        'DEPARTMENT_HEAD',
+        'EMPLOYEE',
+      ].includes(me.role)
+    ) {
+      actions.push({
+        key: 'incident_capture',
+        title: 'Report incident',
+        subtitle: 'Offline-first capture',
+        onPress: () => navigation.navigate('IncidentCapture'),
+      });
+    }
+
     actions.push({
       key: 'logout',
       title: 'Logout',
@@ -160,7 +178,7 @@ export function HomeScreen() {
     });
 
     return actions;
-  }, [widgets, navigation, signOut, me?.email]);
+  }, [widgets, navigation, signOut, me?.email, me?.role]);
 
   return (
     <>

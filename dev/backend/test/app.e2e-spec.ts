@@ -55,6 +55,19 @@ describe("App E2E", () => {
       .expect(401);
   });
 
+  it("/api/safety/incidents (POST) rejects unauthenticated request", async () => {
+    await request(app.getHttpServer())
+      .post("/api/safety/incidents")
+      .send({
+        type: "OTHER",
+        severity: "MINOR",
+        location: "Test",
+        incidentDate: new Date().toISOString(),
+        description: "Test incident",
+      })
+      .expect(401);
+  });
+
   it("health endpoint responds within an acceptable time", async () => {
     const start = Date.now();
     await request(app.getHttpServer()).get("/api/health").expect(200);

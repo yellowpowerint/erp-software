@@ -11,6 +11,7 @@ import { NotificationsProvider } from './src/notifications/NotificationsContext'
 import { NotificationPreferencesProvider } from './src/settings/NotificationPreferencesContext';
 import { PushNotificationsProvider } from './src/push/PushNotificationsProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { IncidentQueueProvider } from './src/safety/IncidentQueueContext';
 
 export default function App() {
   return (
@@ -19,11 +20,13 @@ export default function App() {
         <NotificationsProvider>
           <NotificationPreferencesProvider>
             <PushNotificationsProvider>
-              <SafeAreaView style={{ flex: 1 }}>
-                <OfflineBanner />
-                <RootNavigator />
-                <StatusBar style="auto" />
-              </SafeAreaView>
+              <IncidentQueueProvider>
+                <SafeAreaView style={{ flex: 1 }}>
+                  <OfflineBanner />
+                  <RootNavigator />
+                  <StatusBar style="auto" />
+                </SafeAreaView>
+              </IncidentQueueProvider>
             </PushNotificationsProvider>
           </NotificationPreferencesProvider>
         </NotificationsProvider>
