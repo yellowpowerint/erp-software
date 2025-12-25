@@ -18,6 +18,7 @@ import { InventoryService } from "./inventory.service";
 import {
   CreateStockItemDto,
   UpdateStockItemDto,
+  CreateInventoryMovementDto,
   StockMovementDto,
 } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -86,6 +87,15 @@ export class InventoryController {
     @Body() dto: StockMovementDto,
   ) {
     return this.inventoryService.recordStockMovement(id, user.userId, dto);
+  }
+
+  @Post("movements")
+  @Roles("SUPER_ADMIN", "WAREHOUSE_MANAGER", "OPERATIONS_MANAGER")
+  recordStockMovementByBody(
+    @CurrentUser() user: any,
+    @Body() dto: CreateInventoryMovementDto,
+  ) {
+    return this.inventoryService.recordStockMovement(dto.itemId, user.userId, dto);
   }
 
   // Get stock movements

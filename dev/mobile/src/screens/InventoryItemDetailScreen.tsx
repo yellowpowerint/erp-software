@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { http } from '../api/http';
 import { parseApiError } from '../api/errors';
@@ -55,6 +56,7 @@ function formatMoney(value: number | null) {
 }
 
 export function InventoryItemDetailScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const route = useRoute<RouteProp<HomeStackParamList, 'InventoryItemDetail'>>();
   const { id } = route.params;
 
@@ -90,6 +92,12 @@ export function InventoryItemDetailScreen() {
     void load();
   }, [load]);
 
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
+
   const isLowStock = useMemo(() => {
     if (!detail) return false;
     return detail.currentQuantity <= detail.reorderLevel;
@@ -113,6 +121,13 @@ export function InventoryItemDetailScreen() {
             <Text style={styles.muted}>Code: {detail.itemCode}</Text>
             <Text style={styles.muted}>Category: {detail.category}</Text>
             <Text style={styles.muted}>Warehouse: {detail.warehouse?.code ? `${detail.warehouse.code} • ` : ''}{detail.warehouse?.name ?? '—'}</Text>
+            <Pressable
+              onPress={() => navigation.navigate('ReceiveStock', { itemId: detail.id })}
+              style={({ pressed }) => [styles.primaryButton, pressed ? styles.primaryButtonPressed : null]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryButtonText}>Receive stock</Text>
+            </Pressable>
           </View>
 
           <View style={styles.card}>
@@ -168,4 +183,14 @@ const styles = StyleSheet.create({
   stockQty: { fontSize: 22, fontWeight: '900', color: '#111827' },
   lowStock: { color: '#b91c1c' },
   movementRow: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 10, backgroundColor: '#fff', gap: 6 },
+  primaryButton: {
+    marginTop: 10,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4f46e5',
+  },
+  primaryButtonPressed: { opacity: 0.9 },
+  primaryButtonText: { color: '#ffffff', fontWeight: '900', fontSize: 13 },
 });

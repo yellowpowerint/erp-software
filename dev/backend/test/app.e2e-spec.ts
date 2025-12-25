@@ -44,6 +44,17 @@ describe("App E2E", () => {
     await request(app.getHttpServer()).get("/api/auth/me").expect(401);
   });
 
+  it("/api/inventory/movements (POST) rejects unauthenticated request", async () => {
+    await request(app.getHttpServer())
+      .post("/api/inventory/movements")
+      .send({
+        itemId: "00000000-0000-0000-0000-000000000000",
+        movementType: "STOCK_IN",
+        quantity: 1,
+      })
+      .expect(401);
+  });
+
   it("health endpoint responds within an acceptable time", async () => {
     const start = Date.now();
     await request(app.getHttpServer()).get("/api/health").expect(200);

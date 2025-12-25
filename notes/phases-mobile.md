@@ -391,6 +391,18 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Stock movement recorded correctly
 
+**Status:** COMPLETE
+
+**Implementation Notes (M4.2)**
+- Backend now supports plan-aligned receiving via `POST /api/inventory/movements` (records a `STOCK_IN` movement and updates stock atomically).
+- Mobile includes a new **Receive Stock** screen reachable from **Inventory Item Detail**.
+- Receiving supports optional delivery note photo capture and upload via `POST /api/documents/upload`, linked to the created movement using `module=inventory_movements` and `referenceId={movementId}`.
+
+**Acceptance Checklist (M4.2)**
+- [x] Receiving confirm flow implemented and reachable from Inventory Item Detail
+- [x] Stock movement recorded correctly (server-side transaction updates quantity + movement history)
+- [x] Optional delivery note photo capture and upload supported
+
 ## Session M4.3 — Safety: Incident Capture (Offline)
 - **Scope**
   - New incident form
