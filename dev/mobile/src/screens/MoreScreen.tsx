@@ -5,10 +5,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useAuth } from '../auth/AuthContext';
 import type { MoreStackParamList } from '../navigation/MoreStack';
+import { useExpenseReceiptQueue } from '../finance/ExpenseReceiptQueueContext';
 
 export function MoreScreen() {
   const { me, signOut } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
+  const { pendingCount } = useExpenseReceiptQueue();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -40,6 +42,30 @@ export function MoreScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle}>Notification Preferences</Text>
             <Text style={styles.rowSubtitle}>Choose how you want to receive updates</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate('ExpenseSubmit')}
+          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
+          accessibilityRole="button"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowTitle}>Submit Expense</Text>
+            <Text style={styles.rowSubtitle}>Submit an expense (optional receipt)</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate('ExpenseReceiptOutbox')}
+          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
+          accessibilityRole="button"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowTitle}>Receipt Outbox</Text>
+            <Text style={styles.rowSubtitle}>{pendingCount > 0 ? `${pendingCount} pending/failed uploads` : 'No pending uploads'}</Text>
           </View>
           <Text style={styles.chevron}>›</Text>
         </Pressable>

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Put,
@@ -30,14 +31,22 @@ import { CsvService } from "../csv/csv.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { CreateExpenseDto } from "./dto/create-expense.dto";
+import { UpdateExpenseDto } from "./dto/update-expense.dto";
+import { SetExpenseReceiptDto } from "./dto/set-expense-receipt.dto";
 
 @Controller("finance")
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class FinanceController {
   constructor(
     private readonly financeService: FinanceService,
     private readonly csvService: CsvService,
     private readonly prisma: PrismaService,
   ) {}
+
+  private isFinanceRole(role: string | undefined) {
+    return role === "SUPER_ADMIN" || role === "CEO" || role === "CFO" || role === "ACCOUNTANT";
+  }
 
   // ==================== Payments ====================
 
@@ -109,24 +118,32 @@ export class FinanceController {
   // ==================== Expenses ====================
 
   @Post("expenses")
-  createExpense(
-    @Body()
-    body: {
-      category: ExpenseCategory;
-      projectId?: string;
-      description: string;
-      amount: number;
-      currency?: string;
-      expenseDate: string;
-      submittedById: string;
-      receipt?: string;
-      notes?: string;
-      attachments?: string[];
-    },
-  ) {
+  @Roles(
+    "SUPER_ADMIN",
+    "CEO",
+    "CFO",
+    "DEPARTMENT_HEAD",
+    "ACCOUNTANT",
+    "PROCUREMENT_OFFICER",
+    "OPERATIONS_MANAGER",
+    "IT_MANAGER",
+    "HR_MANAGER",
+    "SAFETY_OFFICER",
+    "WAREHOUSE_MANAGER",
+    "EMPLOYEE",
+  )
+  createExpense(@Body() body: CreateExpenseDto, @Request() req: any) {
     return this.financeService.createExpense({
-      ...body,
+      category: body.category,
+      projectId: body.projectId,
+      description: body.description,
+      amount: body.amount,
+      currency: body.currency,
       expenseDate: new Date(body.expenseDate),
+      submittedById: req.user.userId,
+      receipt: body.receipt,
+      notes: body.notes,
+      attachments: body.attachments,
     });
   }
 
@@ -136,34 +153,77 @@ export class FinanceController {
     @Query("category") category?: ExpenseCategory,
     @Query("projectId") projectId?: string,
     @Query("submittedById") submittedById?: string,
+    @Request() req?: any,
   ) {
+    const requesterRole = req?.user?.role as string | undefined;
+    const requesterId = req?.user?.userId as string | undefined;
+    const canViewAll = this.isFinanceRole(requesterRole);
+
     return this.financeService.getAllExpenses({
       status,
       category,
       projectId,
-      submittedById,
+      submittedById: canViewAll ? submittedById : requesterId,
     });
   }
 
   @Get("expenses/:id")
-  getExpenseById(@Param("id") id: string) {
-    return this.financeService.getExpenseById(id);
+  async getExpenseById(@Param("id") id: string, @Request() req: any) {
+    const expense = await this.financeService.getExpenseById(id);
+    const requesterRole = req?.user?.role as string | undefined;
+    const requesterId = req?.user?.userId as string | undefined;
+
+    if (!this.isFinanceRole(requesterRole) && expense.submittedById !== requesterId) {
+      throw new ForbiddenException("You do not have access to this expense");
+    }
+
+    return expense;
   }
 
   @Put("expenses/:id")
+  @Roles("SUPER_ADMIN", "CEO", "CFO", "ACCOUNTANT")
   updateExpense(
     @Param("id") id: string,
-    @Body()
-    body: {
-      status?: ApprovalStatus;
-      approvedById?: string;
-      notes?: string;
-    },
+    @Body() body: UpdateExpenseDto,
   ) {
     return this.financeService.updateExpense(id, body);
   }
 
+  @Put("expenses/:id/receipt")
+  @Roles(
+    "SUPER_ADMIN",
+    "CEO",
+    "CFO",
+    "ACCOUNTANT",
+    "DEPARTMENT_HEAD",
+    "PROCUREMENT_OFFICER",
+    "OPERATIONS_MANAGER",
+    "IT_MANAGER",
+    "HR_MANAGER",
+    "SAFETY_OFFICER",
+    "WAREHOUSE_MANAGER",
+    "EMPLOYEE",
+  )
+  async setExpenseReceipt(
+    @Param("id") id: string,
+    @Body() body: SetExpenseReceiptDto,
+    @Request() req: any,
+  ) {
+    const expense = await this.financeService.getExpenseById(id);
+    const requesterRole = req?.user?.role as string | undefined;
+    const requesterId = req?.user?.userId as string | undefined;
+
+    if (!this.isFinanceRole(requesterRole) && expense.submittedById !== requesterId) {
+      throw new ForbiddenException("You do not have access to this expense");
+    }
+
+    return this.financeService.updateExpense(id, {
+      receipt: body.receiptUrl,
+    });
+  }
+
   @Delete("expenses/:id")
+  @Roles("SUPER_ADMIN", "CFO")
   deleteExpense(@Param("id") id: string) {
     return this.financeService.deleteExpense(id);
   }

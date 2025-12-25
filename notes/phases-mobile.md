@@ -543,6 +543,33 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Receipt upload stable on poor network
 
+**Status:** COMPLETE
+
+**Implementation Notes (M4.7)**
+- Backend hardening:
+  - `POST /api/finance/expenses` now binds `submittedById` to the authenticated user (prevents spoofing).
+  - `GET /api/finance/expenses` is scoped to the authenticated user unless the requester is a finance role.
+  - `GET /api/finance/expenses/:id` enforces owner access for non-finance roles.
+  - Added `PUT /api/finance/expenses/:id/receipt` to attach a receipt URL after document upload.
+- Mobile includes:
+  - **Submit Expense** screen (category, date, description, amount, currency, optional projectId + notes).
+  - Optional **receipt capture** via camera.
+  - **Receipt Outbox** (persistent queue) that retries uploads automatically when connectivity is restored.
+  - More tab entry points for Submit Expense + Receipt Outbox with pending/failed count.
+- Optional list:
+  - Basic **Expenses** list screen already exists under the Home stack and loads via `GET /api/finance/expenses`.
+
+**Acceptance Checklist (M4.7)**
+- [x] Expense submission flow implemented (mobile UI + backend endpoint)
+- [x] Receipt capture supported (camera)
+- [x] Receipt upload stable on poor network (persistent outbox + auto-retry on reconnect)
+- [x] Basic expenses list available (view-first)
+- [x] Permissions/ownership enforced for non-finance roles (server-side)
+
+**Verification (M4.7)**
+- [x] `prod/verify-m4-7.ps1`
+- [x] `prod/verify-m4-7.sh`
+
 ## Session M4.8 — Operations: Projects (View-First)
 - **Scope**
   - Projects list + detail (view)

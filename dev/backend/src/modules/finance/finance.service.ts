@@ -272,6 +272,7 @@ export class FinanceService {
       status?: ApprovalStatus;
       approvedById?: string;
       notes?: string;
+      receipt?: string;
     },
   ) {
     return this.prisma.expense.update({

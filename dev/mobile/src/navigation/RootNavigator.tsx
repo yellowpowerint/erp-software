@@ -72,6 +72,8 @@ const linking: LinkingOptions<RootParamList> = {
         screens: {
           MoreHome: 'more',
           NotificationPreferences: 'more/notification-preferences',
+          ExpenseSubmit: 'more/expenses/submit',
+          ExpenseReceiptOutbox: 'more/expenses/receipt-outbox',
         },
       },
       Login: 'login',

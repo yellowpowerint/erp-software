@@ -12,6 +12,7 @@ import { NotificationPreferencesProvider } from './src/settings/NotificationPref
 import { PushNotificationsProvider } from './src/push/PushNotificationsProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { IncidentQueueProvider } from './src/safety/IncidentQueueContext';
+import { ExpenseReceiptQueueProvider } from './src/finance/ExpenseReceiptQueueContext';
 
 export default function App() {
   return (
@@ -21,11 +22,13 @@ export default function App() {
           <NotificationPreferencesProvider>
             <PushNotificationsProvider>
               <IncidentQueueProvider>
-                <SafeAreaView style={{ flex: 1 }}>
-                  <OfflineBanner />
-                  <RootNavigator />
-                  <StatusBar style="auto" />
-                </SafeAreaView>
+                <ExpenseReceiptQueueProvider>
+                  <SafeAreaView style={{ flex: 1 }}>
+                    <OfflineBanner />
+                    <RootNavigator />
+                    <StatusBar style="auto" />
+                  </SafeAreaView>
+                </ExpenseReceiptQueueProvider>
               </IncidentQueueProvider>
             </PushNotificationsProvider>
           </NotificationPreferencesProvider>
