@@ -7,6 +7,7 @@ import { InventoryItemDetailScreen } from '../screens/InventoryItemDetailScreen'
 import { ReceiveStockScreen } from '../screens/ReceiveStockScreen';
 import { AssetsListScreen } from '../screens/AssetsListScreen';
 import { ProjectsListScreen } from '../screens/ProjectsListScreen';
+import { ProjectDetailScreen } from '../screens/ProjectDetailScreen';
 import { ExpensesListScreen } from '../screens/ExpensesListScreen';
 import { EmployeesListScreen } from '../screens/EmployeesListScreen';
 import { EmployeeDetailScreen } from '../screens/EmployeeDetailScreen';
@@ -24,6 +25,7 @@ export type HomeStackParamList = {
   ReceiveStock: { itemId: string };
   Assets: undefined;
   Projects: undefined;
+  ProjectDetail: { id: string };
   Expenses: undefined;
   Employees: undefined;
   EmployeeDetail: { id: string };
@@ -46,6 +48,7 @@ export function HomeStack() {
       <Stack.Screen name="ReceiveStock" component={ReceiveStockScreen} options={{ title: 'Receive stock' }} />
       <Stack.Screen name="Assets" component={AssetsListScreen} options={{ title: 'Assets' }} />
       <Stack.Screen name="Projects" component={ProjectsListScreen} options={{ title: 'Projects' }} />
+      <Stack.Screen name="ProjectDetail" component={ProjectDetailScreen} options={{ title: 'Project' }} />
       <Stack.Screen name="Expenses" component={ExpensesListScreen} options={{ title: 'Expenses' }} />
       <Stack.Screen name="Employees" component={EmployeesListScreen} options={{ title: 'Employees' }} />
       <Stack.Screen name="EmployeeDetail" component={EmployeeDetailScreen} options={{ title: 'Employee' }} />

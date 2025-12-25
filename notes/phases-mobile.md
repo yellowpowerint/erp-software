@@ -580,6 +580,29 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Role visibility enforced
 
+**Status:** COMPLETE
+
+**Implementation Notes (M4.8)**
+- Mobile:
+  - Added **Project Detail** screen that loads `GET /api/projects/:id` and renders overview + milestones + tasks.
+  - Updated **Projects List** to allow tap-to-open into detail.
+  - Enforced role visibility in the UI (vendors cannot view Projects).
+- Backend:
+  - Enforced role visibility for project view endpoints via `@Roles(...)` on:
+    - `GET /api/projects`
+    - `GET /api/projects/:id`
+    - `GET /api/projects/stats`
+    - `GET /api/projects/:id/timeline`
+
+**Acceptance Checklist (M4.8)**
+- [x] Projects list is functional (loads from backend)
+- [x] Project detail is functional (view-only, includes milestones + tasks)
+- [x] Role visibility enforced (mobile UI + server-side)
+
+**Verification (M4.8)**
+- [x] `prod/verify-m4-8.ps1`
+- [x] `prod/verify-m4-8.sh`
+
 ---
 
 # Phase M5 — Documents + Capture (2–4 sessions)

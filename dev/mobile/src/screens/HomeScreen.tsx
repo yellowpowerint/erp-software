@@ -36,7 +36,7 @@ type Widget = {
   subtitle: string;
   route: Exclude<
     keyof HomeStackParamList,
-    'InventoryItemDetail' | 'ReceiveStock' | 'SafetyIncidentDetail' | 'EmployeeDetail'
+    'InventoryItemDetail' | 'ReceiveStock' | 'SafetyIncidentDetail' | 'EmployeeDetail' | 'ProjectDetail'
   >;
 };
 
@@ -141,6 +141,7 @@ export function HomeScreen() {
       EMPLOYEE: ['projects', 'inventory'],
       IT_MANAGER: ['projects', 'assets'],
       DEPARTMENT_HEAD: ['projects', 'expenses', 'inventory'],
+      VENDOR: [],
     };
 
     const allowed = roleToKeys[role] ?? base.map((w) => w.key);
@@ -152,7 +153,7 @@ export function HomeScreen() {
       key: w.key,
       title: `Open ${w.title}`,
       subtitle: w.subtitle,
-      onPress: () => navigation.navigate({ name: w.route, params: undefined }),
+      onPress: () => navigation.navigate(w.route),
     }));
 
     if (
@@ -226,7 +227,7 @@ export function HomeScreen() {
           {widgets.map((w) => (
             <Pressable
               key={w.key}
-              onPress={() => navigation.navigate({ name: w.route, params: undefined })}
+              onPress={() => navigation.navigate(w.route)}
               style={({ pressed }) => [styles.widgetCard, pressed ? styles.widgetCardPressed : null]}
               accessibilityRole="button"
             >

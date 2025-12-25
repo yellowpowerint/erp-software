@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ErrorBanner } from '../components/ErrorBanner';
 import { parseApiError } from '../api/errors';
 import { http } from '../api/http';
 import { API_BASE_URL } from '../config';
+import type { HomeStackParamList } from '../navigation/HomeStack';
+import { useAuth } from '../auth/AuthContext';
 
 type Project = {
   id: string;
@@ -19,10 +23,17 @@ type Project = {
 };
 
 export function ProjectsListScreen() {
+  const { me } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList, 'Projects'>>();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const allowed = useMemo(() => {
+    if (!me?.role) return true;
+    return me.role !== 'VENDOR';
+  }, [me?.role]);
 
   const activeCount = useMemo(() => {
     if (!projects) return 0;
@@ -55,8 +66,21 @@ export function ProjectsListScreen() {
   }, [load]);
 
   useEffect(() => {
+    if (!allowed) return;
     load();
-  }, [load]);
+  }, [load, allowed]);
+
+  if (!allowed) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Projects</Text>
+          <Text style={styles.meta}>—</Text>
+        </View>
+        <Text style={styles.empty}>You do not have access to view projects.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -79,7 +103,11 @@ export function ProjectsListScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <View style={styles.row}>
+            <Pressable
+              onPress={() => navigation.navigate('ProjectDetail', { id: item.id })}
+              style={({ pressed }) => [styles.row, pressed ? { opacity: 0.9 } : null]}
+              accessibilityRole="button"
+            >
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{item.name}</Text>
                 <Text style={styles.rowSub}>
@@ -91,7 +119,7 @@ export function ProjectsListScreen() {
                 <Text style={styles.countText}>{item._count?.tasks ?? 0} tasks</Text>
                 <Text style={styles.countText}>{item._count?.milestones ?? 0} milestones</Text>
               </View>
-            </View>
+            </Pressable>
           )}
           ListEmptyComponent={
             <View style={styles.center}>

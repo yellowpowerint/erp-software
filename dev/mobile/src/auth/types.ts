@@ -10,7 +10,8 @@ export type UserRole =
   | 'HR_MANAGER'
   | 'SAFETY_OFFICER'
   | 'WAREHOUSE_MANAGER'
-  | 'EMPLOYEE';
+  | 'EMPLOYEE'
+  | 'VENDOR';
 
 export interface MeResponse {
   id: string;

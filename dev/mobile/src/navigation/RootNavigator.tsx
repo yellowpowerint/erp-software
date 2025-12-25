@@ -41,6 +41,8 @@ const linking: LinkingOptions<RootParamList> = {
       Home: {
         screens: {
           Home: 'home',
+          Projects: 'home/projects',
+          ProjectDetail: 'home/projects/:id',
         },
       },
       Work: {

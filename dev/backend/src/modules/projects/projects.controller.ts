@@ -43,6 +43,20 @@ export class ProjectsController {
   }
 
   @Get()
+  @Roles(
+    "SUPER_ADMIN",
+    "CEO",
+    "CFO",
+    "DEPARTMENT_HEAD",
+    "ACCOUNTANT",
+    "PROCUREMENT_OFFICER",
+    "OPERATIONS_MANAGER",
+    "IT_MANAGER",
+    "HR_MANAGER",
+    "SAFETY_OFFICER",
+    "WAREHOUSE_MANAGER",
+    "EMPLOYEE",
+  )
   getProjects(
     @Query("status") status?: string,
     @Query("priority") priority?: string,
@@ -51,16 +65,58 @@ export class ProjectsController {
   }
 
   @Get("stats")
+  @Roles(
+    "SUPER_ADMIN",
+    "CEO",
+    "CFO",
+    "DEPARTMENT_HEAD",
+    "ACCOUNTANT",
+    "PROCUREMENT_OFFICER",
+    "OPERATIONS_MANAGER",
+    "IT_MANAGER",
+    "HR_MANAGER",
+    "SAFETY_OFFICER",
+    "WAREHOUSE_MANAGER",
+    "EMPLOYEE",
+  )
   getProjectStats() {
     return this.projectsService.getProjectStats();
   }
 
   @Get(":id")
+  @Roles(
+    "SUPER_ADMIN",
+    "CEO",
+    "CFO",
+    "DEPARTMENT_HEAD",
+    "ACCOUNTANT",
+    "PROCUREMENT_OFFICER",
+    "OPERATIONS_MANAGER",
+    "IT_MANAGER",
+    "HR_MANAGER",
+    "SAFETY_OFFICER",
+    "WAREHOUSE_MANAGER",
+    "EMPLOYEE",
+  )
   getProjectById(@Param("id") id: string) {
     return this.projectsService.getProjectById(id);
   }
 
   @Get(":id/timeline")
+  @Roles(
+    "SUPER_ADMIN",
+    "CEO",
+    "CFO",
+    "DEPARTMENT_HEAD",
+    "ACCOUNTANT",
+    "PROCUREMENT_OFFICER",
+    "OPERATIONS_MANAGER",
+    "IT_MANAGER",
+    "HR_MANAGER",
+    "SAFETY_OFFICER",
+    "WAREHOUSE_MANAGER",
+    "EMPLOYEE",
+  )
   getProjectTimeline(@Param("id") id: string) {
     return this.projectsService.getProjectTimeline(id);
   }
