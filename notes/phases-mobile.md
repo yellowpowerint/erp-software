@@ -888,6 +888,44 @@ This document defines the **session-by-session procedure** to develop the Mining
 - **DoD**
   - Production-ready release published
 
+**Status: READY (requires Google Play + Expo/EAS credentials to execute upload/publish)**
+
+**Implementation Notes (M7.3)**
+- Added Android Play Store build + submit scripts (AAB) and a submission package template generator.
+- Added EAS submit profiles in `dev/mobile/eas.json` for Android tracks:
+  - `androidInternal` (track: internal)
+  - `androidAlpha` (track: alpha)
+  - `androidBeta` (track: beta)
+  - `androidProduction` (track: production, releaseStatus: draft)
+- Play Store submissions require a Google Service Account key configured with EAS and at least one manual upload completed in Play Console (per Play API limitations).
+
+**Acceptance Checklist (M7.3)**
+- [x] Android submission package template can be generated into `prod/submission-m7-3-android.zip`
+- [x] Android AAB build command is scripted (`prod/eas-android-play-build.*`)
+- [x] Android submit command is scripted with track selection (`prod/eas-android-play-submit.*`)
+- [x] Verification scripts exist and pass (backend build/test/lint + mobile typecheck + release validation)
+- [ ] AAB uploaded to Play Console (run scripts with credentials)
+- [ ] Internal testing track configured and testers added
+- [ ] Closed testing track (alpha/beta) configured and promoted
+- [ ] Production release created (draft -> rollout/complete) and published after review
+- [ ] Data safety form completed in Play Console
+- [ ] Content rating completed in Play Console
+
+**Runbook (M7.3)**
+- Generate Android submission package:
+  - PowerShell: `pwsh -File prod/make-android-submission-package.ps1`
+  - Bash: `bash prod/make-android-submission-package.sh`
+- Build Android AAB (requires Expo/EAS login + Android credentials):
+  - PowerShell: `pwsh -File prod/eas-android-play-build.ps1`
+  - Bash: `bash prod/eas-android-play-build.sh`
+- Submit latest build to a Play track (internal|alpha|beta|production):
+  - PowerShell: `pwsh -File prod/eas-android-play-submit.ps1 -Track internal`
+  - Bash: `bash prod/eas-android-play-submit.sh internal`
+
+**Verification (M7.3)**
+- [x] `prod/verify-m7-3.ps1`
+- [x] `prod/verify-m7-3.sh`
+
 ---
 
 # Web Dashboard Workstream (Runs alongside Mobile)

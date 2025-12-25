@@ -39,6 +39,33 @@
     "production": {
       "ios": {},
       "android": {}
+    },
+    "androidInternal": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
+    },
+    "androidAlpha": {
+      "extends": "androidInternal",
+      "android": {
+        "track": "alpha",
+        "releaseStatus": "completed"
+      }
+    },
+    "androidBeta": {
+      "extends": "androidInternal",
+      "android": {
+        "track": "beta",
+        "releaseStatus": "completed"
+      }
+    },
+    "androidProduction": {
+      "extends": "androidInternal",
+      "android": {
+        "track": "production",
+        "releaseStatus": "draft"
+      }
     }
   }
 }

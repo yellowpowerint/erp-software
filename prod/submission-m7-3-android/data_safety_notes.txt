@@ -1,0 +1,1 @@
+Fill out Play Console Data safety form based on current app behavior (auth, analytics/monitoring, storage).
