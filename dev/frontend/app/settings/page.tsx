@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Settings, Users, Shield, Database, Bell, FileText, BrainCircuit, LockKeyhole, Upload, Calendar, DatabaseBackup, FileSpreadsheet } from 'lucide-react';
+import { Settings, Users, Shield, Database, Bell, FileText, BrainCircuit, LockKeyhole, Upload, Calendar, DatabaseBackup, FileSpreadsheet, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -49,6 +49,12 @@ function SettingsDashboardContent() {
 
   const canManageAiSettings =
     user && [UserRole.SUPER_ADMIN, UserRole.IT_MANAGER].includes(user.role);
+
+  const canManageMobileSettings =
+    user && [UserRole.SUPER_ADMIN].includes(user.role);
+
+  const canManagePushSettings =
+    user && [UserRole.SUPER_ADMIN].includes(user.role);
 
   const canManageDocumentPermissions =
     user && [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.CFO, UserRole.IT_MANAGER].includes(user.role);
@@ -181,6 +187,39 @@ function SettingsDashboardContent() {
           <h3 className="text-lg font-semibold text-gray-900 mb-1">Notifications</h3>
           <p className="text-sm text-gray-600">Configure notification preferences</p>
         </Link>
+
+        {canManagePushSettings && (
+          <Link
+            href="/settings/push"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <Bell className="w-10 h-10 text-indigo-600 mb-3" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Push Diagnostics</h3>
+            <p className="text-sm text-gray-600">Check push status and send a test notification</p>
+          </Link>
+        )}
+
+        {canManageMobileSettings && (
+          <Link
+            href="/settings/mobile"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <Smartphone className="w-10 h-10 text-purple-600 mb-3" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Mobile App</h3>
+            <p className="text-sm text-gray-600">Manage mobile app configuration, flags, and maintenance mode</p>
+          </Link>
+        )}
+
+        {canManageMobileSettings && (
+          <Link
+            href="/settings/devices"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border border-gray-200"
+          >
+            <Smartphone className="w-10 h-10 text-slate-700 mb-3" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Mobile Devices</h3>
+            <p className="text-sm text-gray-600">Inventory and revoke mobile devices</p>
+          </Link>
+        )}
 
         <Link
           href="/settings/audit-logs"

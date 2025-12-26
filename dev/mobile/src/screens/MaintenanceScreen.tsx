@@ -1,39 +1,28 @@
 import React from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Props = {
-  installedVersion: string;
-  requiredVersion: string;
-  iosUrl: string;
-  androidUrl: string;
-  message?: string | null;
+  message: string;
+  onRetry: () => Promise<void> | void;
 };
 
-export function ForceUpdateScreen({ installedVersion, requiredVersion, iosUrl, androidUrl, message }: Props) {
-  const storeUrl = Platform.OS === 'ios' ? iosUrl : androidUrl;
-  const text =
-    typeof message === 'string' && message.trim().length > 0
-      ? message
-      : `Your app version (${installedVersion}) is below the minimum supported version (${requiredVersion}).`;
-
+export function MaintenanceScreen({ message, onRetry }: Props) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Update Required</Text>
-      <Text style={styles.message}>
-        {text}
-      </Text>
+      <Text style={styles.title}>Maintenance</Text>
+      <Text style={styles.message}>{message}</Text>
 
       <Pressable
-        onPress={async () => {
-          await Linking.openURL(storeUrl);
+        onPress={() => {
+          void onRetry();
         }}
         style={({ pressed }) => [styles.button, pressed ? styles.buttonPressed : null]}
         accessibilityRole="button"
       >
-        <Text style={styles.buttonText}>Update Now</Text>
+        <Text style={styles.buttonText}>Retry</Text>
       </Pressable>
 
-      <Text style={styles.small}>Store URL: {storeUrl}</Text>
+      <Text style={styles.small}>If this persists, contact your administrator.</Text>
     </View>
   );
 }
@@ -54,7 +43,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -64,6 +53,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5c400',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 4,
   },
   buttonPressed: {
     opacity: 0.85,

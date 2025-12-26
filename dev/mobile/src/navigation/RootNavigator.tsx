@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useMobileConfig } from '../config/MobileConfigContext';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ForceUpdateScreen } from '../screens/ForceUpdateScreen';
+import { MaintenanceScreen } from '../screens/MaintenanceScreen';
 import { AuthStack } from './AuthStack';
 import type { AuthStackParamList } from './AuthStack';
 import { AppTabs } from './AppTabs';
@@ -130,6 +131,18 @@ export function RootNavigator() {
         requiredVersion={requiredVersion}
         iosUrl={config.storeUrls.ios}
         androidUrl={config.storeUrls.android}
+        message={config.forceUpdateMessage}
+      />
+    );
+  }
+
+  if (config?.maintenance?.enabled) {
+    return (
+      <MaintenanceScreen
+        message={config.maintenance.message}
+        onRetry={async () => {
+          await refreshConfig();
+        }}
       />
     );
   }

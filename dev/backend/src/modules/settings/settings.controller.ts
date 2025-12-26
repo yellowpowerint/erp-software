@@ -58,6 +58,61 @@ export class SettingsController {
     return this.settingsService.sendTestEmail(user.userId, data?.toEmail);
   }
 
+  @Get("mobile/config")
+  @Roles(UserRole.SUPER_ADMIN)
+  async getMobileConfigAdmin() {
+    return this.settingsService.getMobileConfigAdmin();
+  }
+
+  @Put("mobile/config")
+  @Roles(UserRole.SUPER_ADMIN)
+  async updateMobileConfigAdmin(@Body() data: any) {
+    return this.settingsService.updateMobileConfigAdmin(data);
+  }
+
+  @Get("push/status")
+  @Roles(UserRole.SUPER_ADMIN)
+  async getPushStatus() {
+    return this.settingsService.getPushStatus();
+  }
+
+  @Post("push/test")
+  @Roles(UserRole.SUPER_ADMIN)
+  async sendTestPush(
+    @CurrentUser() user: any,
+    @Body()
+    data: {
+      toUserId?: string;
+      toPushToken?: string;
+      title?: string;
+      body?: string;
+      url?: string;
+    },
+  ) {
+    return this.settingsService.sendTestPush(user.userId, data);
+  }
+
+  @Get("mobile/devices")
+  @Roles(UserRole.SUPER_ADMIN)
+  async listMobileDevices(
+    @Query("userId") userId?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.settingsService.listMobileDevices({ userId, search });
+  }
+
+  @Post("mobile/devices/revoke")
+  @Roles(UserRole.SUPER_ADMIN)
+  async revokeMobileDevice(@Body() data: { deviceId: string }) {
+    return this.settingsService.revokeMobileDevice(data);
+  }
+
+  @Post("mobile/devices/unrevoke")
+  @Roles(UserRole.SUPER_ADMIN)
+  async unrevokeMobileDevice(@Body() data: { deviceId: string }) {
+    return this.settingsService.unrevokeMobileDevice(data);
+  }
+
   // AI Provider Settings (BYOK)
   @Get("ai")
   async getAiSettings() {

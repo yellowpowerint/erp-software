@@ -24,6 +24,11 @@ export type MobileConfig = {
     android: string;
   };
   featureFlags: MobileFeatureFlags;
+  maintenance?: {
+    enabled: boolean;
+    message: string;
+  };
+  forceUpdateMessage?: string | null;
   serverTime: string;
 };
 

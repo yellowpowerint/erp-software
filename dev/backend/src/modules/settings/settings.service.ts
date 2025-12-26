@@ -6,6 +6,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import axios from "axios";
 import * as bcrypt from "bcrypt";
 import { EmailService } from "../csv/email.service";
 
@@ -48,6 +49,95 @@ export class SettingsService {
     } catch {
       return fallback;
     }
+  }
+
+  private buildMobileConfigWithDefaults(stored: any) {
+    const defaultFlags = {
+      home: true,
+      work: true,
+      modules: true,
+      notifications: true,
+      more: true,
+    };
+
+    const minimumVersions = {
+      ios: stored?.minimumVersions?.ios || process.env.MOBILE_MIN_VERSION_IOS || "1.0.0",
+      android: stored?.minimumVersions?.android || process.env.MOBILE_MIN_VERSION_ANDROID || "1.0.0",
+    };
+
+    const storeUrls = {
+      ios: stored?.storeUrls?.ios || process.env.MOBILE_APP_STORE_URL || "https://apps.apple.com/",
+      android: stored?.storeUrls?.android || process.env.MOBILE_PLAY_STORE_URL || "https://play.google.com/store",
+    };
+
+    const featureFlags = {
+      home: typeof stored?.featureFlags?.home === "boolean" ? stored.featureFlags.home : defaultFlags.home,
+      work: typeof stored?.featureFlags?.work === "boolean" ? stored.featureFlags.work : defaultFlags.work,
+      modules: typeof stored?.featureFlags?.modules === "boolean" ? stored.featureFlags.modules : defaultFlags.modules,
+      notifications:
+        typeof stored?.featureFlags?.notifications === "boolean"
+          ? stored.featureFlags.notifications
+          : defaultFlags.notifications,
+      more: typeof stored?.featureFlags?.more === "boolean" ? stored.featureFlags.more : defaultFlags.more,
+    };
+
+    const maintenance = {
+      enabled: Boolean(stored?.maintenance?.enabled ?? false),
+      message:
+        typeof stored?.maintenance?.message === "string" && stored.maintenance.message.trim()
+          ? stored.maintenance.message
+          : "We are currently performing scheduled maintenance. Please try again shortly.",
+    };
+
+    const forceUpdateMessage = typeof stored?.forceUpdateMessage === "string" ? stored.forceUpdateMessage : null;
+
+    return {
+      minimumVersions,
+      storeUrls,
+      featureFlags,
+      maintenance,
+      forceUpdateMessage,
+    };
+  }
+
+  async getMobileConfigAdmin() {
+    const raw = await this.getSetting("MOBILE_CONFIG_JSON");
+    const parsed = this.safeJsonParse<any>(raw, {});
+    return this.buildMobileConfigWithDefaults(parsed);
+  }
+
+  async updateMobileConfigAdmin(data: any) {
+    if (!data || typeof data !== "object") {
+      throw new BadRequestException("Invalid mobile config payload");
+    }
+
+    const current = await this.getMobileConfigAdmin();
+
+    const merged = {
+      ...current,
+      ...data,
+      minimumVersions: {
+        ...current.minimumVersions,
+        ...(data.minimumVersions || {}),
+      },
+      storeUrls: {
+        ...current.storeUrls,
+        ...(data.storeUrls || {}),
+      },
+      featureFlags: {
+        ...current.featureFlags,
+        ...(data.featureFlags || {}),
+      },
+      maintenance: {
+        ...current.maintenance,
+        ...(data.maintenance || {}),
+      },
+    };
+
+    const normalized = this.buildMobileConfigWithDefaults(merged);
+
+    await this.upsertSetting("MOBILE_CONFIG_JSON", JSON.stringify(normalized));
+    return normalized;
   }
 
   // System Configuration
@@ -186,6 +276,14 @@ export class SettingsService {
 
     const emailConfigured = !!smtpHost && !!smtpUser && !!smtpPass;
 
+    const pushTokenCount = await this.prisma.mobileDevice.count({
+      where: {
+        pushToken: {
+          not: "",
+        },
+      },
+    });
+
     return {
       email: {
         configured: emailConfigured,
@@ -196,10 +294,144 @@ export class SettingsService {
         provider: null,
       },
       push: {
-        configured: false,
-        provider: null,
+        configured: pushTokenCount > 0,
+        provider: pushTokenCount > 0 ? "expo" : null,
+        tokenCount: pushTokenCount,
       },
     };
+  }
+
+  async getPushStatus() {
+    const tokenCount = await this.prisma.mobileDevice.count({
+      where: {
+        pushToken: {
+          not: "",
+        },
+      },
+    });
+
+    const lastSeen = await this.prisma.mobileDevice.findFirst({
+      where: {
+        pushToken: {
+          not: "",
+        },
+      },
+      orderBy: {
+        lastSeenAt: "desc",
+      },
+      select: {
+        lastSeenAt: true,
+      },
+    });
+
+    return {
+      provider: "expo",
+      tokenCount,
+      lastSeenAt: lastSeen?.lastSeenAt ?? null,
+    };
+  }
+
+  private async getRevokedDeviceIds(): Promise<string[]> {
+    const raw = await this.getSetting("MOBILE_REVOKED_DEVICE_IDS_JSON");
+    const parsed = this.safeJsonParse<string[]>(raw, []);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  }
+
+  private async setRevokedDeviceIds(deviceIds: string[]): Promise<void> {
+    const unique = Array.from(new Set(deviceIds.map((x) => String(x))))
+      .map((x) => x.trim())
+      .filter((x) => x.length > 0);
+    await this.upsertSetting("MOBILE_REVOKED_DEVICE_IDS_JSON", JSON.stringify(unique));
+  }
+
+  async listMobileDevices(filters?: { userId?: string; search?: string }) {
+    const where: any = {};
+
+    if (filters?.userId) {
+      where.userId = filters.userId;
+    }
+
+    const q = String(filters?.search || "").trim();
+    if (q) {
+      where.OR = [
+        { deviceId: { contains: q, mode: "insensitive" } },
+        { platform: { contains: q, mode: "insensitive" } },
+        { appVersion: { contains: q, mode: "insensitive" } },
+        { deviceModel: { contains: q, mode: "insensitive" } },
+        { osVersion: { contains: q, mode: "insensitive" } },
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { firstName: { contains: q, mode: "insensitive" } } },
+        { user: { lastName: { contains: q, mode: "insensitive" } } },
+      ];
+    }
+
+    const [revoked, devices] = await Promise.all([
+      this.getRevokedDeviceIds(),
+      this.prisma.mobileDevice.findMany({
+        where,
+        orderBy: {
+          lastSeenAt: "desc",
+        },
+        select: {
+          id: true,
+          userId: true,
+          deviceId: true,
+          platform: true,
+          pushToken: true,
+          appVersion: true,
+          deviceModel: true,
+          osVersion: true,
+          lastSeenAt: true,
+          createdAt: true,
+          updatedAt: true,
+          user: {
+            select: {
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const revokedSet = new Set(revoked);
+    return devices.map((d) => ({
+      ...d,
+      revoked: revokedSet.has(d.deviceId),
+    }));
+  }
+
+  async revokeMobileDevice(data: { deviceId: string }) {
+    const deviceId = String(data?.deviceId || "").trim();
+    if (!deviceId) throw new BadRequestException("deviceId is required");
+
+    const current = await this.getRevokedDeviceIds();
+    if (!current.includes(deviceId)) {
+      current.push(deviceId);
+      await this.setRevokedDeviceIds(current);
+    }
+
+    await this.prisma.mobileDevice.updateMany({
+      where: {
+        deviceId,
+      },
+      data: {
+        pushToken: "",
+      },
+    });
+
+    return { success: true };
+  }
+
+  async unrevokeMobileDevice(data: { deviceId: string }) {
+    const deviceId = String(data?.deviceId || "").trim();
+    if (!deviceId) throw new BadRequestException("deviceId is required");
+
+    const current = await this.getRevokedDeviceIds();
+    await this.setRevokedDeviceIds(current.filter((x) => x !== deviceId));
+    return { success: true };
   }
 
   async getUserNotificationPreferences(userId: string) {
@@ -266,6 +498,75 @@ export class SettingsService {
     });
 
     return { success: true };
+  }
+
+  async sendTestPush(
+    senderUserId: string,
+    data: {
+      toUserId?: string;
+      toPushToken?: string;
+      title?: string;
+      body?: string;
+      url?: string;
+    },
+  ) {
+    const title = String(data?.title || "Test Notification").trim() || "Test Notification";
+    const body =
+      String(data?.body || "This is a test push notification.").trim() ||
+      "This is a test push notification.";
+
+    const url =
+      typeof data?.url === "string" && data.url.trim().length > 0 ? data.url.trim() : undefined;
+
+    let to = String(data?.toPushToken || "").trim();
+    if (!to) {
+      const targetUserId = String(data?.toUserId || senderUserId || "").trim();
+      if (!targetUserId) throw new BadRequestException("toUserId or toPushToken is required");
+
+      const device = await this.prisma.mobileDevice.findFirst({
+        where: {
+          userId: targetUserId,
+          pushToken: {
+            not: "",
+          },
+        },
+        orderBy: {
+          lastSeenAt: "desc",
+        },
+        select: {
+          pushToken: true,
+        },
+      });
+
+      to = String(device?.pushToken || "").trim();
+    }
+
+    if (!to) throw new BadRequestException("No push token found for target user/device");
+
+    const payload: any = {
+      to,
+      title,
+      body,
+    };
+    if (url) {
+      payload.data = {
+        url,
+      };
+    }
+
+    const res = await axios.post("https://exp.host/--/api/v2/push/send", payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+      },
+      timeout: 15000,
+    });
+
+    return {
+      success: true,
+      response: res.data,
+    };
   }
 
   // User Management
