@@ -43,6 +43,12 @@ export function ModulesScreen() {
           navigation.navigate('ReportsStack', { screen: 'ReportsDashboard' });
         } else if (module.target.screen === 'ProductionLogs') {
           navigation.navigate('OperationsStack', { screen: 'ProductionLogs' });
+        } else if (module.target.screen === 'FinanceHome') {
+          navigation.navigate('FinanceStack', { screen: 'FinanceHome' });
+        } else if (module.target.screen === 'HrHome') {
+          navigation.navigate('HrStack', { screen: 'HrHome' });
+        } else if (module.target.screen === 'AiHome') {
+          navigation.navigate('AiStack', { screen: 'AiHome' });
         }
       } else {
         // Navigate to other tabs

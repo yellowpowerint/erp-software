@@ -69,7 +69,36 @@ const linking: LinkingOptions<RootParamList> = {
           TaskDetail: 'work/tasks/:id',
         },
       },
-      Modules: 'modules',
+      Modules: {
+        screens: {
+          ModulesHome: 'modules',
+          FinanceStack: {
+            screens: {
+              FinanceHome: 'modules/finance',
+              BudgetsList: 'modules/finance/budgets',
+              BudgetDetail: 'modules/finance/budgets/:id',
+              PaymentsList: 'modules/finance/payments',
+              PaymentDetail: 'modules/finance/payments/:id',
+            },
+          },
+          HrStack: {
+            screens: {
+              HrHome: 'modules/hr',
+              LeaveRequestsList: 'modules/hr/leave-requests',
+              LeaveRequestDetail: 'modules/hr/leave-requests/:id',
+              AttendanceList: 'modules/hr/attendance',
+              Recruitment: 'modules/hr/recruitment',
+            },
+          },
+          AiStack: {
+            screens: {
+              AiHome: 'modules/ai',
+              DashboardInsights: 'modules/ai/dashboard-insights',
+              AiAdvisors: 'modules/ai/advisors',
+            },
+          },
+        },
+      },
       Notifications: {
         screens: {
           Notifications: 'notifications',
