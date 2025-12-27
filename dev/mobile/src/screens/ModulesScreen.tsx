@@ -1,55 +1,59 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { colors } from '../theme/colors';
 import { useAuth } from '../auth/AuthContext';
+import { useMobileConfig } from '../config/MobileConfigContext';
 import { canAccessOptional } from '../access/rbac';
-import type { MobileResource } from '../access/rbac';
+import type { AppTabsParamList } from '../navigation/AppTabs';
+import { MODULE_CATALOG } from '../config/modulesCatalog';
+import type { ModuleCatalogItem } from '../config/modulesCatalog';
 
-type Module = {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  route?: string;
-  resource?: MobileResource;
-};
-
-const modules: Module[] = [
-  { id: 'inventory', name: 'Inventory', description: 'Manage stock and items', icon: '📦', resource: 'MODULE_INVENTORY' },
-  { id: 'projects', name: 'Projects', description: 'Track project progress', icon: '🏗️', resource: 'MODULE_PROJECTS' },
-  { id: 'assets', name: 'Assets', description: 'Asset management', icon: '🏭', resource: 'MODULE_ASSETS' },
-  { id: 'expenses', name: 'Expenses', description: 'Budget and expenses', icon: '💰', resource: 'MODULE_EXPENSES' },
-  { id: 'employees', name: 'Employees', description: 'HR management', icon: '👥', resource: 'MODULE_EMPLOYEES' },
-  { id: 'inspections', name: 'Inspections', description: 'Safety inspections', icon: '🔍', resource: 'MODULE_SAFETY_INSPECTIONS' },
-  { id: 'trainings', name: 'Trainings', description: 'Training programs', icon: '📚', resource: 'MODULE_SAFETY_TRAININGS' },
-  { id: 'vendors', name: 'Vendors', description: 'Vendor management', icon: '🤝' },
-  { id: 'procurement', name: 'Procurement', description: 'Purchase orders', icon: '🛒' },
-  { id: 'maintenance', name: 'Maintenance', description: 'Equipment maintenance', icon: '🔧' },
-  { id: 'reports', name: 'Reports', description: 'Analytics and reports', icon: '📊' },
-  { id: 'documents', name: 'Documents', description: 'Document management', icon: '📄', resource: 'MODULE_DOCUMENTS' },
-];
+type NavigationProp = BottomTabNavigationProp<AppTabsParamList>;
 
 export function ModulesScreen() {
-  const { me } = useAuth();
+  const { me, refreshMe } = useAuth();
+  const { refresh: refreshConfig } = useMobileConfig();
+  const navigation = useNavigation<NavigationProp>();
   const [refreshing, setRefreshing] = useState(false);
 
-  const visibleModules = modules.filter((m) => m.resource && canAccessOptional(me?.role, m.resource));
+  const visibleModules = MODULE_CATALOG.filter((m) => canAccessOptional(me?.role, m.resource));
 
-  const handleModulePress = (module: Module) => {
-    if (!module.resource || !canAccessOptional(me?.role, module.resource)) {
+  const handleModulePress = useCallback((module: ModuleCatalogItem) => {
+    if (!canAccessOptional(me?.role, module.resource)) {
       Alert.alert('Access Denied', 'You do not have permission to access this module.');
       return;
     }
-    // Navigation will be implemented per module
-    console.log('Module pressed:', module.name);
-  };
 
-  const onRefresh = async () => {
+    if (!module.enabled) {
+      Alert.alert('Coming Soon', `${module.name} is not yet available on mobile.`);
+      return;
+    }
+
+    if (module.target) {
+      if (module.target.screen) {
+        navigation.navigate(module.target.tab as any, { screen: module.target.screen, params: module.target.params } as any);
+      } else {
+        navigation.navigate(module.target.tab);
+      }
+    }
+  }, [me?.role, navigation]);
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Simulate refresh - in real app, this would reload module data
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRefreshing(false);
-  };
+    try {
+      await Promise.all([
+        refreshMe(),
+        refreshConfig(),
+      ]);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshMe, refreshConfig]);
 
   return (
     <ScrollView
@@ -85,8 +89,15 @@ export function ModulesScreen() {
               ]}
               onPress={() => handleModulePress(module)}
             >
-              <Text style={styles.icon}>{module.icon}</Text>
-              <Text style={styles.moduleName}>{module.name}</Text>
+              <View style={styles.iconContainer}>
+                <Ionicons name={module.icon} size={32} color={module.enabled ? colors.accent : colors.mutedForeground} />
+                {!module.enabled && (
+                  <View style={styles.comingSoonBadge}>
+                    <Text style={styles.comingSoonText}>Soon</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.moduleName, !module.enabled && styles.moduleNameDisabled]}>{module.name}</Text>
               <Text style={styles.moduleDescription}>{module.description}</Text>
             </Pressable>
           ))}
@@ -140,9 +151,26 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     transform: [{ scale: 0.98 }],
   },
-  icon: {
-    fontSize: 36,
+  iconContainer: {
+    position: 'relative',
     marginBottom: 8,
+  },
+  comingSoonBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  comingSoonText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.background,
+  },
+  moduleNameDisabled: {
+    color: colors.mutedForeground,
   },
   moduleName: {
     fontSize: 16,
