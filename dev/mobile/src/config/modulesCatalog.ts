@@ -32,7 +32,7 @@ export const MODULE_CATALOG: ModuleCatalogItem[] = [
   { id: 'procurement', name: 'Procurement', description: 'Purchase orders and vendors', icon: 'cart', resource: 'MODULE_PROCUREMENT', enabled: true, target: { tab: 'Modules', screen: 'PurchaseOrders' } },
   { id: 'hr', name: 'HR & Personnel', description: 'Human resources management', icon: 'person-add', resource: 'MODULE_HR', enabled: false },
   { id: 'safety', name: 'Safety & Compliance', description: 'Safety inspections and trainings', icon: 'shield-checkmark', resource: 'MODULE_SAFETY', enabled: true, target: { tab: 'Home', screen: 'SafetyInspections' } },
-  { id: 'reports', name: 'Reports & Analytics', description: 'Business intelligence and reports', icon: 'bar-chart', resource: 'MODULE_REPORTS', enabled: false },
+  { id: 'reports', name: 'Reports & Analytics', description: 'Business intelligence and reports', icon: 'bar-chart', resource: 'MODULE_REPORTS', enabled: true, target: { tab: 'Modules', screen: 'ReportsDashboard' } },
   { id: 'ai', name: 'AI Intelligence', description: 'AI-powered insights', icon: 'sparkles', resource: 'MODULE_AI', enabled: false },
   { id: 'documents', name: 'Documents & Files', description: 'Document management', icon: 'document-text', resource: 'MODULE_DOCUMENTS', enabled: true, target: { tab: 'More', screen: 'Documents' } },
   { id: 'settings', name: 'Settings', description: 'System configuration', icon: 'settings', resource: 'MODULE_SETTINGS', enabled: false },

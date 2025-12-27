@@ -7,11 +7,14 @@ import { ProcurementStack } from './ProcurementStack';
 import type { ProcurementStackParamList } from './ProcurementStack';
 import { FleetStack } from './FleetStack';
 import type { FleetStackParamList } from './FleetStack';
+import { ReportsStack } from './ReportsStack';
+import type { ReportsStackParamList } from './ReportsStack';
 
 export type ModulesStackParamList = {
   ModulesHome: undefined;
   ProcurementStack: NavigatorScreenParams<ProcurementStackParamList>;
   FleetStack: NavigatorScreenParams<FleetStackParamList>;
+  ReportsStack: NavigatorScreenParams<ReportsStackParamList>;
 };
 
 const Stack = createNativeStackNavigator<ModulesStackParamList>();
@@ -39,6 +42,11 @@ export function ModulesStack() {
       <Stack.Screen
         name="FleetStack"
         component={FleetStack}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ReportsStack"
+        component={ReportsStack}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

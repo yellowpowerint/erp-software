@@ -39,6 +39,8 @@ export function ModulesScreen() {
           navigation.navigate('ProcurementStack', { screen: 'PurchaseOrders' });
         } else if (module.target.screen === 'FleetAssets') {
           navigation.navigate('FleetStack', { screen: 'FleetAssets' });
+        } else if (module.target.screen === 'ReportsDashboard') {
+          navigation.navigate('ReportsStack', { screen: 'ReportsDashboard' });
         }
       } else {
         // Navigate to other tabs
