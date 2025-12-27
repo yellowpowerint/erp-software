@@ -41,6 +41,8 @@ export function ModulesScreen() {
           navigation.navigate('FleetStack', { screen: 'FleetAssets' });
         } else if (module.target.screen === 'ReportsDashboard') {
           navigation.navigate('ReportsStack', { screen: 'ReportsDashboard' });
+        } else if (module.target.screen === 'ProductionLogs') {
+          navigation.navigate('OperationsStack', { screen: 'ProductionLogs' });
         }
       } else {
         // Navigate to other tabs
