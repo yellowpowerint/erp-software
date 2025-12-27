@@ -2,16 +2,16 @@ import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../theme/colors';
 import { useAuth } from '../auth/AuthContext';
 import { useMobileConfig } from '../config/MobileConfigContext';
 import { canAccessOptional } from '../access/rbac';
-import type { AppTabsParamList } from '../navigation/AppTabs';
+import type { ModulesStackParamList } from '../navigation/ModulesStack';
 import { MODULE_CATALOG } from '../config/modulesCatalog';
 import type { ModuleCatalogItem } from '../config/modulesCatalog';
 
-type NavigationProp = BottomTabNavigationProp<AppTabsParamList>;
+type NavigationProp = NativeStackNavigationProp<ModulesStackParamList>;
 
 export function ModulesScreen() {
   const { me, refreshMe } = useAuth();
@@ -33,10 +33,19 @@ export function ModulesScreen() {
     }
 
     if (module.target) {
-      if (module.target.screen) {
-        navigation.navigate(module.target.tab as any, { screen: module.target.screen, params: module.target.params } as any);
+      if (module.target.tab === 'Modules' && module.target.screen) {
+        // Navigate within ModulesStack
+        if (module.target.screen === 'PurchaseOrders') {
+          navigation.navigate('ProcurementStack', { screen: 'PurchaseOrders' });
+        }
       } else {
-        navigation.navigate(module.target.tab);
+        // Navigate to other tabs
+        const rootNav = navigation.getParent();
+        if (rootNav && module.target.screen) {
+          rootNav.navigate(module.target.tab as any, { screen: module.target.screen, params: module.target.params } as any);
+        } else if (rootNav) {
+          rootNav.navigate(module.target.tab as any);
+        }
       }
     }
   }, [me?.role, navigation]);

@@ -29,7 +29,7 @@ export const MODULE_CATALOG: ModuleCatalogItem[] = [
   { id: 'fleet', name: 'Fleet Management', description: 'Vehicles, fuel, and maintenance', icon: 'car', resource: 'MODULE_FLEET', enabled: false },
   { id: 'operations', name: 'Operations', description: 'Operations planning and tracking', icon: 'analytics', resource: 'MODULE_OPERATIONS', enabled: false },
   { id: 'finance', name: 'Finance', description: 'Financial management', icon: 'cash', resource: 'MODULE_FINANCE', enabled: false },
-  { id: 'procurement', name: 'Procurement', description: 'Purchase orders and vendors', icon: 'cart', resource: 'MODULE_PROCUREMENT', enabled: false },
+  { id: 'procurement', name: 'Procurement', description: 'Purchase orders and vendors', icon: 'cart', resource: 'MODULE_PROCUREMENT', enabled: true, target: { tab: 'Modules', screen: 'PurchaseOrders' } },
   { id: 'hr', name: 'HR & Personnel', description: 'Human resources management', icon: 'person-add', resource: 'MODULE_HR', enabled: false },
   { id: 'safety', name: 'Safety & Compliance', description: 'Safety inspections and trainings', icon: 'shield-checkmark', resource: 'MODULE_SAFETY', enabled: true, target: { tab: 'Home', screen: 'SafetyInspections' } },
   { id: 'reports', name: 'Reports & Analytics', description: 'Business intelligence and reports', icon: 'bar-chart', resource: 'MODULE_REPORTS', enabled: false },

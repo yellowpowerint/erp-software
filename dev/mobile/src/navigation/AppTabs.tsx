@@ -8,7 +8,8 @@ import { canAccessOptional } from '../access/rbac';
 import { useMobileConfig } from '../config/MobileConfigContext';
 import { HomeStack } from './HomeStack';
 import type { HomeStackParamList } from './HomeStack';
-import { ModulesScreen } from '../screens/ModulesScreen';
+import { ModulesStack } from './ModulesStack';
+import type { ModulesStackParamList } from './ModulesStack';
 import { WorkStack } from './WorkStack';
 import type { WorkStackParamList } from './WorkStack';
 import { NotificationsStack } from './NotificationsStack';
@@ -21,7 +22,7 @@ import { colors } from '../theme/colors';
 export type AppTabsParamList = {
   Home: NavigatorScreenParams<HomeStackParamList> | undefined;
   Work: NavigatorScreenParams<WorkStackParamList> | undefined;
-  Modules: undefined;
+  Modules: NavigatorScreenParams<ModulesStackParamList> | undefined;
   Notifications: NavigatorScreenParams<NotificationsStackParamList> | undefined;
   More: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
@@ -80,8 +81,9 @@ export function AppTabs() {
       {flags?.modules !== false && canAccessOptional(me?.role, 'TAB_MODULES') ? (
         <Tab.Screen
           name="Modules"
-          component={ModulesScreen}
+          component={ModulesStack}
           options={{
+            headerShown: false,
             tabBarIcon: ({ color, size }) => <Ionicons name="apps" size={size} color={color} />,
           }}
         />
