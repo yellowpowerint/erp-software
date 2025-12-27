@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -10,6 +10,7 @@ import { http } from '../api/http';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../auth/AuthContext';
 import type { HomeStackParamList } from '../navigation/HomeStack';
+import { colors } from '../theme/colors';
 
 type DashboardResponse = {
   inventory: { total: number; lowStock: number };
@@ -199,7 +200,17 @@ export function HomeScreen() {
         actions={quickActions}
       />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadDashboard}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        }
+      >
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.h1}>Hello{me?.firstName ? `, ${me.firstName}` : ''}</Text>
@@ -264,7 +275,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     gap: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   topRow: {
     flexDirection: 'row',
@@ -274,24 +285,24 @@ const styles = StyleSheet.create({
   h1: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.foreground,
   },
   meta: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   quickButton: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#111827',
+    backgroundColor: colors.primary,
   },
   quickButtonPressed: {
     opacity: 0.85,
   },
   quickButtonText: {
-    color: '#ffffff',
+    color: colors.primaryForeground,
     fontWeight: '900',
     fontSize: 12,
   },
@@ -302,7 +313,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loadingText: {
-    color: '#6b7280',
+    color: colors.mutedForeground,
     fontWeight: '600',
   },
   grid: {
@@ -313,10 +324,10 @@ const styles = StyleSheet.create({
   widgetCard: {
     width: '48%',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.card,
     gap: 6,
   },
   widgetCardPressed: {
@@ -325,17 +336,17 @@ const styles = StyleSheet.create({
   widgetTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.foreground,
   },
   widgetValue: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#111827',
+    color: colors.foreground,
   },
   widgetSub: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6b7280',
+    color: colors.mutedForeground,
   },
   footerRow: {
     marginTop: 8,
@@ -347,8 +358,8 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: colors.border,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -356,7 +367,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   secondaryButtonText: {
-    color: '#111827',
+    color: colors.foreground,
     fontWeight: '900',
     fontSize: 14,
   },
@@ -364,7 +375,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderRadius: 12,
-    backgroundColor: '#7f1d1d',
+    backgroundColor: colors.destructive,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -372,7 +383,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   dangerButtonText: {
-    color: '#ffffff',
+    color: colors.destructiveForeground,
     fontWeight: '900',
     fontSize: 14,
   },
