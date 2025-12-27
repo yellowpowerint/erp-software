@@ -26,7 +26,7 @@ export const MODULE_CATALOG: ModuleCatalogItem[] = [
   { id: 'assets', name: 'Assets', description: 'Asset management', icon: 'business', resource: 'MODULE_ASSETS', enabled: true, target: { tab: 'Home', screen: 'Assets' } },
   { id: 'expenses', name: 'Expenses', description: 'View expenses', icon: 'card', resource: 'MODULE_EXPENSES', enabled: true, target: { tab: 'Home', screen: 'Expenses' } },
   { id: 'employees', name: 'Employees', description: 'Staff directory', icon: 'people', resource: 'MODULE_EMPLOYEES', enabled: true, target: { tab: 'Home', screen: 'Employees' } },
-  { id: 'fleet', name: 'Fleet Management', description: 'Vehicles, fuel, and maintenance', icon: 'car', resource: 'MODULE_FLEET', enabled: false },
+  { id: 'fleet', name: 'Fleet Management', description: 'Vehicles, fuel, and maintenance', icon: 'car', resource: 'MODULE_FLEET', enabled: true, target: { tab: 'Modules', screen: 'FleetAssets' } },
   { id: 'operations', name: 'Operations', description: 'Operations planning and tracking', icon: 'analytics', resource: 'MODULE_OPERATIONS', enabled: false },
   { id: 'finance', name: 'Finance', description: 'Financial management', icon: 'cash', resource: 'MODULE_FINANCE', enabled: false },
   { id: 'procurement', name: 'Procurement', description: 'Purchase orders and vendors', icon: 'cart', resource: 'MODULE_PROCUREMENT', enabled: true, target: { tab: 'Modules', screen: 'PurchaseOrders' } },

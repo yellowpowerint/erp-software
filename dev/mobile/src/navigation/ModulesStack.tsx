@@ -5,10 +5,13 @@ import { colors } from '../theme/colors';
 import { ModulesScreen } from '../screens/ModulesScreen';
 import { ProcurementStack } from './ProcurementStack';
 import type { ProcurementStackParamList } from './ProcurementStack';
+import { FleetStack } from './FleetStack';
+import type { FleetStackParamList } from './FleetStack';
 
 export type ModulesStackParamList = {
   ModulesHome: undefined;
   ProcurementStack: NavigatorScreenParams<ProcurementStackParamList>;
+  FleetStack: NavigatorScreenParams<FleetStackParamList>;
 };
 
 const Stack = createNativeStackNavigator<ModulesStackParamList>();
@@ -31,6 +34,11 @@ export function ModulesStack() {
       <Stack.Screen
         name="ProcurementStack"
         component={ProcurementStack}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="FleetStack"
+        component={FleetStack}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
