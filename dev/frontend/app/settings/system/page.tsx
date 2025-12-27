@@ -29,7 +29,6 @@ interface SystemConfig {
   };
   notifications: {
     email: boolean;
-    sms: boolean;
     push: boolean;
   };
 }

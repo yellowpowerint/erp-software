@@ -163,7 +163,6 @@ export class SettingsService {
       },
       notifications: {
         email: true,
-        sms: false,
         push: true,
       },
     };
@@ -288,10 +287,6 @@ export class SettingsService {
       email: {
         configured: emailConfigured,
         fromConfigured: !!smtpFrom || !!smtpUser,
-      },
-      sms: {
-        configured: false,
-        provider: null,
       },
       push: {
         configured: pushTokenCount > 0,
@@ -447,12 +442,6 @@ export class SettingsService {
         safetyAlerts: true,
         weeklyReports: false,
       },
-      sms: {
-        enabled: false,
-        criticalAlerts: false,
-        approvalRequests: false,
-        safetyEmergencies: false,
-      },
       push: {
         enabled: true,
         approvalRequests: true,
@@ -465,7 +454,6 @@ export class SettingsService {
     const parsed = this.safeJsonParse<any>(raw, defaults);
     return {
       email: { ...defaults.email, ...(parsed?.email || {}) },
-      sms: { ...defaults.sms, ...(parsed?.sms || {}) },
       push: { ...defaults.push, ...(parsed?.push || {}) },
     };
   }

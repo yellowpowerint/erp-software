@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Bell, ArrowLeft, Save, Mail, MessageSquare, Smartphone, CheckCircle } from 'lucide-react';
+import { Bell, ArrowLeft, Save, Mail, Smartphone, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
@@ -78,16 +78,6 @@ function NotificationSettingsContent() {
     });
   };
 
-  const toggleSmsSetting = (key: string) => {
-    if (!settings) return;
-    setSettings({
-      ...settings,
-      sms: {
-        ...settings.sms,
-        [key]: !settings.sms[key as keyof typeof settings.sms],
-      },
-    });
-  };
 
   const togglePushSetting = (key: string) => {
     if (!settings) return;
@@ -146,10 +136,6 @@ function NotificationSettingsContent() {
               <span className={providers?.email?.configured ? 'text-green-600 font-medium' : 'text-gray-600'}>
                 {providers?.email?.configured ? 'Configured' : 'Not configured'}
               </span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span>SMS</span>
-              <span className="text-gray-600">Not configured</span>
             </div>
             <div className="flex items-center justify-between py-2">
               <span>Push</span>
@@ -242,65 +228,6 @@ function NotificationSettingsContent() {
           )}
         </div>
 
-        {/* SMS Notifications */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="bg-green-100 rounded-lg p-2">
-                <MessageSquare className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">SMS Notifications</h2>
-                <p className="text-sm text-gray-600">Receive critical alerts via SMS</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => toggleSmsSetting('enabled')}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                settings.sms.enabled ? 'bg-green-600' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                  settings.sms.enabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          {settings.sms.enabled && (
-            <div className="space-y-3 pl-12">
-              {Object.entries(settings.sms).filter(([key]) => key !== 'enabled').map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between py-2">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {key === 'criticalAlerts' && 'Urgent system alerts that require immediate attention'}
-                      {key === 'approvalRequests' && 'High-priority approval requests via SMS'}
-                      {key === 'safetyEmergencies' && 'Emergency safety alerts and incidents'}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleSmsSetting(key)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      value ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        value ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Push Notifications */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -370,10 +297,6 @@ function NotificationSettingsContent() {
             <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${settings.email.enabled ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
               <Mail className="w-4 h-4" />
               <span className="text-sm font-medium">Email</span>
-            </div>
-            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${settings.sms.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-              <MessageSquare className="w-4 h-4" />
-              <span className="text-sm font-medium">SMS</span>
             </div>
             <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${settings.push.enabled ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>
               <Smartphone className="w-4 h-4" />
