@@ -105,7 +105,9 @@ Here are the improved, production-ready prompts for systematic mobile app develo
 ```
 MOBILE APP DEVELOPMENT - SESSION IMPLEMENTATION
 
-Session: M0.1 (or specify session number)
+Session: [SESSION] (e.g., M0.1, M1.2, M2.3, M7.2)
+
+IMPORTANT: Replace [SESSION] throughout this prompt with your actual session number.
 
 PROJECT STRUCTURE AWARENESS:
 This is the Mining ERP project. You are working on the NEW mobile app.
@@ -135,7 +137,7 @@ Review all mobile app documentation in the notes-mobile/ folder:
 - ../MOBILE-APP-STRUCTURE.md (complete separation guide)
 
 OBJECTIVE:
-Systematically implement Session M0.1 from MOBILE-PHASES-DETAILED.md to 100% completion with production-ready quality.
+Systematically implement Session [SESSION] from MOBILE-PHASES-DETAILED.md to 100% completion with production-ready quality.
 
 REQUIREMENTS:
 1. Follow the exact session scope, deliverables, and Definition of Done from MOBILE-PHASES-DETAILED.md
@@ -181,7 +183,7 @@ TESTING REQUIREMENTS:
 OUTPUT:
 1. Implement all session requirements
 2. Create/update necessary files in dev/mobile/
-3. Update session status in MOBILE-PHASES-DETAILED.md
+3. Update session status in notes-mobile/MOBILE-PHASES-DETAILED.md
 4. Document any API requirements for backend team
 5. Provide Expo Go QR code command for testing
 6. List any dependencies or blockers
@@ -206,16 +208,18 @@ Begin implementation now.
 ```
 MOBILE APP DEVELOPMENT - SESSION VERIFICATION
 
-Session: M0.1 (or specify session number)
+Session: [SESSION] (e.g., M0.1, M1.2, M2.3, M7.2)
+
+IMPORTANT: Replace [SESSION] throughout this prompt with your actual session number.
 
 CONTEXT:
-Verify the completion status of Session M0.1 against all requirements.
+Verify the completion status of Session [SESSION] against all requirements.
 
 REVIEW SOURCES:
 1. MOBILE-PHASES-DETAILED.md - Session requirements and DoD
 2. MOBILE-APP-MAIN.md - Architecture and specifications
 3. MOBILE-BRANDING-SUMMARY.md - Branding compliance
-4. MOBILE-WIREFRAMES.md - UI/UX specifications
+4. MOBILE-WIREFRAMES.md - UI/UX design specifications
 5. dev/mobile/ - Implementation codebase
 6. Expo Go testing results
 
@@ -288,7 +292,7 @@ OUTPUT REQUIRED:
    If session is not 100% complete, generate a detailed prompt:
    
    ```
-   MOBILE APP DEVELOPMENT - FIX SESSION M0.1
+   MOBILE APP DEVELOPMENT - FIX SESSION [SESSION]
 
    GAPS TO ADDRESS:
    1. [Specific gap with file location]
@@ -305,7 +309,7 @@ OUTPUT REQUIRED:
    ACCEPTANCE CRITERIA:
    [Updated criteria based on gaps]
 
-   Implement all fixes to bring Session M0.1 to 100% production-ready status.
+   Implement all fixes to bring Session [SESSION] to 100% production-ready status.
    ```
 
 5. RECOMMENDATIONS:
@@ -323,7 +327,9 @@ Begin verification now and provide detailed results.
 ```
 MOBILE APP DEVELOPMENT - DEPLOYMENT & COMMIT
 
-Session: M0.1 (or specify session number)
+Session: [SESSION] (e.g., M0.1, M1.2, M2.3, M7.2)
+
+IMPORTANT: Replace [SESSION] throughout this prompt with your actual session number.
 
 PROJECT STRUCTURE AWARENESS:
 This is the Mining ERP project. You are deploying the NEW mobile app.
@@ -347,7 +353,7 @@ VPS PATHS (if backend/frontend affected):
 - Mobile: NOT deployed to VPS (uses Expo ecosystem)
 
 CONTEXT:
-Review completed Session M0.1 implementation and prepare for deployment.
+Review completed Session [SESSION] implementation and prepare for deployment.
 
 PRE-DEPLOYMENT CHECKLIST:
 
@@ -398,9 +404,9 @@ DEPLOYMENT TASKS:
 
    B. Commit Mobile App Changes:
    ```bash
-   git commit -m "Mobile App: Complete Session M0.1 - [Brief Description]
+   git commit -m "Mobile App: Complete Session [SESSION] - [Brief Description]
 
-   Session M0.1 Deliverables:
+   Session [SESSION] Deliverables:
    - [Deliverable 1]
    - [Deliverable 2]
    - [Deliverable 3]
@@ -425,12 +431,12 @@ DEPLOYMENT TASKS:
 
 2. BACKEND/FRONTEND CHANGES (if applicable):
    
-   IF Session M0.1 required backend API changes:
+   IF Session [SESSION] required backend API changes:
    ```bash
    # Stage backend changes separately
    git add dev/backend/src/
    
-   git commit -m "Backend: API endpoints for Mobile Session M0.1
+   git commit -m "Backend: API endpoints for Mobile Session [SESSION]
 
    New Endpoints:
    - [Endpoint 1]
@@ -439,22 +445,22 @@ DEPLOYMENT TASKS:
    Changes:
    - [Change description]
 
-   Related to: Mobile App Session M0.1"
+   Related to: Mobile App Session [SESSION]"
    
    git push origin main
    ```
 
-   IF Session M0.1 required frontend changes:
+   IF Session [SESSION] required frontend changes:
    ```bash
    # Stage frontend changes separately
    git add dev/frontend/
    
-   git commit -m "Frontend: Updates for Mobile Session M0.1
+   git commit -m "Frontend: Updates for Mobile Session [SESSION]
 
    Changes:
    - [Change description]
 
-   Related to: Mobile App Session M0.1"
+   Related to: Mobile App Session [SESSION]"
    
    git push origin main
    ```
@@ -513,7 +519,7 @@ DEPLOYMENT TASKS:
    Testing Instructions:
    1. Open Expo Go app on your phone
    2. Scan the QR code displayed in terminal
-   3. App will load with Session M0.1 changes
+   3. App will load with Session [SESSION] changes
    4. Test all new features
    5. Verify branding is correct
    6. Check for any errors
@@ -551,7 +557,7 @@ OUTPUT REQUIRED:
 
 5. POST-DEPLOYMENT CHECKLIST:
    □ Mobile app loads on Expo Go
-   □ All Session M0.1 features working
+   □ All Session [SESSION] features working
    □ Backend APIs responding (if changed)
    □ Frontend pages loading (if changed)
    □ No errors in logs
@@ -562,7 +568,7 @@ IMPORTANT NOTES:
 - Clearly separate mobile, backend, and frontend commits
 - Test on Expo Go before marking as complete
 - Document any breaking changes
-- Update session status in MOBILE-PHASES-DETAILED.md
+- Update session status in notes-mobile/MOBILE-PHASES-DETAILED.md
 
 Begin deployment process now.
 ```
