@@ -36,8 +36,16 @@ export const linking: LinkingOptions<RootStackParamList> = {
               TaskDetail: 'work/tasks/:taskId',
             },
           },
-          Modules: 'modules',
-          More: 'more',
+          Modules: {
+            screens: {
+              ModulesMain: 'modules',
+            },
+          },
+          More: {
+            screens: {
+              MoreMain: 'more',
+            },
+          },
         },
       },
     },

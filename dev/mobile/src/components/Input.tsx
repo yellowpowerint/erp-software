@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontFamily: theme.typography.fontFamily.medium,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.text,
     paddingVertical: theme.spacing.sm,
   },
@@ -97,11 +98,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.error,
     marginTop: theme.spacing.xs,
   },
   helperText: {
     fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
   },

@@ -23,7 +23,7 @@ export default function WorkNavigator() {
         },
         headerTintColor: '#FFFFFF',
         headerTitleStyle: {
-          fontWeight: theme.typography.fontWeight.bold,
+          fontFamily: theme.typography.fontFamily.bold,
         },
       }}
     >

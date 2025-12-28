@@ -11,8 +11,8 @@ import { theme } from '../../theme.config';
 
 import HomeNavigator from './HomeNavigator';
 import WorkNavigator from './WorkNavigator';
-import ModulesScreen from '../screens/ModulesScreen';
-import MoreScreen from '../screens/MoreScreen';
+import ModulesNavigator from './ModulesNavigator';
+import MoreNavigator from './MoreNavigator';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -32,14 +32,14 @@ export default function MainTabNavigator() {
         },
         tabBarLabelStyle: {
           fontSize: theme.typography.fontSize.xs,
-          fontWeight: theme.typography.fontWeight.medium,
+          fontFamily: theme.typography.fontFamily.medium,
         },
         headerStyle: {
           backgroundColor: theme.colors.primary,
         },
         headerTintColor: '#FFFFFF',
         headerTitleStyle: {
-          fontWeight: theme.typography.fontWeight.bold,
+          fontFamily: theme.typography.fontFamily.bold,
         },
       }}
     >
@@ -65,20 +65,22 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen 
         name="Modules" 
-        component={ModulesScreen}
+        component={ModulesNavigator}
         options={{
           title: 'Modules',
           tabBarLabel: 'Modules',
           tabBarIcon: ({ color }) => <TabIcon name="📋" color={color} />,
+          headerShown: false,
         }}
       />
       <Tab.Screen 
         name="More" 
-        component={MoreScreen}
+        component={MoreNavigator}
         options={{
           title: 'More',
           tabBarLabel: 'More',
           tabBarIcon: ({ color }) => <TabIcon name="⚙️" color={color} />,
+          headerShown: false,
         }}
       />
     </Tab.Navigator>
@@ -88,6 +90,6 @@ export default function MainTabNavigator() {
 // Simple icon component (will be replaced with proper icons in M1)
 function TabIcon({ name, color }: { name: string; color: string }) {
   return (
-    <Text style={{ fontSize: 20, color }}>{name}</Text>
+    <Text style={{ fontSize: 20, color, fontFamily: theme.typography.fontFamily.regular }}>{name}</Text>
   );
 }

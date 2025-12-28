@@ -91,17 +91,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontFamily: theme.typography.fontFamily.medium,
     color: theme.colors.text,
     flex: 1,
   },
   subtitle: {
     fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   rightText: {
     fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginLeft: theme.spacing.sm,
   },
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontFamily: theme.typography.fontFamily.semibold,
     color: '#FFFFFF',
   },
 });

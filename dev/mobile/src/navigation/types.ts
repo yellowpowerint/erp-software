@@ -14,14 +14,24 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
   Work: NavigatorScreenParams<WorkStackParamList>;
-  Modules: undefined;
-  More: undefined;
+  Modules: NavigatorScreenParams<ModulesStackParamList>;
+  More: NavigatorScreenParams<MoreStackParamList>;
 };
 
 // Home Stack Navigator
 export type HomeStackParamList = {
   HomeMain: undefined;
   Notifications: undefined;
+};
+
+// Modules Stack Navigator
+export type ModulesStackParamList = {
+  ModulesMain: undefined;
+};
+
+// More Stack Navigator
+export type MoreStackParamList = {
+  MoreMain: undefined;
 };
 
 // Work Stack Navigator
