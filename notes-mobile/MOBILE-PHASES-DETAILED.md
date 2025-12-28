@@ -157,11 +157,18 @@ All mobile app screens must use the company's official branding from https://yel
 - [x] MVP scope approved by CEO/CFO
 - [x] Each MVP screen has an owner
 - [x] Deep link routes confirmed for all notification types
+- [x] Expo project created with TypeScript in `dev/mobile/`
+- [x] Navigation structure implemented (4 tabs: Home, Work, Modules, More)
+- [x] Deep link routing configured with `miningerp://` scheme
+- [x] Yellow Power International branding applied (#FDB913, #003366)
+- [x] Placeholder screens created for all tabs
+- [x] App tested and running successfully with `npm start`
 
  **Status Notes**:
  - MVP/V1 scope approved by stakeholders (CEO/CFO).
  - Screen ownership is role-based; each role is assigned to a staff member using their name + email address.
  - Deep link patterns defined above apply to all notifications; unknown/unmapped notification types fall back to `miningerp://notifications`.
+ - **Session M0.1 COMPLETE** (December 28, 2025): Expo project created with full navigation structure and deep link routing implementation in `dev/mobile/`.
 
 ---
 

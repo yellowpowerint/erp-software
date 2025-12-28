@@ -1,50 +1,35 @@
 /**
- * Task Detail Screen
- * Session M0.1 - Deep link target for tasks
+ * Notifications Screen
+ * Session M0.1 - Deep link fallback target (miningerp://notifications)
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme } from '../../theme.config';
 
-export default function TaskDetailScreen({ route, navigation }: any) {
-  const { taskId } = route.params;
-
+export default function NotificationsScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Task Detail</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>IN PROGRESS</Text>
-        </View>
-      </View>
-
-      <View style={styles.infoCard}>
-        <Text style={styles.label}>Task ID</Text>
-        <Text style={styles.value}>{taskId}</Text>
-      </View>
+      <Text style={styles.title}>Notifications</Text>
+      <Text style={styles.subtitle}>Inbox + deep link fallback target</Text>
 
       <View style={styles.infoCard}>
         <Text style={styles.label}>Deep Link Route</Text>
-        <Text style={styles.valueCode}>miningerp://work/tasks/{taskId}</Text>
+        <Text style={styles.valueCode}>miningerp://notifications</Text>
       </View>
 
       <View style={styles.placeholder}>
         <Text style={styles.placeholderText}>
-          Session M3 will implement:{'\n\n'}
-          • Full task details{'\n'}
-          • Status update buttons{'\n'}
-          • Task comments{'\n'}
-          • Due date and priority{'\n'}
-          • Assignee information
+          Session M2 will implement:{'\n\n'}
+          • Notifications inbox list{'\n'}
+          • Push notification handling{'\n'}
+          • Read/unread state{'\n'}
+          • Click-through to relevant item
         </Text>
       </View>
 
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.backButtonText}>← Back to Work</Text>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>← Back</Text>
       </TouchableOpacity>
     </View>
   );
@@ -56,27 +41,16 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     padding: theme.spacing.md,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-  },
   title: {
     fontSize: theme.typography.fontSize.xxl,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
   },
-  badge: {
-    backgroundColor: theme.colors.info,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+  subtitle: {
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.lg,
   },
   infoCard: {
     backgroundColor: theme.colors.surface,
@@ -88,11 +62,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
-  },
-  value: {
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.text,
-    fontWeight: theme.typography.fontWeight.medium,
   },
   valueCode: {
     fontSize: theme.typography.fontSize.sm,

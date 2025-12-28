@@ -1,246 +1,175 @@
 # Mining ERP Mobile App
 
-Enterprise-grade iOS and Android mobile applications for the Mining ERP system, built with React Native and Expo.
+Enterprise-grade iOS and Android mobile application for Yellow Power International's Mining ERP system.
+
+## 🎯 Project Status
+
+**Session M0.1 Complete** ✅
+- MVP scope locked
+- Navigation structure implemented (4 tabs)
+- Deep link routing configured (`miningerp://`)
+- Yellow Power International branding applied
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Expo Go app on your mobile device
+- Node.js 18+ installed
+- Expo Go app on your phone ([iOS](https://apps.apple.com/app/expo-go/id982107779) | [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
 
-### Installation
+### Development
 
 ```bash
-# Install dependencies
+# Install dependencies (first time only)
 npm install
 
 # Start development server
 npm start
+
+# Scan QR code with Expo Go app
+# iOS: Use Camera app to scan
+# Android: Use Expo Go app to scan
 ```
 
-### Testing on Device
+### Testing Deep Links
 
-1. **Install Expo Go**
-   - iOS: [App Store](https://apps.apple.com/app/expo-go/id982107779)
-   - Android: [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent)
+The app supports the `miningerp://` deep link scheme:
 
-2. **Scan QR Code**
-   - iOS: Use Camera app to scan QR code
-   - Android: Use Expo Go app to scan QR code
+- `miningerp://` - Home tab
+- `miningerp://work/approvals/{approvalId}` - Approval detail
+- `miningerp://work/tasks/{taskId}` - Task detail
+- `miningerp://modules` - Modules tab
+- `miningerp://more` - More tab
 
-3. **Start Testing**
-   - App will load on your device
-   - Changes auto-reload (Fast Refresh)
-   - Shake device to open developer menu
+Test deep links in the Work tab by tapping the demo cards.
 
-## 📱 Features
+## 📱 Navigation Structure
 
-### Core Modules
-- ✅ **Dashboard**: Real-time widgets, quick actions, activity feed
-- ✅ **Approvals**: View and action invoices, POs, requests
-- ✅ **Inventory**: Stock search, item details, receiving
-- ✅ **Safety**: Offline incident reporting with photos
-- ✅ **HR**: Employee directory, leave requests
-- ✅ **Finance**: Expense submission with receipt capture
-- ✅ **Projects**: View projects, tasks, milestones
-- ✅ **Documents**: Browse, view, upload documents
-- ✅ **Notifications**: Push notifications with deep linking
+### 4-Tab Bottom Navigation (M0.1)
 
-### Key Features
-- 🔐 Secure authentication (JWT + biometric)
-- 📡 Offline-first incident and expense capture
-- 🔔 Push notifications with deep linking
-- 📸 Camera integration for photos and receipts
-- 🔄 Auto-retry for failed uploads
-- 🎨 Role-based UI (matches web dashboard permissions)
+1. **🏠 Home** - Dashboard (placeholder)
+2. **💼 Work** - Approvals and Tasks with deep link support
+3. **📋 Modules** - ERP modules grid (placeholder)
+4. **⚙️ More** - Settings and profile (placeholder)
 
-## 🛠️ Development
+## 🎨 Branding
 
-### Available Scripts
+**Yellow Power International**
+- Primary: `#FDB913` (Yellow Power Gold)
+- Secondary: `#003366` (Navy Blue)
+- Accent: `#001F3F` (Deep Blue)
 
-```bash
-# Start development server
-npm start
+Theme configuration: `theme.config.ts`
 
-# Start with specific connection type
-npm start -- --tunnel    # Different networks
-npm start -- --lan       # Same local network
-npm start -- --clear     # Clear cache
-
-# Run on specific platform
-npm run android          # Android emulator
-npm run ios              # iOS simulator (macOS only)
-npm run web              # Web browser
-
-# Code quality
-npm run typecheck        # TypeScript type checking
-npm run lint             # ESLint
-```
-
-### Project Structure
+## 📂 Project Structure
 
 ```
 dev/mobile/
-├── app/                    # Main app code
-│   ├── screens/           # Screen components
-│   ├── components/        # Reusable components
-│   ├── navigation/        # Navigation configuration
-│   ├── services/          # API services
-│   ├── stores/            # State management (Zustand)
-│   ├── hooks/             # Custom React hooks
-│   ├── types/             # TypeScript types
-│   └── utils/             # Utility functions
-├── assets/                # Images, fonts, icons
-├── app.json               # Expo configuration
-├── eas.json               # EAS Build configuration
-└── package.json           # Dependencies
+├── src/
+│   ├── navigation/
+│   │   ├── types.ts              # Navigation type definitions
+│   │   ├── linking.ts            # Deep link configuration (M0.1)
+│   │   ├── RootNavigator.tsx     # Root navigation container
+│   │   ├── MainTabNavigator.tsx  # Bottom tab navigation
+│   │   └── WorkNavigator.tsx     # Work stack navigation
+│   └── screens/
+│       ├── HomeScreen.tsx        # Home dashboard
+│       ├── WorkScreen.tsx        # Work list
+│       ├── ApprovalDetailScreen.tsx  # Approval detail (deep link target)
+│       ├── TaskDetailScreen.tsx      # Task detail (deep link target)
+│       ├── ModulesScreen.tsx     # Modules grid
+│       └── MoreScreen.tsx        # Settings/profile
+├── assets/                       # Images, icons, fonts
+├── theme.config.ts              # Yellow Power branding theme
+├── App.tsx                      # App entry point
+├── app.json                     # Expo configuration
+└── package.json                 # Dependencies
 ```
 
-## 🔧 Configuration
+## 🔗 Deep Link Implementation (M0.1)
 
-### Environment Variables
+### Notification to Deep Link Mapping
 
-Create a `.env` file:
+The app implements the M0.1 notification fallback rule in `src/navigation/linking.ts`:
 
-```env
-EXPO_PUBLIC_API_URL=http://localhost:3001
-EXPO_PUBLIC_SENTRY_DSN=your-sentry-dsn
+1. If notification has `deepLink` URL → use it
+2. If notification has `entityType` + `entityId` → map to canonical pattern
+3. Otherwise → fallback to `miningerp://` (Home)
+
+### Supported Entity Types
+
+- `approval` → `miningerp://work/approvals/{id}`
+- `task` → `miningerp://work/tasks/{id}`
+- `inventory` → `miningerp://modules` (MVP view-only)
+- `safety` → `miningerp://modules` (MVP view-only)
+- `notification` → `miningerp://` (Home)
+
+## 🛠️ Technology Stack
+
+- **Framework**: React Native 0.81 (Expo SDK 54)
+- **Language**: TypeScript 5.9
+- **Navigation**: React Navigation 6
+- **State**: (Zustand + React Query in M1+)
+- **Build**: EAS Build (M7)
+
+## 📋 Development Phases
+
+| Phase | Status | Focus |
+|-------|--------|-------|
+| M0.1 | ✅ Complete | MVP scope + navigation + deep links |
+| M0.2 | 📝 Next | Backend readiness plan |
+| M1 | Pending | Auth + API client |
+| M2 | Pending | Dashboard + notifications |
+| M3 | Pending | Approvals + tasks |
+| M4 | Pending | Core modules |
+| M5 | Pending | Documents |
+| M6 | Pending | Offline + hardening |
+| M7 | Pending | Release |
+
+## 🧪 Testing
+
+### Expo Go (Development)
+```bash
+npm start
+# Scan QR code with phone
 ```
 
-### Backend API
-
-The mobile app connects to the existing NestJS backend:
-- **Local**: `http://localhost:3001/api`
-- **Staging**: `https://api-staging.example.com/api`
-- **Production**: `https://api.example.com/api`
-
-## 📦 Building
-
-### Preview Build (APK for testing)
-
+### Production Builds (M7)
 ```bash
 # Install EAS CLI
 npm install -g eas-cli
 
-# Login to Expo
-eas login
-
-# Build APK
+# Build APK (Android preview)
 eas build --platform android --profile preview
-```
 
-### Production Build
-
-```bash
-# Android (AAB for Play Store)
-eas build --platform android --profile production
-
-# iOS (IPA for App Store)
-eas build --platform ios --profile production
-
-# Both platforms
+# Build for stores
 eas build --platform all --profile production
 ```
 
-## 🚢 Deployment
+## 📖 Documentation
 
-### Google Play Store
+Full documentation in `notes-mobile/`:
+- `MOBILE-APP-MAIN.md` - Complete specification
+- `MOBILE-PHASES-DETAILED.md` - Development roadmap
+- `MOBILE-WIREFRAMES.md` - UI/UX design
+- `MOBILE-BRANDING-SUMMARY.md` - Branding guidelines
 
-```bash
-# Submit to Play Store
-eas submit --platform android
-```
+## 🔐 Security
 
-**Requirements:**
-- Google Play Console account ($25 one-time)
-- App assets (icon, screenshots, descriptions)
-- Privacy policy URL
-
-### Apple App Store
-
-```bash
-# Submit to App Store
-eas submit --platform ios
-```
-
-**Requirements:**
-- Apple Developer account ($99/year)
-- App Store Connect access
-- App assets and privacy policy
-
-## 📚 Documentation
-
-Comprehensive documentation is available in the `notes/` directory:
-
-- **`MOBILE-APP-MAIN.md`**: Complete mobile app specification
-- **`MOBILE-PHASES-DETAILED.md`**: Development phases and sessions
-- **`MOBILE-EXPO-GO-TESTING.md`**: Testing guide with QR codes
-- **`MOBILE-BUILD-DEPLOY.md`**: Build and deployment processes
-- **`MOBILE-WIREFRAMES.md`**: UI wireframes and design system
-
-## 🧪 Testing
-
-### Manual Testing Checklist
-
-- [ ] Login/logout flow
-- [ ] All tabs accessible
-- [ ] API calls load data correctly
-- [ ] Offline mode (banner + queue)
-- [ ] Push notifications
-- [ ] Camera/photo capture
-- [ ] Form validation
-- [ ] Error handling
-- [ ] Performance (smooth scrolling)
-
-### Testing Commands
-
-```bash
-# Test with different API endpoints
-EXPO_PUBLIC_API_URL=https://api-staging.example.com npm start
-
-# Clear cache and test fresh
-npm start -- --clear
-```
-
-## 🔒 Security
-
-- **Token Storage**: Expo SecureStore (encrypted)
-- **Biometric Auth**: Face ID / Touch ID / Fingerprint
-- **HTTPS Only**: All API calls over TLS
-- **No Hardcoded Secrets**: Environment variables only
-- **Role-Based Access**: Server-side RBAC enforcement
-
-## 🐛 Troubleshooting
-
-### Can't connect to development server
-- Ensure phone and computer on same WiFi
-- Try tunnel mode: `npm start -- --tunnel`
-- Check firewall settings
-
-### App crashes on startup
-- Check terminal for errors
-- Clear cache: `npm start -- --clear`
-- Reinstall dependencies: `rm -rf node_modules && npm install`
-
-### Push notifications not working
-- Verify device registered with backend
-- Check push token in device settings
-- Test with Expo push notification tool
+- JWT tokens (SecureStore in M1)
+- HTTPS/TLS for all API calls
+- Role-based access control
+- No hardcoded secrets
 
 ## 📞 Support
 
-- **Documentation**: See `notes/` directory
-- **Backend API**: See `docs/API_DOCUMENTATION.md`
-- **Issues**: Contact development team
-
-## 📄 License
-
-Private & Proprietary - Yellow Power International
+For issues or questions:
+1. Check `notes-mobile/` documentation
+2. Review session deliverables in `MOBILE-PHASES-DETAILED.md`
+3. Contact development team
 
 ---
 
-**Built with ❤️ for Mining Operations**
-
-**Version**: 1.0.0  
+**Organization**: Yellow Power International  
+**Platform**: iOS & Android  
+**Status**: Session M0.1 Complete  
 **Last Updated**: December 28, 2025

@@ -1,195 +1,61 @@
+/**
+ * More Screen - Settings and Profile
+ * Session M0.1 - More tab placeholder
+ */
+
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { View, Text, StyleSheet } from 'react-native';
+import { theme } from '../../theme.config';
 
-import { useAuth } from '../auth/AuthContext';
-import type { MoreStackParamList } from '../navigation/MoreStack';
-import { useExpenseReceiptQueue } from '../finance/ExpenseReceiptQueueContext';
-import { useIncidentQueue } from '../safety/IncidentQueueContext';
-
-export function MoreScreen() {
-  const { me, signOut } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-  const { pendingCount } = useExpenseReceiptQueue();
-  const { pendingCount: incidentPendingCount } = useIncidentQueue();
-
-  const totalPending = pendingCount + incidentPendingCount;
-
+export default function MoreScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Account</Text>
-        <Text style={styles.subtitle}>{me?.email ?? ''}</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>More</Text>
+      <Text style={styles.subtitle}>Profile + Settings + Support</Text>
+      
+      <View style={styles.placeholder}>
+        <Text style={styles.placeholderText}>
+          Session M1+ will implement:{'\n\n'}
+          • User profile{'\n'}
+          • App settings{'\n'}
+          • Notifications preferences{'\n'}
+          • Support and help{'\n'}
+          • Sign out
+        </Text>
       </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Settings</Text>
-
-        <Pressable
-          onPress={() => navigation.navigate('Documents')}
-          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Documents</Text>
-            <Text style={styles.rowSubtitle}>Browse and open documents</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => navigation.navigate('LeaveRequestSubmit')}
-          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Leave Request</Text>
-            <Text style={styles.rowSubtitle}>Submit a leave request for approval</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => navigation.navigate('NotificationPreferences')}
-          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Notification Preferences</Text>
-            <Text style={styles.rowSubtitle}>Choose how you want to receive updates</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => navigation.navigate('ExpenseSubmit')}
-          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Submit Expense</Text>
-            <Text style={styles.rowSubtitle}>Submit an expense (optional receipt)</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => navigation.navigate('Outbox')}
-          style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Outbox</Text>
-            <Text style={styles.rowSubtitle}>{totalPending > 0 ? `${totalPending} pending/failed items` : 'No pending items'}</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Session</Text>
-        <Pressable
-          onPress={signOut}
-          style={({ pressed }) => [styles.dangerRow, pressed ? styles.rowPressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.dangerTitle}>Logout</Text>
-            <Text style={styles.dangerSubtitle}>Sign out of this device</Text>
-          </View>
-          <Text style={styles.chevronDanger}>›</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-    gap: 16,
-  },
-  header: {
-    gap: 4,
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#111827',
+    fontSize: theme.typography.fontSize.xxl,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
   },
   subtitle: {
-    color: '#6b7280',
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.lg,
   },
-  section: {
-    gap: 10,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#111827',
-    opacity: 0.8,
-    textTransform: 'uppercase',
-  },
-  row: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    flexDirection: 'row',
+  placeholder: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.lg,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
   },
-  dangerRow: {
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff1f2',
-  },
-  rowPressed: {
-    opacity: 0.85,
-  },
-  rowTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  rowSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6b7280',
-  },
-  dangerTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#7f1d1d',
-  },
-  dangerSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#991b1b',
-    opacity: 0.85,
-  },
-  chevron: {
-    color: '#9ca3af',
-    fontSize: 22,
-    paddingLeft: 10,
-    fontWeight: '900',
-  },
-  chevronDanger: {
-    color: '#991b1b',
-    fontSize: 22,
-    paddingLeft: 10,
-    fontWeight: '900',
-    opacity: 0.9,
+  placeholderText: {
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });

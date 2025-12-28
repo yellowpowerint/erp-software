@@ -1,71 +1,25 @@
 {
   "cli": {
-    "version": ">= 12.0.0",
-    "appVersionSource": "remote"
+    "version": ">= 13.2.0"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://erp.yellowpowerinternational.com/api"
-      }
+      "distribution": "internal"
     },
     "preview": {
       "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://erp.yellowpowerinternational.com/api"
-      },
       "android": {
         "buildType": "apk"
-      },
-      "ios": {
-        "simulator": false
       }
     },
     "production": {
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://erp.yellowpowerinternational.com/api"
-      },
       "android": {
-        "buildType": "app-bundle"
-      },
-      "ios": {
-        "simulator": false
+        "buildType": "aab"
       }
     }
   },
   "submit": {
-    "production": {
-      "ios": {},
-      "android": {}
-    },
-    "androidInternal": {
-      "android": {
-        "track": "internal",
-        "releaseStatus": "completed"
-      }
-    },
-    "androidAlpha": {
-      "extends": "androidInternal",
-      "android": {
-        "track": "alpha",
-        "releaseStatus": "completed"
-      }
-    },
-    "androidBeta": {
-      "extends": "androidInternal",
-      "android": {
-        "track": "beta",
-        "releaseStatus": "completed"
-      }
-    },
-    "androidProduction": {
-      "extends": "androidInternal",
-      "android": {
-        "track": "production",
-        "releaseStatus": "draft"
-      }
-    }
+    "production": {}
   }
 }
