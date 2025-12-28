@@ -1,0 +1,464 @@
+# Enhanced Mobile App Development Prompts
+
+Here are the improved, production-ready prompts for systematic mobile app development:
+
+---
+
+## 🚀 PROMPT 1: Implementation Prompt
+
+```
+MOBILE APP DEVELOPMENT - SESSION IMPLEMENTATION
+
+Session: M0.1 (or specify session number)
+
+CONTEXT:
+Review all mobile app documentation in the notes/ folder:
+- MOBILE-PHASES-DETAILED.md (session requirements and deliverables)
+- MOBILE-APP-MAIN.md (overall architecture and specifications)
+- MOBILE-BRANDING-SUMMARY.md (Yellow Power International branding)
+- MOBILE-WIREFRAMES.md (UI/UX design specifications)
+- MOBILE-BUILD-DEPLOY.md (build and deployment procedures)
+- MOBILE-EXPO-GO-TESTING.md (testing workflows)
+
+OBJECTIVE:
+Systematically implement Session M0.1 from MOBILE-PHASES-DETAILED.md to 100% completion with production-ready quality.
+
+REQUIREMENTS:
+1. Follow the exact session scope, deliverables, and Definition of Done from MOBILE-PHASES-DETAILED.md
+2. Apply Yellow Power International branding consistently:
+   - Primary: #FDB913 (Yellow Power Gold)
+   - Secondary: #003366 (Navy Blue)
+   - Typography: Inter font family
+   - All component styles per MOBILE-WIREFRAMES.md
+3. Implement all features as production-ready code (not prototypes or placeholders)
+4. Include comprehensive error handling and edge cases
+5. Add TypeScript types for all components and functions
+6. Follow React Native and Expo best practices
+7. Ensure offline-first capabilities where specified
+8. Implement proper security measures (SecureStore for tokens, input validation)
+
+FILE ORGANIZATION:
+- Development code: dev/mobile/
+- Production builds/scripts: prod-mobile/
+- Documentation: notes/
+- Configuration: dev/mobile/ (app.json, eas.json, theme.config.ts)
+
+DELIVERABLES CHECKLIST:
+□ All items from session "Deliverables" section completed
+□ All Definition of Done criteria met
+□ Code follows TypeScript strict mode
+□ Components use Yellow Power branding
+□ Error handling implemented
+□ Loading states implemented
+□ Offline handling (if applicable)
+□ Comments added for complex logic
+□ No console errors or warnings
+□ Tested on Expo Go (iOS and Android)
+
+TESTING REQUIREMENTS:
+□ Test on physical device via Expo Go
+□ Verify all user interactions work
+□ Test error scenarios
+□ Test offline mode (if applicable)
+□ Verify branding colors are correct
+□ Check typography renders properly
+□ Test on both iOS and Android
+
+OUTPUT:
+1. Implement all session requirements
+2. Create/update necessary files in dev/mobile/
+3. Update session status in MOBILE-PHASES-DETAILED.md
+4. Document any API requirements for backend team
+5. Provide Expo Go QR code command for testing
+6. List any dependencies or blockers
+
+ACCEPTANCE CRITERIA:
+Session is considered 100% complete when:
+✓ All deliverables implemented and functional
+✓ All Definition of Done items checked off
+✓ Code is production-ready (no TODOs, no placeholders)
+✓ Tested successfully on both iOS and Android
+✓ Branding applied correctly throughout
+✓ No breaking bugs or critical issues
+✓ Documentation updated
+
+Begin implementation now.
+```
+
+---
+
+## 🔍 PROMPT 2: Verification Prompt
+
+```
+MOBILE APP DEVELOPMENT - SESSION VERIFICATION
+
+Session: M0.1 (or specify session number)
+
+CONTEXT:
+Verify the completion status of Session M0.1 against all requirements.
+
+REVIEW SOURCES:
+1. MOBILE-PHASES-DETAILED.md - Session requirements and DoD
+2. MOBILE-APP-MAIN.md - Architecture and specifications
+3. MOBILE-BRANDING-SUMMARY.md - Branding compliance
+4. MOBILE-WIREFRAMES.md - UI/UX specifications
+5. dev/mobile/ - Implementation codebase
+6. Expo Go testing results
+
+VERIFICATION CHECKLIST:
+
+A. DELIVERABLES VERIFICATION:
+   □ Review each deliverable from session specification
+   □ Confirm all files exist in correct locations
+   □ Verify code quality and completeness
+   □ Check for placeholder code or TODOs
+   □ Validate TypeScript types are complete
+
+B. DEFINITION OF DONE VERIFICATION:
+   □ Go through each DoD item systematically
+   □ Test each criterion on physical device
+   □ Document pass/fail for each item
+   □ Identify any gaps or issues
+
+C. BRANDING VERIFICATION:
+   □ Primary buttons use #FDB913 (Yellow Power Gold)
+   □ Secondary buttons use #003366 (Navy Blue)
+   □ Inter font family loaded and applied
+   □ Active states use correct colors
+   □ Status badges use semantic colors
+   □ Typography follows specifications
+   □ Spacing and layout match design system
+
+D. FUNCTIONALITY VERIFICATION:
+   □ All features work as specified
+   □ Error handling covers edge cases
+   □ Loading states display correctly
+   □ Offline mode works (if applicable)
+   □ Navigation flows smoothly
+   □ Forms validate properly
+   □ API calls succeed/fail gracefully
+
+E. TESTING VERIFICATION:
+   □ Tested on iOS device via Expo Go
+   □ Tested on Android device via Expo Go
+   □ No console errors or warnings
+   □ Performance is acceptable
+   □ No memory leaks or crashes
+
+F. CODE QUALITY VERIFICATION:
+   □ TypeScript strict mode passes
+   □ ESLint shows no errors
+   □ Code follows React Native best practices
+   □ Components are reusable and maintainable
+   □ Proper separation of concerns
+   □ No hardcoded values (use theme/config)
+
+OUTPUT REQUIRED:
+
+1. COMPLETION STATUS:
+   - Overall completion percentage (0-100%)
+   - Status: Complete / Incomplete / Needs Revision
+
+2. GAPS IDENTIFIED:
+   List all missing items, incomplete features, or issues:
+   - [ ] Gap 1: Description and location
+   - [ ] Gap 2: Description and location
+   - [ ] Gap 3: Description and location
+
+3. ISSUES FOUND:
+   - Critical: (blocks production deployment)
+   - Major: (significant functionality issues)
+   - Minor: (polish and improvements)
+
+4. FIX-IT PROMPT:
+   If session is not 100% complete, generate a detailed prompt:
+   
+   ```
+   MOBILE APP DEVELOPMENT - FIX SESSION M0.1
+
+   GAPS TO ADDRESS:
+   1. [Specific gap with file location]
+   2. [Specific gap with file location]
+   
+   ISSUES TO FIX:
+   - Critical: [Issue description]
+   - Major: [Issue description]
+   - Minor: [Issue description]
+
+   REQUIREMENTS:
+   [Specific requirements to meet 100% completion]
+
+   ACCEPTANCE CRITERIA:
+   [Updated criteria based on gaps]
+
+   Implement all fixes to bring Session M0.1 to 100% production-ready status.
+   ```
+
+5. RECOMMENDATIONS:
+   - Suggestions for improvement
+   - Best practices to apply
+   - Optimization opportunities
+
+Begin verification now and provide detailed results.
+```
+
+---
+
+## 📦 PROMPT 3: Deployment Prompt
+
+```
+MOBILE APP DEVELOPMENT - DEPLOYMENT & COMMIT
+
+Session: M0.1 (or specify session number)
+
+CONTEXT:
+Review completed Session M0.1 implementation and prepare for deployment.
+
+PRE-DEPLOYMENT CHECKLIST:
+
+A. CODE REVIEW:
+   □ All session deliverables completed
+   □ No TODOs or placeholder code
+   □ TypeScript compilation successful
+   □ No ESLint errors or warnings
+   □ Code follows project conventions
+
+B. TESTING VERIFICATION:
+   □ Tested on iOS via Expo Go
+   □ Tested on Android via Expo Go
+   □ All features functional
+   □ No critical bugs
+   □ Performance acceptable
+
+C. BRANDING VERIFICATION:
+   □ Yellow Power International colors applied
+   □ Inter font family working
+   □ UI matches design specifications
+
+D. IMPACT ANALYSIS:
+   Determine if changes affect:
+   □ Mobile app only (dev/mobile/)
+   □ Backend (dev/backend/) - API changes, new endpoints
+   □ Frontend (dev/frontend/) - shared components, types
+   □ Documentation (notes/)
+
+DEPLOYMENT TASKS:
+
+1. GIT OPERATIONS:
+   
+   A. Stage Mobile App Changes:
+   ```bash
+   cd C:\Users\Plange\Downloads\Projects\mining-erp
+   
+   # Stage mobile app files
+   git add dev/mobile/
+   git add notes/MOBILE-*.md
+   git add prod-mobile/ (if exists)
+   
+   # Check what's staged
+   git status
+   ```
+
+   B. Commit Mobile App Changes:
+   ```bash
+   git commit -m "Mobile App: Complete Session M0.1 - [Brief Description]
+
+   Session M0.1 Deliverables:
+   - [Deliverable 1]
+   - [Deliverable 2]
+   - [Deliverable 3]
+
+   Changes:
+   - [Specific change 1]
+   - [Specific change 2]
+
+   Testing:
+   - Tested on iOS via Expo Go
+   - Tested on Android via Expo Go
+   - All DoD criteria met
+
+   Branding: Yellow Power International (#FDB913, #003366, Inter font)
+   Status: Production-ready"
+   ```
+
+   C. Push to GitHub:
+   ```bash
+   git push origin main
+   ```
+
+2. BACKEND/FRONTEND CHANGES (if applicable):
+   
+   IF Session M0.1 required backend API changes:
+   ```bash
+   # Stage backend changes separately
+   git add dev/backend/src/
+   
+   git commit -m "Backend: API endpoints for Mobile Session M0.1
+
+   New Endpoints:
+   - [Endpoint 1]
+   - [Endpoint 2]
+
+   Changes:
+   - [Change description]
+
+   Related to: Mobile App Session M0.1"
+   
+   git push origin main
+   ```
+
+   IF Session M0.1 required frontend changes:
+   ```bash
+   # Stage frontend changes separately
+   git add dev/frontend/
+   
+   git commit -m "Frontend: Updates for Mobile Session M0.1
+
+   Changes:
+   - [Change description]
+
+   Related to: Mobile App Session M0.1"
+   
+   git push origin main
+   ```
+
+3. VPS DEPLOYMENT (if backend/frontend changed):
+   
+   Connect via PuTTY:
+   - Host: 216.158.230.187
+   - Port: 22
+   - Username: root
+   - Password: =2pcZVgDY8Ad5PRK6r
+
+   Run deployment commands:
+   ```bash
+   # Navigate to project
+   cd /var/www/mining-erp
+   
+   # Pull latest changes
+   git pull origin main
+   
+   # Update Backend (if changed)
+   cd dev/backend
+   npm ci
+   npm run build
+   npx prisma generate
+   pm2 restart erp-backend
+   
+   # Update Frontend (if changed)
+   cd ../frontend
+   npm ci
+   npm run build
+   pm2 restart erp-frontend
+   
+   # Verify
+   pm2 status
+   pm2 logs erp-backend --lines 20
+   pm2 logs erp-frontend --lines 20
+   ```
+
+4. EXPO GO TESTING:
+   
+   Generate QR code for testing:
+   ```bash
+   cd C:\Users\Plange\Downloads\Projects\mining-erp\dev\mobile
+   
+   # Start development server
+   npm start
+   
+   # Alternative: Use tunnel for different networks
+   npm start -- --tunnel
+   
+   # Alternative: Clear cache if needed
+   npm start -- --clear
+   ```
+
+   Testing Instructions:
+   1. Open Expo Go app on your phone
+   2. Scan the QR code displayed in terminal
+   3. App will load with Session M0.1 changes
+   4. Test all new features
+   5. Verify branding is correct
+   6. Check for any errors
+
+OUTPUT REQUIRED:
+
+1. CHANGE SUMMARY:
+   - Mobile app changes: [List files changed]
+   - Backend changes: [List if any, or "None"]
+   - Frontend changes: [List if any, or "None"]
+
+2. COMMIT DETAILS:
+   - Commit hash: [After git commit]
+   - Commit message: [Full message]
+   - Files committed: [Count and list]
+
+3. DEPLOYMENT STATUS:
+   - GitHub push: Success/Failed
+   - Backend deployment: Success/Failed/Not Applicable
+   - Frontend deployment: Success/Failed/Not Applicable
+   - Expo Go testing: QR code generated
+
+4. VERIFICATION COMMANDS:
+   Provide these commands for user to verify:
+   ```bash
+   # Check mobile app on Expo Go
+   cd dev/mobile && npm start
+   
+   # Verify backend (if changed)
+   curl https://erp.yellowpowerinternational.com/api/health
+   
+   # Verify frontend (if changed)
+   # Visit: https://erp.yellowpowerinternational.com
+   ```
+
+5. POST-DEPLOYMENT CHECKLIST:
+   □ Mobile app loads on Expo Go
+   □ All Session M0.1 features working
+   □ Backend APIs responding (if changed)
+   □ Frontend pages loading (if changed)
+   □ No errors in logs
+   □ Branding correct
+
+IMPORTANT NOTES:
+- Only commit mobile app changes to GitHub
+- Clearly separate mobile, backend, and frontend commits
+- Test on Expo Go before marking as complete
+- Document any breaking changes
+- Update session status in MOBILE-PHASES-DETAILED.md
+
+Begin deployment process now.
+```
+
+---
+
+## 📝 Usage Instructions
+
+### For Each Session:
+
+1. **Implementation Phase**: Use Prompt 1
+   - Replace "M0.1" with current session (e.g., "M1.2", "M2.3")
+   - Follow all requirements systematically
+   - Ensure 100% completion before moving on
+
+2. **Verification Phase**: Use Prompt 2
+   - Verify against all documentation
+   - Identify any gaps or issues
+   - Generate fix-it prompt if needed
+
+3. **Deployment Phase**: Use Prompt 3
+   - Commit changes to GitHub
+   - Deploy backend/frontend if affected
+   - Test on Expo Go with QR code
+
+### Session Progression:
+
+```
+M0.1 → M0.2 → M1.1 → M1.2 → M1.3 → M1.4 → M2.1 → ... → M7.3
+```
+
+Each session must be 100% complete before starting the next.
+
+---
+
+These enhanced prompts ensure systematic, production-ready development with proper verification and deployment procedures for the Mining ERP mobile app.

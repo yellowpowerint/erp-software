@@ -24,3 +24,55 @@ Thumbs.db
 .factory/artifacts/
 
 .vercel
+
+# ============================================
+# MOBILE APP SPECIFIC
+# ============================================
+
+# Old Mobile App (DEPRECATED - Do not commit changes)
+dev/old-mob/**/*.log
+dev/old-mob/**/node_modules/
+dev/old-mob/**/.expo/
+dev/old-mob/**/dist/
+
+# New Mobile App - Expo/React Native
+dev/mobile/.expo/
+dev/mobile/.expo-shared/
+dev/mobile/dist/
+dev/mobile/web-build/
+dev/mobile/ios/Pods/
+dev/mobile/ios/build/
+dev/mobile/android/app/build/
+dev/mobile/android/.gradle/
+dev/mobile/*.jks
+dev/mobile/*.p8
+dev/mobile/*.p12
+dev/mobile/*.key
+dev/mobile/*.mobileprovision
+
+# Mobile Production Builds (tracked separately)
+prod-mobile/*.apk
+prod-mobile/*.aab
+prod-mobile/*.ipa
+prod-mobile/builds/
+
+# Mobile App Logs
+dev/mobile/npm-debug.log*
+dev/mobile/yarn-debug.log*
+dev/mobile/yarn-error.log*
+
+# ============================================
+# BACKEND & FRONTEND (existing)
+# ============================================
+
+# Backend builds
+dev/backend/dist/
+dev/backend/build/
+
+# Frontend builds
+dev/frontend/.next/
+dev/frontend/out/
+dev/frontend/build/
+
+# Production zips (large files)
+dev/*.zip
