@@ -6,6 +6,45 @@ This document provides a **complete session-by-session roadmap** for developing 
 
 ---
 
+## Yellow Power International Branding
+
+All mobile app screens must use the company's official branding from https://yellowpowerinternational.com
+
+### Brand Colors
+
+**Primary Colors**
+- **Yellow Power Gold**: `#FDB913` - Primary brand color (buttons, active states, highlights)
+- **Navy Blue**: `#003366` - Headers, navigation, secondary buttons
+- **Deep Blue**: `#001F3F` - Dark accents and depth
+
+**Neutral Colors**
+- **White**: `#FFFFFF` - Backgrounds, cards
+- **Light Gray**: `#F5F5F5` - Secondary backgrounds
+- **Medium Gray**: `#E0E0E0` - Borders, dividers
+- **Dark Gray**: `#333333` - Body text
+- **Charcoal**: `#020817` - Headings
+
+**Semantic Colors**
+- **Success**: `#10B981` - Approvals, confirmations
+- **Error**: `#EF4444` - Rejections, alerts
+- **Warning**: `#F59E0B` - Pending, caution
+- **Info**: `#3B82F6` - Information
+
+### Typography
+- **Font Family**: Inter (matching company website)
+- **Weights**: Regular (400), Medium (500), Semibold (600), Bold (700)
+- **Fallbacks**: SF Pro (iOS), Roboto (Android)
+
+### Key Components
+- **Primary Button**: #FDB913 background, white text
+- **Secondary Button**: #003366 background, white text
+- **Active Tab**: #FDB913 color
+- **Status Badges**: Pending (#F59E0B), Approved (#10B981), Rejected (#EF4444)
+
+**Reference**: See `dev/mobile/theme.config.ts` for complete theme configuration
+
+---
+
 ## Phase Summary
 
 | Phase | Sessions | Duration | Key Deliverables |
@@ -86,7 +125,11 @@ npx expo install @expo-google-fonts/inter expo-font
 - Bottom tab navigation (Home, Work, Modules, More)
 - Stack navigators for each tab
 - Shared UI components (Button, Input, Card, ListRow)
-- Theme configuration with Yellow Power branding
+- Theme configuration with Yellow Power International branding
+  - Primary color: #FDB913 (Yellow Power Gold)
+  - Secondary color: #003366 (Navy Blue)
+  - Inter font family
+  - Complete color palette and component styles
 
 **Testing**:
 ```bash
@@ -99,7 +142,12 @@ npm start
 - [ ] App runs on iOS and Android
 - [ ] All 4 tabs render placeholder screens
 - [ ] Navigation works smoothly
-- [ ] Yellow Power branding applied (#FDB913, #003366, Inter font)
+- [ ] Yellow Power International branding applied:
+  - Primary buttons use #FDB913 (Yellow Power Gold)
+  - Secondary buttons use #003366 (Navy Blue)
+  - Inter font family loaded and applied
+  - Active tab indicator uses #FDB913
+  - Theme configuration matches company website
 
 ---
 
