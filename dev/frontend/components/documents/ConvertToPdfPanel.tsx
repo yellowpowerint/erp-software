@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, Loader2, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { FileText, Loader2, CheckCircle, XCircle, Ban, Clock3, AlertTriangle, Download } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { DocumentConversionJob, DocumentConversionStatus } from '@/types/conversion';
 
@@ -11,12 +12,32 @@ interface ConvertToPdfPanelProps {
   onConverted: () => Promise<void>;
 }
 
+const supportedFormats = {
+  Documents: ['doc', 'docx', 'odt', 'rtf', 'txt', 'html', 'msg', 'eml'],
+  Spreadsheets: ['xls', 'xlsx', 'csv', 'ods'],
+  Presentations: ['ppt', 'pptx', 'odp'],
+  Images: ['jpg', 'jpeg', 'png', 'tiff', 'heic', 'webp', 'bmp'],
+  CAD_PDF: ['pdf', 'svg'],
+};
+
+const miningContexts = ['Vendor invoice', 'Purchase order', 'Delivery note', 'Assay report', 'Inspection photo'];
+
+const statusTone: Record<DocumentConversionStatus | 'IDLE', { chip: string; text: string }> = {
+  IDLE: { chip: 'bg-gray-100 text-gray-700', text: 'Ready' },
+  [DocumentConversionStatus.PENDING]: { chip: 'bg-amber-100 text-amber-800', text: 'Queued' },
+  [DocumentConversionStatus.PROCESSING]: { chip: 'bg-blue-100 text-blue-800', text: 'Processing' },
+  [DocumentConversionStatus.COMPLETED]: { chip: 'bg-green-100 text-green-800', text: 'Completed' },
+  [DocumentConversionStatus.FAILED]: { chip: 'bg-red-100 text-red-800', text: 'Failed' },
+  [DocumentConversionStatus.CANCELLED]: { chip: 'bg-gray-200 text-gray-700', text: 'Cancelled' },
+};
+
 export default function ConvertToPdfPanel({ documentId, mimeType, onConverted }: ConvertToPdfPanelProps) {
   const {
     convertDocumentToPdf,
     getConversionJob,
     listConversionJobs,
     cancelConversionJob,
+    downloadDocument,
     loading,
   } = useDocuments();
 
@@ -102,94 +123,186 @@ export default function ConvertToPdfPanel({ documentId, mimeType, onConverted }:
     return null;
   }
 
-  const status = job?.status;
-
-  const statusIcon =
-    status === DocumentConversionStatus.PROCESSING || status === DocumentConversionStatus.PENDING ? (
-      <Loader2 className="h-4 w-4 animate-spin" />
-    ) : status === DocumentConversionStatus.COMPLETED ? (
-      <CheckCircle className="h-4 w-4 text-green-600" />
-    ) : status === DocumentConversionStatus.CANCELLED ? (
-      <Ban className="h-4 w-4 text-gray-500" />
-    ) : status === DocumentConversionStatus.FAILED ? (
-      <XCircle className="h-4 w-4 text-red-600" />
-    ) : (
-      <FileText className="h-4 w-4" />
-    );
-
-  const canCancel =
+  const status = job?.status ?? 'IDLE';
+  const tone = statusTone[status];
+  const isActive =
     job?.status === DocumentConversionStatus.PENDING || job?.status === DocumentConversionStatus.PROCESSING;
+  const canDownload = job?.status === DocumentConversionStatus.COMPLETED;
+
+  const downloadLatest = async () => {
+    if (!job || !canDownload) return;
+    try {
+      const { url, filename } = await downloadDocument(documentId);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || 'Failed to download converted PDF');
+    }
+  };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            {statusIcon}
-            <h4 className="text-sm font-medium text-gray-900">Convert to PDF</h4>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="lg:col-span-2 border border-gray-200 rounded-lg bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                <h4 className="text-base font-semibold text-gray-900">Convert to PDF</h4>
+                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${tone.chip}`}>
+                  {tone.text}
+                </span>
+              </div>
+              <p className="text-sm text-gray-600">
+                Standardize office files, spreadsheets, images, and logs to PDF for approvals, audits, and archiving.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {miningContexts.map((c) => (
+                  <span key={c} className="rounded-full bg-gray-100 text-gray-700 text-xs px-2 py-1">
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={startConversion}
+                disabled={loading || isActive}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isActive ? 'Converting…' : 'Convert now'}
+              </button>
+              {isActive && (
+                <button
+                  onClick={cancel}
+                  disabled={loading}
+                  className="px-3 py-2 text-sm bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              )}
+              {canDownload && (
+                <button
+                  onClick={downloadLatest}
+                  className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </button>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-gray-600 mt-1">
-            Converts this document into a PDF and saves it as a new version.
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={startConversion}
-            disabled={loading || canCancel}
-            className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {canCancel ? 'Converting…' : 'Convert to PDF'}
-          </button>
-
-          {canCancel && (
-            <button
-              onClick={cancel}
-              disabled={loading}
-              className="px-3 py-2 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
-            >
-              Cancel
-            </button>
+          {error && (
+            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              <AlertTriangle className="h-4 w-4 mt-0.5" />
+              <div>{error}</div>
+            </div>
           )}
+
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-3">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-700">
+              <div className="flex items-center gap-1">
+                <Clock3 className="h-4 w-4 text-gray-500" />
+                <span>Attempts: {job ? `${job.attempts}/${job.maxAttempts}` : '0/3'}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Type:</span>
+                <span className="rounded bg-white px-2 py-1 border border-gray-200">
+                  {mimeType || 'Unknown'}
+                </span>
+              </div>
+              {job?.errorMessage && (
+                <span className="text-red-700 font-medium truncate">Error: {job.errorMessage}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-md border border-gray-200 bg-white px-4 py-3">
+            <div className="text-sm font-medium text-gray-800 mb-2">Supported formats (CloudConvert)</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-gray-700">
+              {Object.entries(supportedFormats).map(([label, items]) => (
+                <div key={label} className="space-y-1">
+                  <div className="text-gray-900 font-semibold">{label}</div>
+                  <div className="flex flex-wrap gap-1">
+                    {items.map((i) => (
+                      <span key={i} className="px-2 py-1 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                        {i.toUpperCase()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 text-xs text-gray-600">
+              Tip: Converting first keeps vendor invoices, lab results, and equipment photos consistent for approval workflows.
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-gray-600">
+            <span>
+              Need a different file?{' '}
+              <Link href="/documents" className="text-blue-600 hover:underline">
+                Upload another document
+              </Link>
+            </span>
+            <span className="italic">CloudConvert-backed • version-safe</span>
+          </div>
         </div>
       </div>
 
-      {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
+      <div className="border border-gray-200 rounded-lg bg-white p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <h5 className="text-sm font-semibold text-gray-900">Conversion status</h5>
+          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${tone.chip}`}>
+            {tone.text}
+          </span>
+        </div>
 
-      {job && (
-        <div className="mt-3 text-xs text-gray-700">
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            <div>
-              <span className="font-medium">Status:</span> {job.status}
-            </div>
-            <div>
-              <span className="font-medium">Attempts:</span> {job.attempts}/{job.maxAttempts}
-            </div>
-            {job.errorMessage && (
-              <div className="text-red-700">
-                <span className="font-medium">Error:</span> {job.errorMessage}
-              </div>
-            )}
+        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-3 text-xs text-gray-800 space-y-1">
+          <div className="flex items-center justify-between">
+            <span>Status</span>
+            <span className="font-semibold">{tone.text}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Attempts</span>
+            <span className="font-semibold">{job ? `${job.attempts}/${job.maxAttempts}` : '0/3'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Last update</span>
+            <span>{job ? new Date(job.updatedAt || job.createdAt).toLocaleString() : '–'}</span>
           </div>
         </div>
-      )}
 
-      {history.length > 0 && (
-        <div className="mt-4">
-          <div className="text-xs font-medium text-gray-700 mb-2">Recent conversions</div>
+        {history.length > 0 ? (
           <div className="space-y-2">
-            {history.slice(0, 5).map((h) => (
-              <div key={h.id} className="flex items-center justify-between text-xs bg-white border border-gray-200 rounded p-2">
-                <div className="text-gray-700 truncate">
-                  {h.status}
-                  {h.errorMessage ? ` — ${h.errorMessage}` : ''}
-                </div>
-                <div className="text-gray-500">{new Date(h.createdAt).toLocaleString()}</div>
-              </div>
-            ))}
+            <div className="text-xs font-medium text-gray-800">Recent conversions</div>
+            <div className="space-y-1">
+              {history.slice(0, 5).map((h) => {
+                const ht = statusTone[h.status];
+                return (
+                  <div
+                    key={h.id}
+                    className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${ht.chip}`}>{ht.text}</span>
+                      <span className="text-gray-800 truncate">{h.errorMessage ? `Error: ${h.errorMessage}` : 'OK'}</span>
+                    </div>
+                    <span className="text-gray-500">{new Date(h.createdAt).toLocaleString()}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-xs text-gray-600">No conversions yet. Start a run to see history.</div>
+        )}
+      </div>
     </div>
   );
 }
