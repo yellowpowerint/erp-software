@@ -9,7 +9,8 @@ import { DocumentConversionJob, DocumentConversionStatus } from '@/types/convers
 interface ConvertToPdfPanelProps {
   documentId: string;
   mimeType: string;
-  onConverted: () => Promise<void>;
+  onConverted: (documentId: string) => Promise<void>;
+  onAfterConvertNavigate?: (documentId: string) => void;
 }
 
 const supportedFormats = {
@@ -31,7 +32,12 @@ const statusTone: Record<DocumentConversionStatus | 'IDLE', { chip: string; text
   [DocumentConversionStatus.CANCELLED]: { chip: 'bg-gray-200 text-gray-700', text: 'Cancelled' },
 };
 
-export default function ConvertToPdfPanel({ documentId, mimeType, onConverted }: ConvertToPdfPanelProps) {
+export default function ConvertToPdfPanel({
+  documentId,
+  mimeType,
+  onConverted,
+  onAfterConvertNavigate,
+}: ConvertToPdfPanelProps) {
   const {
     convertDocumentToPdf,
     getConversionJob,
@@ -77,7 +83,8 @@ export default function ConvertToPdfPanel({ documentId, mimeType, onConverted }:
         setJob(latest);
 
         if (latest.status === DocumentConversionStatus.COMPLETED) {
-          await onConverted();
+          await onConverted(documentId);
+          onAfterConvertNavigate?.(documentId);
           await loadHistory();
         }
 

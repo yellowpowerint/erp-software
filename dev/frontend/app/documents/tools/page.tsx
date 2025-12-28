@@ -121,6 +121,16 @@ function ToolsContent() {
     }
   }, [docs, selectedForInsights]);
 
+  const handleConverted = useCallback(
+    async (id: string) => {
+      await loadDocuments();
+      setActiveTab('edit');
+      setSelectedForConvert(null);
+      setSelectedForInsights(id);
+    },
+    [loadDocuments],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -361,7 +371,7 @@ function ToolsContent() {
                     <ConvertToPdfPanel
                       documentId={selectedForConvert}
                       mimeType={filteredNonPdfDocuments.find((d) => d.id === selectedForConvert)?.mimeType || ''}
-                      onConverted={loadDocuments}
+                      onConverted={handleConverted}
                     />
                   ) : (
                     <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2">
