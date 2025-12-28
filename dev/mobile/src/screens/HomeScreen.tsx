@@ -33,12 +33,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.xxl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontFamily: theme.typography.fontFamily.bold,
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
   subtitle: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.lg,
   },
@@ -52,6 +53,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,

@@ -56,12 +56,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.xxl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontFamily: theme.typography.fontFamily.bold,
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
   subtitle: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.lg,
   },
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontFamily: theme.typography.fontFamily.semibold,
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
@@ -83,13 +84,14 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
   cardSubtext: {
     fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
-    fontFamily: 'monospace',
   },
   placeholder: {
     flex: 1,
@@ -101,6 +103,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,

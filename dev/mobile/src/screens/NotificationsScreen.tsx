@@ -43,12 +43,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.xxl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontFamily: theme.typography.fontFamily.bold,
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
   subtitle: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.lg,
   },
@@ -60,13 +61,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
   },
   valueCode: {
     fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.text,
-    fontFamily: 'monospace',
     backgroundColor: theme.colors.background,
     padding: theme.spacing.sm,
     borderRadius: theme.borderRadius.sm,
@@ -82,6 +84,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
@@ -95,6 +98,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#FFFFFF',
     fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontFamily: theme.typography.fontFamily.semibold,
   },
 });

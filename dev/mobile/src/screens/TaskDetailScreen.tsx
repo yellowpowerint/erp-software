@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.xxl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontFamily: theme.typography.fontFamily.bold,
     color: theme.colors.text,
   },
   badge: {
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#FFFFFF',
     fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontFamily: theme.typography.fontFamily.semibold,
   },
   infoCard: {
     backgroundColor: theme.colors.surface,
@@ -86,18 +86,19 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
   },
   value: {
     fontSize: theme.typography.fontSize.lg,
+    fontFamily: theme.typography.fontFamily.medium,
     color: theme.colors.text,
-    fontWeight: theme.typography.fontWeight.medium,
   },
   valueCode: {
     fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.text,
-    fontFamily: 'monospace',
     backgroundColor: theme.colors.background,
     padding: theme.spacing.sm,
     borderRadius: theme.borderRadius.sm,
@@ -113,6 +114,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
@@ -126,6 +128,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#FFFFFF',
     fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontFamily: theme.typography.fontFamily.semibold,
   },
 });

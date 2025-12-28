@@ -36,6 +36,9 @@
         "projectId": "mining-erp-mobile"
       }
     },
-    "owner": "yellowpowerinternational"
+    "owner": "yellowpowerinternational",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
