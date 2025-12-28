@@ -1,5 +1,101 @@
 # Enhanced Mobile App Development Prompts
 
+## 📋 Project Context & Structure
+
+**IMPORTANT: Read this section before using any of the prompts below.**
+
+### Repository Structure
+
+This is the **Mining ERP** project with the following structure:
+
+```
+mining-erp/
+├── dev/
+│   ├── backend/          # NestJS API (serves web dashboard + mobile app)
+│   ├── frontend/         # Next.js web dashboard (separate from mobile)
+│   ├── mobile/           # NEW React Native mobile app (ACTIVE)
+│   └── old-mob/          # OLD mobile app (DEPRECATED - do not use)
+├── notes/                # Backend/Frontend documentation
+├── notes-mobile/         # Mobile app documentation (THIS FOLDER)
+├── prod/                 # Backend/Frontend production files
+├── prod-mobile/          # Mobile app builds and scripts
+└── MOBILE-APP-STRUCTURE.md  # Complete separation guide
+```
+
+### Critical Separation Rules
+
+1. **NEW Mobile App (Active Development):**
+   - Code: `dev/mobile/`
+   - Docs: `notes-mobile/`
+   - Builds: `prod-mobile/`
+
+2. **OLD Mobile App (Archived):**
+   - Location: `dev/old-mob/`
+   - Status: **DEPRECATED - DO NOT USE OR MODIFY**
+   - Purpose: Reference only
+
+3. **Backend & Frontend (Separate Systems):**
+   - Backend: `dev/backend/` (NestJS API)
+   - Frontend: `dev/frontend/` (Next.js web dashboard)
+   - **Independent from mobile app** (different frameworks)
+
+### Git Commit Strategy
+
+**ALWAYS commit separately:**
+- Mobile changes: `git add dev/mobile/ notes-mobile/ prod-mobile/`
+- Backend changes: `git add dev/backend/`
+- Frontend changes: `git add dev/frontend/`
+
+**NEVER:**
+- Modify files in `dev/old-mob/`
+- Mix mobile + backend + frontend in one commit
+- Import from old mobile app into new mobile app
+
+### VPS Deployment (if backend/frontend affected)
+
+**Server:** 216.158.230.187 (SSH port 22, user: root)
+
+**Paths on VPS:**
+- Backend: `/var/www/mining-erp/dev/backend`
+- Frontend: `/var/www/mining-erp/dev/frontend`
+- Mobile: Not deployed to VPS (uses Expo Go + EAS Build)
+
+**Deployment:**
+```bash
+# Backend
+cd /var/www/mining-erp/dev/backend
+npm ci && npm run build && npx prisma generate
+pm2 restart erp-backend
+
+# Frontend  
+cd /var/www/mining-erp/dev/frontend
+npm ci && npm run build
+pm2 restart erp-frontend
+```
+
+### Yellow Power International Branding
+
+**All mobile screens must use:**
+- Primary: #FDB913 (Yellow Power Gold)
+- Secondary: #003366 (Navy Blue)
+- Typography: Inter font family
+- Reference: `dev/mobile/theme.config.ts`
+
+---
+
+## 📚 Available Documentation
+
+Before starting any session, review:
+- `MOBILE-PHASES-DETAILED.md` - Session requirements and DoD
+- `MOBILE-APP-MAIN.md` - Architecture and specifications
+- `MOBILE-BRANDING-SUMMARY.md` - Branding guidelines
+- `MOBILE-WIREFRAMES.md` - UI/UX design system
+- `MOBILE-BUILD-DEPLOY.md` - Build and deployment
+- `MOBILE-EXPO-GO-TESTING.md` - Testing workflow
+- `../MOBILE-APP-STRUCTURE.md` - Complete separation guide
+
+---
+
 Here are the improved, production-ready prompts for systematic mobile app development:
 
 ---
@@ -11,14 +107,32 @@ MOBILE APP DEVELOPMENT - SESSION IMPLEMENTATION
 
 Session: M0.1 (or specify session number)
 
+PROJECT STRUCTURE AWARENESS:
+This is the Mining ERP project. You are working on the NEW mobile app.
+
+CRITICAL FOLDER LOCATIONS:
+- Mobile app code: dev/mobile/ (ACTIVE - work here)
+- Mobile app docs: notes-mobile/ (read from here)
+- Mobile app builds: prod-mobile/ (output here)
+- OLD mobile app: dev/old-mob/ (DEPRECATED - do not use)
+- Backend API: dev/backend/ (separate - only modify if session requires API changes)
+- Web dashboard: dev/frontend/ (separate - do not modify for mobile)
+
+SEPARATION RULES:
+- Work ONLY in dev/mobile/ for mobile development
+- Do NOT modify or reference dev/old-mob/
+- Do NOT mix mobile + backend + frontend changes
+- Commit mobile changes separately from backend/frontend
+
 CONTEXT:
-Review all mobile app documentation in the notes/ folder:
+Review all mobile app documentation in the notes-mobile/ folder:
 - MOBILE-PHASES-DETAILED.md (session requirements and deliverables)
 - MOBILE-APP-MAIN.md (overall architecture and specifications)
 - MOBILE-BRANDING-SUMMARY.md (Yellow Power International branding)
 - MOBILE-WIREFRAMES.md (UI/UX design specifications)
 - MOBILE-BUILD-DEPLOY.md (build and deployment procedures)
 - MOBILE-EXPO-GO-TESTING.md (testing workflows)
+- ../MOBILE-APP-STRUCTURE.md (complete separation guide)
 
 OBJECTIVE:
 Systematically implement Session M0.1 from MOBILE-PHASES-DETAILED.md to 100% completion with production-ready quality.
@@ -211,6 +325,27 @@ MOBILE APP DEVELOPMENT - DEPLOYMENT & COMMIT
 
 Session: M0.1 (or specify session number)
 
+PROJECT STRUCTURE AWARENESS:
+This is the Mining ERP project. You are deploying the NEW mobile app.
+
+CRITICAL FOLDER LOCATIONS:
+- Mobile app code: dev/mobile/ (commit from here)
+- Mobile app docs: notes-mobile/ (commit from here)
+- Mobile app builds: prod-mobile/ (commit from here)
+- OLD mobile app: dev/old-mob/ (NEVER commit changes)
+- Backend API: dev/backend/ (commit separately if changed)
+- Web dashboard: dev/frontend/ (commit separately if changed)
+
+DEPLOYMENT TARGETS:
+- Mobile app: Expo Go (dev) + EAS Build (production) - NO VPS deployment
+- Backend: VPS at 216.158.230.187 (if API changed)
+- Frontend: VPS at 216.158.230.187 (if dashboard changed)
+
+VPS PATHS (if backend/frontend affected):
+- Backend: /var/www/mining-erp/dev/backend
+- Frontend: /var/www/mining-erp/dev/frontend
+- Mobile: NOT deployed to VPS (uses Expo ecosystem)
+
 CONTEXT:
 Review completed Session M0.1 implementation and prepare for deployment.
 
@@ -250,10 +385,12 @@ DEPLOYMENT TASKS:
    ```bash
    cd C:\Users\Plange\Downloads\Projects\mining-erp
    
-   # Stage mobile app files
+   # Stage ONLY new mobile app files (not old-mob)
    git add dev/mobile/
-   git add notes/MOBILE-*.md
-   git add prod-mobile/ (if exists)
+   git add notes-mobile/
+   git add prod-mobile/
+   
+   # DO NOT stage dev/old-mob/ (deprecated)
    
    # Check what's staged
    git status
