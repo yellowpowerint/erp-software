@@ -96,7 +96,7 @@ This index provides quick access to all mobile app documentation.
 
 | Phase | Sessions | Duration | Status |
 |-------|----------|----------|--------|
-| **M0: Alignment** | 2 | 1 week | In Progress (M0.1 complete, M0.2 next) |
+| **M0: Alignment** | 2 | 1 week | Complete ✅ (M0.1 + M0.2 done) |
 | **M1: Foundation** | 4 | 2 weeks | Pending |
 | **M2: Home + Notifications** | 4 | 2 weeks | Pending |
 | **M3: Work** | 4 | 2 weeks | Pending |
