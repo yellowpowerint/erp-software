@@ -11,6 +11,7 @@ interface DocumentUploadProps {
   module: string;
   referenceId?: string;
   category: DocumentCategory;
+  showCategoryPicker?: boolean;
   onUploadComplete?: (documents: any[]) => void;
   onUploadError?: (error: string) => void;
   maxFiles?: number;
@@ -22,6 +23,7 @@ export default function DocumentUpload({
   module,
   referenceId,
   category,
+  showCategoryPicker = false,
   onUploadComplete,
   onUploadError,
   maxFiles = 10,
@@ -31,6 +33,7 @@ export default function DocumentUpload({
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>(category);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
@@ -92,7 +95,7 @@ export default function DocumentUpload({
 
     try {
       const metadata: CreateDocumentDto = {
-        category,
+        category: selectedCategory,
         module,
         referenceId,
         description: description.trim() || undefined,
@@ -113,6 +116,7 @@ export default function DocumentUpload({
       // Reset form
       setFiles([]);
       setDescription('');
+      setSelectedCategory(category);
       setTags([]);
     } catch (error: any) {
       onUploadError?.(error.message || 'Upload failed');
@@ -215,6 +219,26 @@ export default function DocumentUpload({
       {/* Metadata */}
       {files.length > 0 && (
         <div className="space-y-4">
+          {showCategoryPicker && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value as DocumentCategory)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={uploading}
+              >
+                {Object.values(DocumentCategory).map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Description (Optional)

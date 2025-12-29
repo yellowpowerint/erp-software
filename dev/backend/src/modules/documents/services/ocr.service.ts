@@ -4,10 +4,12 @@ import { createWorker, Worker } from "tesseract.js";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
-import sharp from "sharp";
+import * as sharpModule from "sharp";
 import { OCRProvider, OCRStatus } from "@prisma/client";
 import * as pdfParse from "pdf-parse";
 import * as PDFDocument from "pdfkit";
+
+const sharp = (sharpModule as any).default || sharpModule;
 
 export interface OCROptions {
   language?: string;

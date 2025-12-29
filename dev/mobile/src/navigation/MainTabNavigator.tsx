@@ -3,11 +3,12 @@
  * Session M0.1 - 4-tab bottom navigation (Home, Work, Modules, More)
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { MainTabParamList } from './types';
 import { theme } from '../../theme.config';
+import { useNotificationsStore } from '../store/notificationsStore';
 
 import HomeNavigator from './HomeNavigator';
 import WorkNavigator from './WorkNavigator';
@@ -17,6 +18,14 @@ import MoreNavigator from './MoreNavigator';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabNavigator() {
+  const { unreadCount, fetchUnreadCount } = useNotificationsStore();
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 60000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -50,6 +59,7 @@ export default function MainTabNavigator() {
           title: 'Home',
           tabBarLabel: 'Home',
           tabBarIcon: ({ color }) => <TabIcon name="🏠" color={color} />,
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           headerShown: false,
         }}
       />

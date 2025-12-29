@@ -65,8 +65,10 @@ function ToolsContent() {
     try {
       const all = await getDocuments();
       setDocs(all);
+      return all;
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || 'Failed to load documents');
+      return [];
     } finally {
       setLoading(false);
     }
@@ -93,11 +95,31 @@ function ToolsContent() {
   }, [nonPdfDocuments, categoryFilter, tagFilter]);
 
   useEffect(() => {
+    if (filteredNonPdfDocuments.length === 0 && nonPdfDocuments.length > 0) {
+      // reset filters if they exclude available files
+      setCategoryFilter('ALL');
+      setTagFilter('');
+      setSelectedForConvert(nonPdfDocuments[0].id);
+      setActiveTab('convert');
+      return;
+    }
+
     if (!selectedForConvert && filteredNonPdfDocuments.length > 0) {
       setSelectedForConvert(filteredNonPdfDocuments[0].id);
       setActiveTab('convert');
+      return;
     }
-  }, [filteredNonPdfDocuments, selectedForConvert]);
+
+    // if the saved selection is no longer in the filtered set, pick the first available
+    if (
+      selectedForConvert &&
+      filteredNonPdfDocuments.length > 0 &&
+      !filteredNonPdfDocuments.some((d) => d.id === selectedForConvert)
+    ) {
+      setSelectedForConvert(filteredNonPdfDocuments[0].id);
+      setActiveTab('convert');
+    }
+  }, [filteredNonPdfDocuments, nonPdfDocuments, selectedForConvert]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -123,10 +145,14 @@ function ToolsContent() {
 
   const handleConverted = useCallback(
     async (id: string) => {
-      await loadDocuments();
+      const updatedDocs = await loadDocuments();
       setActiveTab('edit');
       setSelectedForConvert(null);
-      setSelectedForInsights(id);
+      const newestPdf =
+        updatedDocs
+          .filter((d) => d.mimeType === 'application/pdf')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || null;
+      setSelectedForInsights(newestPdf?.id || id);
     },
     [loadDocuments],
   );

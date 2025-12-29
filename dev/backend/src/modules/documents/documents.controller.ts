@@ -24,6 +24,7 @@ import { Response } from "express";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import {
   DocumentsService,
   CreateDocumentDto,
@@ -566,6 +567,7 @@ export class DocumentsController {
     );
   }
 
+  @Public()
   @Get("files/:folder/:filename")
   async serveFile(
     @Param("folder") folder: string,

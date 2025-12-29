@@ -14,9 +14,9 @@ export default function PdfViewerClient({ fileUrl, zoom = 100, onError = () => {
 
   useEffect(() => {
     // Use a CDN worker to avoid bundler/canvas issues in Next builds.
-    // Keep this pinned to a known pdfjs-dist version for stability.
+    // Use .js instead of .mjs to avoid ES module syntax errors in worker context
     pdfjs.GlobalWorkerOptions.workerSrc =
-      'https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+      'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }, []);
 
   return (

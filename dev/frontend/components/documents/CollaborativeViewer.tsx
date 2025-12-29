@@ -46,7 +46,8 @@ export default function CollaborativeViewer({ document }: CollaborativeViewerPro
 
   useEffect(() => {
     // Use CDN worker to avoid bundler/canvas issues.
-    pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+    // Use .js instead of .mjs to avoid ES module syntax errors in worker context
+    pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }, []);
 
   const reloadAnnotations = async () => {

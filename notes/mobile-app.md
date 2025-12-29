@@ -809,7 +809,7 @@ This roadmap is written as sequential sessions so every session ends with a test
   - Navigation (tabs + stacks)
   - Base API client + error handling
 
-### Session M1.1 — App Skeleton + Navigation
+### Session  — App Skeleton + Navigation
 - **Deliverables**
   - Expo project scaffold + env configuration
   - Auth stack + main tabs scaffold

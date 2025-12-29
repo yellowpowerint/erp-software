@@ -221,20 +221,8 @@ export class DocumentConversionService {
 
       const fileHash = this.computeFileHash(buffer);
 
-      await this.prisma.documentVersion.create({
-        data: {
-          documentId: document.id,
-          versionNumber: document.version,
-          fileName: document.fileName,
-          fileUrl: document.fileUrl,
-          fileSize: document.fileSize,
-          uploadedById: document.uploadedById,
-          changeNotes: "Previous version archived",
-        },
-      });
-
-      const updatedDocument = await this.prisma.document.update({
-        where: { id: document.id },
+      // Create a new document for the converted PDF, keep the original intact
+      const convertedDocument = await this.prisma.document.create({
         data: {
           fileName: upload.key,
           originalName: filename,
@@ -242,8 +230,12 @@ export class DocumentConversionService {
           mimeType: "application/pdf",
           fileUrl: upload.url,
           fileHash,
-          version: document.version + 1,
-          updatedAt: new Date(),
+          category: document.category,
+          module: document.module,
+          referenceId: document.referenceId,
+          description: document.description,
+          tags: document.tags,
+          uploadedById: document.uploadedById,
         },
       });
 
@@ -257,11 +249,15 @@ export class DocumentConversionService {
           completedAt: new Date(),
           processingTime: Date.now() - startTime,
           errorMessage: null,
+          options: {
+            ...(job.options || {}),
+            outputDocumentId: convertedDocument.id,
+          },
         },
       });
 
       this.logger.log(
-        `Conversion completed for document ${updatedDocument.id} (job ${jobId})`,
+        `Conversion completed; new PDF document ${convertedDocument.id} (job ${jobId})`,
       );
     } catch (error: any) {
       const processingTime = Date.now() - startTime;

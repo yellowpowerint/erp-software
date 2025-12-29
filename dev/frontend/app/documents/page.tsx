@@ -33,6 +33,7 @@ function DocumentsContent() {
   const [sharingDocument, setSharingDocument] = useState<Document | null>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const [showUpload, setShowUpload] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState<DocumentCategory>(DocumentCategory.OTHER);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -597,17 +598,35 @@ function DocumentsContent() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <DocumentUpload
-                module="general"
-                category={DocumentCategory.OTHER}
-                onUploadComplete={(docs) => {
-                  setShowUpload(false);
-                  loadDocuments();
-                }}
-                onUploadError={(error) => {
-                  console.error('Upload error:', error);
-                }}
-              />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    value={uploadCategory}
+                    onChange={(e) => setUploadCategory(e.target.value as DocumentCategory)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {Object.values(DocumentCategory).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat.replace(/_/g, ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <DocumentUpload
+                  module="general"
+                  category={uploadCategory}
+                  showCategoryPicker
+                  onUploadComplete={(docs) => {
+                    setShowUpload(false);
+                    loadDocuments();
+                  }}
+                  onUploadError={(error) => {
+                    console.error('Upload error:', error);
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

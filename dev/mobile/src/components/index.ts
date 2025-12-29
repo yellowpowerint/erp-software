@@ -11,3 +11,4 @@ export { default as OfflineBanner } from './OfflineBanner';
 export { default as DashboardWidget } from './DashboardWidget';
 export { default as QuickActionsSheet } from './QuickActionsSheet';
 export { default as ActivityItem } from './ActivityItem';
+export { default as NotificationItem } from './NotificationItem';

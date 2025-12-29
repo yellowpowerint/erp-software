@@ -197,6 +197,7 @@ Session is considered 100% complete when:
 ✓ Branding applied correctly throughout
 ✓ No breaking bugs or critical issues
 ✓ Documentation updated
+✓ Is the Backend and Fronted modified?
 
 Begin implementation now.
 ```
