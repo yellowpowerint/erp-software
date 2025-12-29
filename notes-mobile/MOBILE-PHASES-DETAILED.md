@@ -914,14 +914,32 @@ POST /api/inventory/movements
 
 ### Session M4.8 - Operations: Projects (1 day)
 
+**Status**: ✅ Complete
+
 **Deliverables**:
-- Projects list
-- Project detail (milestones, tasks)
-- Role visibility enforcement
+- ✅ Projects list (`ProjectsListScreen.tsx`)
+- ✅ Project detail (milestones, tasks) (`ProjectDetailScreen.tsx`)
+- ✅ Role visibility enforcement
 
 **Definition of Done**:
-- [ ] Projects browsing functional
-- [ ] Role visibility enforced
+- [x] Projects browsing functional
+- [x] Role visibility enforced
+
+**Implementation Notes**:
+- Created `projects.service.ts` with `getProjects()` and `getProjectDetail()` methods
+- Added ProjectSearchParams and ProjectSearchResponse interfaces with proper typing
+- Response normalization for consistent data structure
+- Created ProjectsListScreen with search input, status filters (all, active, planning, on-hold, completed), pull-to-refresh
+- Status badges color-coded: active=success, completed=info, on-hold=warning, cancelled=error, planning=secondary
+- Priority badges color-coded: critical=error, high=warning, medium=info, low=secondary
+- Progress bar visualization for each project
+- Budget display with allocated and spent amounts
+- Created ProjectDetailScreen with project overview, milestones list, tasks list, and team members
+- 403 error navigates to NoAccess screen with appropriate message
+- 404 error navigates to NotFound screen with appropriate message
+- Projects module enabled in ModulesScreen with ProjectsList route
+- All styling uses theme tokens (theme.colors.*, theme.typography.*, theme.spacing.*)
+- All TypeScript types defined and compilation passes
 
 ---
 

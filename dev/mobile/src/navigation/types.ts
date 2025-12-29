@@ -41,6 +41,8 @@ export type ModulesStackParamList = {
   LeaveRequest: undefined;
   ExpensesList: undefined;
   ExpenseSubmit: undefined;
+  ProjectsList: undefined;
+  ProjectDetail: { projectId: string };
   Outbox: undefined;
   NoAccess: { resource?: string; message?: string };
   NotFound: { resource?: string; message?: string };

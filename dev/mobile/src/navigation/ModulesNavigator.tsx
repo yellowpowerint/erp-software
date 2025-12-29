@@ -21,6 +21,8 @@ import LeaveRequestsListScreen from '../screens/LeaveRequestsListScreen';
 import LeaveRequestScreen from '../screens/LeaveRequestScreen';
 import ExpensesListScreen from '../screens/ExpensesListScreen';
 import ExpenseSubmitScreen from '../screens/ExpenseSubmitScreen';
+import ProjectsListScreen from '../screens/ProjectsListScreen';
+import ProjectDetailScreen from '../screens/ProjectDetailScreen';
 import OutboxScreen from '../screens/OutboxScreen';
 import NoAccessScreen from '../screens/NoAccessScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
@@ -53,6 +55,8 @@ export default function ModulesNavigator() {
       <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} options={{ title: 'Request Leave' }} />
       <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ title: 'Expenses' }} />
       <Stack.Screen name="ExpenseSubmit" component={ExpenseSubmitScreen} options={{ title: 'Submit Expense' }} />
+      <Stack.Screen name="ProjectsList" component={ProjectsListScreen} options={{ title: 'Projects' }} />
+      <Stack.Screen name="ProjectDetail" component={ProjectDetailScreen} options={{ title: 'Project Detail' }} />
       <Stack.Screen name="Outbox" component={OutboxScreen} options={{ title: 'Outbox' }} />
       <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'Access Denied' }} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Not Found' }} />
