@@ -877,15 +877,31 @@ POST /api/inventory/movements
 ---
 
 ### Session M4.7 - Finance: Expenses (2 days)
+
+**Status**: Complete
+
 **Deliverables**:
-- Submit expense form
+- Submit expense form (`ExpenseSubmitScreen.tsx`)
 - Receipt photo capture
 - Receipt upload with retry
-- Expenses list
+- Expenses list (`ExpensesListScreen.tsx`)
 
 **Definition of Done**:
-- [ ] Receipt upload stable
-- [ ] Expense appears after submission
+- [x] Receipt upload stable
+- [x] Expense appears after submission
+
+**Implementation Notes**:
+- Created `expenses.service.ts` with `submitExpense()`, `getExpenses()`, and `getCategories()` methods
+- Created ExpenseSubmitScreen with form fields: category (picker), amount (decimal input), description (textarea), receipt photo (camera/gallery)
+- Receipt photo capture using expo-image-picker with camera and gallery options
+- Photo preview with remove option
+- Form validation: category required, amount > 0, description required (min 5 chars)
+- Created ExpensesListScreen with status filters (all, pending, approved, rejected), pull-to-refresh
+- Status badges color-coded: pending=warning, approved=success, rejected=error
+- Receipt indicator shows when receipt is attached
+- Multipart form data upload for receipt images
+- Finance module enabled in ModulesScreen with ExpensesList route
+- All TypeScript types defined and compilation passes
 
 ---
 

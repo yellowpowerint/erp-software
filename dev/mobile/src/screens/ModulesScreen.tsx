@@ -14,7 +14,7 @@ export default function ModulesScreen() {
     { id: 'inventory', title: 'Inventory', subtitle: 'Stock management', route: 'InventorySearch' as const, available: true },
     { id: 'safety', title: 'Safety', subtitle: 'View incidents', route: 'IncidentList' as const, available: true },
     { id: 'hr', title: 'HR', subtitle: 'Employee directory', route: 'EmployeeDirectory' as const, available: true },
-    { id: 'finance', title: 'Finance', subtitle: 'Financial reports', available: false },
+    { id: 'finance', title: 'Finance', subtitle: 'Expenses', route: 'ExpensesList' as const, available: true },
     { id: 'projects', title: 'Projects', subtitle: 'Project tracking', available: false },
     { id: 'documents', title: 'Documents', subtitle: 'Document library', available: false },
   ];

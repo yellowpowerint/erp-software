@@ -39,6 +39,8 @@ export type ModulesStackParamList = {
   EmployeeProfile: { employeeId: string };
   LeaveRequestsList: undefined;
   LeaveRequest: undefined;
+  ExpensesList: undefined;
+  ExpenseSubmit: undefined;
   Outbox: undefined;
   NoAccess: { resource?: string; message?: string };
   NotFound: { resource?: string; message?: string };
