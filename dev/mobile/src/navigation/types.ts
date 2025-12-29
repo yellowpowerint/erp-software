@@ -34,6 +34,7 @@ export type ModulesStackParamList = {
 // More Stack Navigator
 export type MoreStackParamList = {
   MoreMain: undefined;
+  NotificationPreferences: undefined;
 };
 
 // Work Stack Navigator

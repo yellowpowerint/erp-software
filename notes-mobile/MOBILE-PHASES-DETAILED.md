@@ -553,9 +553,20 @@ PUT /api/settings/notifications/preferences
 - Load on app start
 
 **Definition of Done**:
-- [ ] Preferences UI with toggles
-- [ ] Preferences persist to backend
-- [ ] Persist across reinstall
+- [x] Preferences UI with toggles
+- [x] Preferences persist to backend
+- [x] Persist across reinstall
+
+**Status**: Complete (Dec 29, 2024)
+**Notes**:
+- Created notificationPreferences.service.ts for GET/PUT /api/settings/notifications/preferences
+- Implemented NotificationPreferencesScreen with channel toggles (email, push, SMS) and category toggles (approvals, tasks, inventory, safety, hr, system)
+- Added AsyncStorage caching for offline access and persistence across reinstalls
+- Integrated preferences preloading on app start in AuthProvider
+- Added navigation route to MoreStackParamList and MoreNavigator
+- Added link to preferences screen from MoreScreen
+- TypeScript compilation successful
+- Ready for testing on Expo Go
 
 ---
 

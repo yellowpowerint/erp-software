@@ -5,11 +5,14 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Button, Card, ListRow } from '../components';
 import { useAuthStore } from '../store/authStore';
+import { MoreStackParamList } from '../navigation/types';
 import { theme } from '../../theme.config';
 
 export default function MoreScreen() {
+  const navigation = useNavigation<NavigationProp<MoreStackParamList>>();
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
@@ -54,9 +57,10 @@ export default function MoreScreen() {
             rightIcon={<Text style={styles.chevron}>›</Text>}
           />
           <ListRow
-            title="Settings"
-            subtitle="App preferences and notifications"
+            title="Notification Preferences"
+            subtitle="Manage notification channels and categories"
             rightIcon={<Text style={styles.chevron}>›</Text>}
+            onPress={() => navigation.navigate('NotificationPreferences')}
           />
         </Card>
       </View>

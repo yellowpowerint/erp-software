@@ -6,6 +6,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import { notificationPreferencesService } from '../services/notificationPreferences.service';
 import { theme } from '../../theme.config';
 
 interface AuthProviderProps {
@@ -17,6 +18,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     bootstrap();
+    
+    // Preload notification preferences on app start
+    notificationPreferencesService.getPreferences().catch((err) => {
+      console.error('Failed to preload notification preferences:', err);
+    });
   }, []);
 
   if (isLoading) {
