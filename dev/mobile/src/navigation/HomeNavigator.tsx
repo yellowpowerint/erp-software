@@ -10,6 +10,7 @@ import { theme } from '../../theme.config';
 
 import HomeScreen from '../screens/HomeScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import NotificationDetailScreen from '../screens/NotificationDetailScreen';
 
 const Stack = createStackNavigator<HomeStackParamList>();
 
@@ -28,6 +29,11 @@ export default function HomeNavigator() {
     >
       <Stack.Screen name="HomeMain" component={HomeScreen} options={{ title: 'Home' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
+      <Stack.Screen
+        name="NotificationDetail"
+        component={NotificationDetailScreen}
+        options={{ title: 'Notification' }}
+      />
     </Stack.Navigator>
   );
 }

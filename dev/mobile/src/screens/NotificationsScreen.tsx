@@ -5,14 +5,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { NotificationItem } from '../components';
 import { notificationsService, Notification } from '../services/notifications.service';
 import { useNotificationsStore } from '../store/notificationsStore';
 import { theme } from '../../theme.config';
+import { HomeStackParamList } from '../navigation/types';
 
 export default function NotificationsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<HomeStackParamList>>();
   const { fetchUnreadCount, decrementUnreadCount, clearUnreadCount } = useNotificationsStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,15 +77,15 @@ export default function NotificationsScreen() {
       }
 
       const deepLink = notificationsService.parseDeepLink(notification);
-      if (deepLink) {
-        const parentNav = navigation.getParent();
-        if (parentNav && deepLink.screen) {
-          if (deepLink.params) {
-            (parentNav.navigate as any)(deepLink.screen, deepLink.params);
-          } else {
-            (parentNav.navigate as any)(deepLink.screen);
-          }
+      const parentNav = navigation.getParent();
+      if (deepLink && parentNav && deepLink.screen) {
+        if (deepLink.params) {
+          (parentNav.navigate as any)(deepLink.screen, deepLink.params);
+        } else {
+          (parentNav.navigate as any)(deepLink.screen);
         }
+      } else {
+        (navigation.navigate as any)('NotificationDetail', { notificationId: notification.id });
       }
     } catch (err) {
       console.error('Failed to handle notification tap:', err);

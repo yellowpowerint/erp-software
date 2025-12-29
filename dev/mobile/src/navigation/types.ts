@@ -23,6 +23,7 @@ export type MainTabParamList = {
 export type HomeStackParamList = {
   HomeMain: undefined;
   Notifications: undefined;
+  NotificationDetail: { notificationId: string };
 };
 
 // Modules Stack Navigator

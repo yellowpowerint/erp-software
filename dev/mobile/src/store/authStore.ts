@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { User, authService, LoginCredentials } from '../services/auth.service';
 import { storageService } from '../services/storage.service';
 import { apiService } from '../services/api.service';
+import { pushService } from '../services/push.service';
 
 apiService.setLogoutCallback(() => {
   useAuthStore.getState().logout();
@@ -43,6 +44,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: null,
       });
+      
+      // Register device for push notifications
+      pushService.registerDevice().catch((err) => {
+        console.error('Failed to register device for push notifications:', err);
+      });
     } catch (error: any) {
       set({
         user: null,
@@ -57,6 +63,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     set({ isLoading: true });
     try {
+      // Unregister device for push notifications
+      await pushService.unregisterDevice().catch((err) => {
+        console.error('Failed to unregister device:', err);
+      });
+      
       await authService.logout();
       set({
         user: null,
