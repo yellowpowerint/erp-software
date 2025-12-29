@@ -892,15 +892,22 @@ POST /api/inventory/movements
 
 **Implementation Notes**:
 - Created `expenses.service.ts` with `submitExpense()`, `getExpenses()`, and `getCategories()` methods
-- Created ExpenseSubmitScreen with form fields: category (picker), amount (decimal input), description (textarea), receipt photo (camera/gallery)
-- Receipt photo capture using expo-image-picker with camera and gallery options
+- Added ExpenseSearchParams and ExpenseSearchResponse interfaces with proper typing
+- Response normalization for consistent data structure
+- Created ExpenseSubmitScreen with form fields: category (picker), amount (decimal input), **date (DateTimePicker)**, description (textarea), receipt photo (camera/gallery)
+- **Date picker** with validation (cannot be in future, max date = today)
+- Receipt photo capture using expo-image-picker with **permissions handling** (camera and gallery)
+- Permission denial alerts for user-friendly UX
 - Photo preview with remove option
-- Form validation: category required, amount > 0, description required (min 5 chars)
+- Form validation: category required, amount > 0, date not in future, description required (min 5 chars)
+- **Receipt upload retry logic** with exponential backoff (1s, 2s, 4s) and max 3 attempts
+- Retry UI shows "Retrying (X/3)..." during submission
 - Created ExpensesListScreen with status filters (all, pending, approved, rejected), pull-to-refresh
 - Status badges color-coded: pending=warning, approved=success, rejected=error
 - Receipt indicator shows when receipt is attached
 - Multipart form data upload for receipt images
 - Finance module enabled in ModulesScreen with ExpensesList route
+- **All styling uses theme tokens** (no hardcoded colors: theme.colors.surface, theme.colors.border, theme.typography.fontFamily.*)
 - All TypeScript types defined and compilation passes
 
 ---

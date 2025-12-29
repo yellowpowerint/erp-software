@@ -22,6 +22,21 @@ export interface ExpenseSubmit {
   receiptUri?: string;
 }
 
+export interface ExpenseSearchParams {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  category?: string;
+}
+
+export interface ExpenseSearchResponse {
+  expenses: Expense[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+}
+
 export const expensesService = {
   async submitExpense(data: ExpenseSubmit): Promise<Expense> {
     const formData = new FormData();
@@ -40,12 +55,43 @@ export const expensesService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 
-    return response.data;
+    return {
+      id: response.data.id,
+      employeeId: response.data.employeeId,
+      employeeName: response.data.employeeName,
+      category: response.data.category,
+      amount: response.data.amount,
+      currency: response.data.currency || 'USD',
+      date: response.data.date,
+      description: response.data.description,
+      receiptUrl: response.data.receiptUrl,
+      status: response.data.status || 'pending',
+      createdAt: response.data.createdAt,
+    };
   },
 
-  async getExpenses(params: any = {}): Promise<any> {
-    const response = await apiClient.get<any>('/finance/expenses', { params });
-    return response.data;
+  async getExpenses(params: ExpenseSearchParams = {}): Promise<ExpenseSearchResponse> {
+    try {
+      const query = {
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        ...(params.status ? { status: params.status } : {}),
+        ...(params.category ? { category: params.category } : {}),
+      };
+
+      const response = await apiClient.get<any>('/finance/expenses', { params: query });
+
+      return {
+        expenses: response.data.expenses || [],
+        page: response.data.page || 1,
+        pageSize: response.data.pageSize || 20,
+        totalPages: response.data.totalPages || 1,
+        totalCount: response.data.totalCount || 0,
+      };
+    } catch (error) {
+      console.error('Failed to get expenses:', error);
+      throw error;
+    }
   },
 
   async getCategories(): Promise<string[]> {

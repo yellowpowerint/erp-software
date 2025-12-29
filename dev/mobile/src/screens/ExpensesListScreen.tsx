@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
-import { expensesService, Expense } from '../services/expenses.service';
+import { expensesService, Expense, ExpenseSearchResponse } from '../services/expenses.service';
 import { theme } from '../../theme.config';
 import { ModulesStackParamList } from '../navigation/types';
 
@@ -21,10 +21,10 @@ export default function ExpensesListScreen() {
   const loadExpenses = async () => {
     try {
       setIsLoading(true);
-      const res = await expensesService.getExpenses({
+      const res: ExpenseSearchResponse = await expensesService.getExpenses({
         status: statusFilter !== 'all' ? statusFilter : undefined,
       });
-      setExpenses(res.expenses || []);
+      setExpenses(res.expenses);
     } catch (err: any) {
       if (err?.response?.status === 403) {
         navigation.navigate('NoAccess', { resource: 'expenses' });
