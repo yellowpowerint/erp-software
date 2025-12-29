@@ -10,6 +10,7 @@ const API_BASE_URL = 'http://216.158.230.187:3000/api';
 
 class ApiService {
   private client: AxiosInstance;
+  private inMemoryToken: string | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -26,7 +27,7 @@ class ApiService {
   private setupInterceptors() {
     this.client.interceptors.request.use(
       async (config) => {
-        const token = await storageService.getToken();
+        const token = this.inMemoryToken || (await storageService.getToken());
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -42,10 +43,19 @@ class ApiService {
       async (error) => {
         if (error.response?.status === 401) {
           await storageService.clearAll();
+          this.inMemoryToken = null;
         }
         return Promise.reject(error);
       }
     );
+  }
+
+  setToken(token: string | null) {
+    this.inMemoryToken = token;
+  }
+
+  getInMemoryToken(): string | null {
+    return this.inMemoryToken;
   }
 
   getClient(): AxiosInstance {

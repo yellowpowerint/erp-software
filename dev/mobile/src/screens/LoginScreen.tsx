@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Switch } from 'react-native';
 import { Button, Input } from '../components';
 import { useAuthStore } from '../store/authStore';
 import { theme } from '../../theme.config';
@@ -13,6 +13,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   
   const { login, error, clearError } = useAuthStore();
 
@@ -25,7 +26,7 @@ export default function LoginScreen() {
     clearError();
 
     try {
-      await login({ email: email.trim(), password });
+      await login({ email: email.trim(), password }, rememberMe);
     } catch (error) {
       console.error('Login error:', error);
     } finally {
@@ -72,6 +73,22 @@ export default function LoginScreen() {
             autoCorrect={false}
             editable={!isSubmitting}
           />
+
+          <View style={styles.rememberRow}>
+            <Switch
+              value={rememberMe}
+              onValueChange={setRememberMe}
+              trackColor={{ false: '#d1d5db', true: theme.colors.primary + '55' }}
+              thumbColor={rememberMe ? theme.colors.primary : '#f4f4f5'}
+              disabled={isSubmitting}
+            />
+            <View style={styles.rememberTextContainer}>
+              <Text style={styles.rememberLabel}>Remember me</Text>
+              <Text style={styles.rememberHelp}>
+                Keep me signed in on this device
+              </Text>
+            </View>
+          </View>
 
           {error && (
             <View style={styles.errorContainer}>
@@ -155,6 +172,27 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.error,
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  rememberTextContainer: {
+    marginLeft: theme.spacing.sm,
+    flex: 1,
+  },
+  rememberLabel: {
+    fontSize: theme.typography.fontSize.base,
+    fontFamily: theme.typography.fontFamily.medium,
+    color: theme.colors.text,
+  },
+  rememberHelp: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
   loginButton: {
     marginTop: theme.spacing.md,

@@ -303,6 +303,19 @@ npm install @tanstack/react-query zustand
 - TypeScript compilation successful with no errors
 - Ready for testing on Expo Go (Android/iOS)
 
+**Verification (Prompt 2)**: ✅ Complete (Dec 29, 2024)
+**Gaps Fixed**:
+- Added "Remember me" toggle to LoginScreen with persistence logic
+- Updated auth.service to support rememberMe parameter (persist token when true, in-memory only when false)
+- Enhanced api.service with in-memory token support for session management
+- Updated authStore to handle rememberMe flag and set in-memory tokens
+**Verification Results**:
+- All deliverables complete: login UI, remember me, SecureStore, session bootstrap, logout, auth store, conditional navigation
+- All DoD items met: secure token storage ✓, session restore ✓, unauthorized redirect ✓, user-friendly errors ✓
+- Branding verified: Inter fonts + Yellow Power colors applied
+- Code quality: TypeScript strict mode passes, no TODOs/placeholders
+- Expo dev server running on port 8081, ready for device testing
+
 ---
 
 ### Session M1.3 - API Client + Error Handling (2 days)

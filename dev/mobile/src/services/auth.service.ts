@@ -3,7 +3,7 @@
  * Session M1.2 - Authentication API calls
  */
 
-import { apiClient } from './api.service';
+import { apiClient, apiService } from './api.service';
 import { storageService } from './storage.service';
 
 export interface LoginCredentials {
@@ -29,13 +29,22 @@ export interface User {
 export const authService = {
   /**
    * Login with email and password
+   * @param rememberMe if false, keep token only in memory (clears on app restart)
    */
-  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+  async login(credentials: LoginCredentials, rememberMe = true): Promise<LoginResponse> {
     try {
       const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
       
       if (response.data.token) {
-        await storageService.saveToken(response.data.token);
+        // Always keep an in-memory copy for immediate requests
+        apiService.setToken(response.data.token);
+
+        if (rememberMe) {
+          await storageService.saveToken(response.data.token);
+        } else {
+          // Ensure no persisted token when rememberMe is off
+          await storageService.removeToken();
+        }
       }
       
       return response.data;
@@ -76,6 +85,7 @@ export const authService = {
       console.error('Logout API call failed:', error);
     } finally {
       await storageService.clearAll();
+      apiService.setToken(null);
     }
   },
 

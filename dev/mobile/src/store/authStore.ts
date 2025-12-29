@@ -5,6 +5,8 @@
 
 import { create } from 'zustand';
 import { User, authService, LoginCredentials } from '../services/auth.service';
+import { storageService } from '../services/storage.service';
+import { apiService } from '../services/api.service';
 
 interface AuthState {
   user: User | null;
@@ -12,7 +14,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
   clearError: () => void;
@@ -24,10 +26,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   error: null,
 
-  login: async (credentials: LoginCredentials) => {
+  login: async (credentials: LoginCredentials, rememberMe = true) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await authService.login(credentials);
+      const response = await authService.login(credentials, rememberMe);
+      if (response.token) {
+        apiService.setToken(response.token);
+      }
       set({
         user: response.user,
         isAuthenticated: true,
@@ -69,9 +74,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   bootstrap: async () => {
     set({ isLoading: true, error: null });
     try {
-      const hasToken = await authService.hasValidToken();
-      
-      if (!hasToken) {
+      const token = await storageService.getToken();
+
+      if (!token) {
         set({
           user: null,
           isAuthenticated: false,
@@ -80,6 +85,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
+      apiService.setToken(token);
       const user = await authService.getMe();
       set({
         user,
