@@ -769,6 +769,8 @@ POST /api/inventory/movements
 
 ### Session M4.3 - Safety: Incident Capture (2 days)
 
+**Status**: Complete
+
 **Deliverables**:
 - New incident form (offline-capable)
 - Fields: type, severity, location, date, description
@@ -778,9 +780,21 @@ POST /api/inventory/movements
 - Outbox screen
 
 **Definition of Done**:
-- [ ] Draft persists across restarts
-- [ ] Pending submission visible
-- [ ] Auto-retry when online
+- [x] Draft persists across restarts
+- [x] Pending submission visible
+- [x] Auto-retry when online
+
+**Implementation Notes**:
+- Created `incidents.service.ts` with AsyncStorage for drafts and queue management
+- Implemented offline-first submission with automatic queueing when offline
+- Draft auto-save and restore on app restart
+- Multiple photo capture (max 5) with camera and library support
+- Severity levels: low, medium, high, critical
+- Incident types: Near Miss, Injury, Equipment Damage, Environmental, Security, Other
+- Queue processing with retry logic (max 3 retries)
+- OutboxScreen shows pending submissions with manual retry and remove options
+- Network detection with @react-native-community/netinfo
+- All TypeScript types defined and compilation passes
 
 ---
 

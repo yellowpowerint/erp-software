@@ -10,14 +10,27 @@ import { theme } from '../../theme.config';
 
 export default function ModulesScreen() {
   const navigation = useNavigation();
+  const modules = [
+    { id: 'inventory', title: 'Inventory', subtitle: 'Stock management', route: 'InventorySearch' as const, available: true },
+    { id: 'safety', title: 'Safety', subtitle: 'Report incidents', route: 'IncidentCapture' as const, available: true },
+    { id: 'hr', title: 'HR', subtitle: 'Employee directory', available: false },
+    { id: 'finance', title: 'Finance', subtitle: 'Financial reports', available: false },
+    { id: 'projects', title: 'Projects', subtitle: 'Project tracking', available: false },
+    { id: 'documents', title: 'Documents', subtitle: 'Document library', available: false },
+  ];
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Modules</Text>
       <Text style={styles.subtitle}>Access ERP modules</Text>
-      <TouchableOpacity style={styles.moduleCard} onPress={() => (navigation as any).navigate('InventorySearch')}>
-        <Text style={styles.moduleTitle}>Inventory</Text>
-        <Text style={styles.moduleSubtitle}>Stock management</Text>
-      </TouchableOpacity>
+      {modules.map((module) => (
+        module.available ? (
+          <TouchableOpacity key={module.id} style={styles.moduleCard} onPress={() => (navigation as any).navigate(module.route)}>
+            <Text style={styles.moduleTitle}>{module.title}</Text>
+            <Text style={styles.moduleSubtitle}>{module.subtitle}</Text>
+          </TouchableOpacity>
+        ) : null
+      ))}
       
       <View style={styles.placeholder}>
         <Text style={styles.placeholderText}>
