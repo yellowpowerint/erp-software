@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.sm,
   },
   priorityText: {
-    fontSize: theme.typography.fontSize.xxs,
+    fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.bold,
     color: '#FFFFFF',
   },
