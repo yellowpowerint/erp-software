@@ -22,7 +22,7 @@ import { theme } from '../../theme.config';
 export default function ApprovalDetailScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation();
-  const { approvalId } = route.params || {};
+  const { approvalId, approvalType } = route.params || {};
 
   const [approval, setApproval] = useState<ApprovalDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +46,7 @@ export default function ApprovalDetailScreen() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await approvalsService.getApprovalDetail('INVOICE', approvalId);
+      const data = await approvalsService.getApprovalDetail(approvalType || 'INVOICE', approvalId);
       setApproval(data);
     } catch (err: any) {
       console.error('Failed to load approval:', err);

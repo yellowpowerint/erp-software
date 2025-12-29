@@ -80,7 +80,7 @@ export default function WorkScreen() {
   const renderApproval = ({ item }: { item: Approval }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('ApprovalDetail', { approvalId: item.id })}
+      onPress={() => navigation.navigate('ApprovalDetail', { approvalId: item.id, approvalType: item.type })}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{item.title || item.id}</Text>
