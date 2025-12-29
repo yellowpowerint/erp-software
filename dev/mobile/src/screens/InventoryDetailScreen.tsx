@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { inventoryService, InventoryItemDetail, InventoryMovement } from '../services/inventory.service';
 import { theme } from '../../theme.config';
 import { ModulesStackParamList } from '../navigation/types';
@@ -14,13 +14,23 @@ export default function InventoryDetailScreen() {
   const [item, setItem] = useState<InventoryItemDetail | null>(null);
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { loadItemDetail(); }, [itemId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadItemDetail();
+    }, [itemId])
+  );
 
-  const loadItemDetail = async () => {
+  const loadItemDetail = async (isRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
       const [itemData, movementsData] = await Promise.all([
         inventoryService.getItemDetail(itemId),
         inventoryService.getItemMovements(itemId, 10),
@@ -39,6 +49,7 @@ export default function InventoryDetailScreen() {
       setError('Failed to load item');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -62,7 +73,16 @@ export default function InventoryDetailScreen() {
   };
 
   return (
-    <ScrollView style={s.container}>
+    <ScrollView 
+      style={s.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={() => loadItemDetail(true)}
+          tintColor={theme.colors.primary}
+        />
+      }
+    >
       <View style={s.header}>
         <Text style={s.title}>{item.name}</Text>
         <Text style={s.sku}>SKU: {item.sku}</Text>
