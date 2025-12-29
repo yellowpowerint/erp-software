@@ -395,9 +395,28 @@ npm install @react-native-community/netinfo
 - Feature flag context/store
 
 **Definition of Done**:
-- [ ] Force update blocks usage
-- [ ] Disabled features don't appear
-- [ ] Config cached for offline
+- [x] Force update blocks usage
+- [x] Disabled features don't appear
+- [x] Config cached for offline
+
+**Status**: ✅ Complete (Dec 29, 2024)
+**Notes**:
+- Created config.service.ts for mobile config management
+  - Fetches GET /api/mobile/config with caching (1 hour expiry)
+  - Semantic version comparison (semver)
+  - Feature flag checking
+  - Offline config fallback via AsyncStorage
+- Implemented ForceUpdateScreen with version info and store links
+- Implemented MaintenanceScreen with custom messaging
+- Created ConfigGate provider to wrap app with config checks
+  - Version validation on boot
+  - Maintenance mode detection
+  - Force update enforcement
+  - Loading and error states
+- Integrated ConfigGate into App.tsx as outermost wrapper
+- Installed dependencies: @react-native-async-storage/async-storage, expo-constants
+- TypeScript compilation successful with no errors
+- Ready for testing config scenarios on Expo Go
 
 ---
 

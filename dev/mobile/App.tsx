@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import RootNavigator from './src/navigation/RootNavigator';
 import AuthProvider from './src/providers/AuthProvider';
+import ConfigGate from './src/providers/ConfigGate';
 import { OfflineBanner } from './src/components';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from './theme.config';
@@ -30,11 +31,13 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <OfflineBanner />
-      <RootNavigator />
-      <StatusBar style="auto" />
-    </AuthProvider>
+    <ConfigGate>
+      <AuthProvider>
+        <OfflineBanner />
+        <RootNavigator />
+        <StatusBar style="auto" />
+      </AuthProvider>
+    </ConfigGate>
   );
 }
 
