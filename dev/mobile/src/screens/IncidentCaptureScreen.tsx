@@ -28,7 +28,38 @@ export default function IncidentCaptureScreen() {
 
   useEffect(() => {
     loadDraft();
+    
+    // Auto-retry queue when connection restored
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected) {
+        incidentsService.processQueue();
+      }
+    });
+    
+    return () => unsubscribe();
   }, []);
+
+  // Auto-save draft on field changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (type || location || description) {
+        const draft: IncidentDraft = {
+          id: Date.now().toString(),
+          type,
+          severity,
+          location,
+          date,
+          description,
+          photoUris,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        incidentsService.saveDraft(draft).catch(() => {});
+      }
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [type, severity, location, date, description, photoUris]);
 
   const loadDraft = async () => {
     const draft = await incidentsService.loadDraft();

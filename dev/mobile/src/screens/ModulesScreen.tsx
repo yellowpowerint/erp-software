@@ -21,8 +21,18 @@ export default function ModulesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Modules</Text>
-      <Text style={styles.subtitle}>Access ERP modules</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Modules</Text>
+          <Text style={styles.subtitle}>Access ERP modules</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.outboxButton} 
+          onPress={() => (navigation as any).navigate('Outbox')}
+        >
+          <Text style={styles.outboxButtonText}>📋 Outbox</Text>
+        </TouchableOpacity>
+      </View>
       {modules.map((module) => (
         module.available ? (
           <TouchableOpacity key={module.id} style={styles.moduleCard} onPress={() => (navigation as any).navigate(module.route)}>
@@ -53,6 +63,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     padding: theme.spacing.md,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing.md,
+  },
   title: {
     fontSize: theme.typography.fontSize.xxl,
     fontFamily: theme.typography.fontFamily.bold,
@@ -63,7 +79,20 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base,
     fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  outboxButton: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  outboxButtonText: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.semibold,
+    color: theme.colors.primary,
   },
   placeholder: {
     flex: 1,
