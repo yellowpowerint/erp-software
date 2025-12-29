@@ -350,10 +350,22 @@ npm install @react-native-community/netinfo
 ```
 
 **Definition of Done**:
-- [ ] Offline mode visibly indicated
-- [ ] API failures show actionable messages
-- [ ] 401 triggers logout
-- [ ] Network errors don't crash app
+- [x] Offline mode visibly indicated
+- [x] API failures show actionable messages
+- [x] 401 triggers logout
+- [x] Network errors don't crash app
+
+**Status**: ✅ Complete (Dec 29, 2024)
+**Notes**:
+- Created error.service.ts for global error normalization (401, 403, 404, 500, network errors)
+- Enhanced api.service.ts with retry logic (max 3 retries with exponential backoff)
+- Added 401 logout callback mechanism to automatically trigger logout on auth errors
+- Implemented OfflineBanner component with NetInfo for real-time network state detection
+- Added animated slide-in/out banner when connection is lost/restored
+- Updated authStore to register logout callback with API service
+- Integrated OfflineBanner into App.tsx
+- TypeScript compilation successful with no errors
+- Ready for testing offline scenarios on Expo Go
 
 ---
 

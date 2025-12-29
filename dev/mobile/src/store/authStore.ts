@@ -8,6 +8,10 @@ import { User, authService, LoginCredentials } from '../services/auth.service';
 import { storageService } from '../services/storage.service';
 import { apiService } from '../services/api.service';
 
+apiService.setLogoutCallback(() => {
+  useAuthStore.getState().logout();
+});
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
