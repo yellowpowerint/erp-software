@@ -851,20 +851,32 @@ POST /api/inventory/movements
 
 ### Session M4.6 - HR: Leave Requests (1 day)
 
+**Status**: ✅ Complete
+
 **Deliverables**:
-- Leave request form
-- Date range picker
-- Leave type selection
-- Validation
+- ✅ Leave request form (`LeaveRequestScreen.tsx`)
+- ✅ Date range picker
+- ✅ Leave type selection
+- ✅ Validation
 
 **Definition of Done**:
-- [ ] Validation correct
-- [ ] Request appears in list
+- [x] Validation correct
+- [x] Request appears in list
+
+**Implementation Notes**:
+- Created `leaveRequests.service.ts` with `submitLeaveRequest()`, `getLeaveRequests()`, and `getLeaveTypes()` methods
+- Created LeaveRequestScreen with form fields: leave type (picker), start date, end date (DateTimePicker), reason (textarea)
+- Validation rules: leave type required, start date cannot be in past, start date must be before end date, reason required (min 10 chars)
+- Duration calculator shows days between dates
+- Created LeaveRequestsListScreen with status filters (all, pending, approved, rejected), pull-to-refresh
+- Status badges color-coded: pending=yellow, approved=green, rejected=red
+- Added Leave button to EmployeeDirectoryScreen header for quick access
+- Installed @react-native-community/datetimepicker for native date picker
+- All TypeScript types defined and compilation passes
 
 ---
 
 ### Session M4.7 - Finance: Expenses (2 days)
-
 **Deliverables**:
 - Submit expense form
 - Receipt photo capture

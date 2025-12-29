@@ -37,6 +37,8 @@ export type ModulesStackParamList = {
   IncidentDetail: { incidentId: string };
   EmployeeDirectory: undefined;
   EmployeeProfile: { employeeId: string };
+  LeaveRequestsList: undefined;
+  LeaveRequest: undefined;
   Outbox: undefined;
   NoAccess: { resource?: string; message?: string };
   NotFound: { resource?: string; message?: string };
