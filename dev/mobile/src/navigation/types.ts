@@ -29,6 +29,8 @@ export type HomeStackParamList = {
 // Modules Stack Navigator
 export type ModulesStackParamList = {
   ModulesMain: undefined;
+  InventorySearch: undefined;
+  InventoryDetail: { itemId: string };
 };
 
 // More Stack Navigator

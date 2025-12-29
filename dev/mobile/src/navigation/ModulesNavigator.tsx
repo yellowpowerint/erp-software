@@ -9,6 +9,8 @@ import { ModulesStackParamList } from './types';
 import { theme } from '../../theme.config';
 
 import ModulesScreen from '../screens/ModulesScreen';
+import InventorySearchScreen from '../screens/InventorySearchScreen';
+import InventoryDetailScreen from '../screens/InventoryDetailScreen';
 
 const Stack = createStackNavigator<ModulesStackParamList>();
 
@@ -26,6 +28,8 @@ export default function ModulesNavigator() {
       }}
     >
       <Stack.Screen name="ModulesMain" component={ModulesScreen} options={{ title: 'Modules' }} />
+      <Stack.Screen name="InventorySearch" component={InventorySearchScreen} options={{ title: 'Inventory' }} />
+      <Stack.Screen name="InventoryDetail" component={InventoryDetailScreen} options={{ title: 'Item Detail' }} />
     </Stack.Navigator>
   );
 }

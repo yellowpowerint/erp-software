@@ -4,14 +4,20 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../theme.config';
 
 export default function ModulesScreen() {
+  const navigation = useNavigation();
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Modules</Text>
-      <Text style={styles.subtitle}>All ERP Modules Grid</Text>
+      <Text style={styles.subtitle}>Access ERP modules</Text>
+      <TouchableOpacity style={styles.moduleCard} onPress={() => (navigation as any).navigate('InventorySearch')}>
+        <Text style={styles.moduleTitle}>Inventory</Text>
+        <Text style={styles.moduleSubtitle}>Stock management</Text>
+      </TouchableOpacity>
       
       <View style={styles.placeholder}>
         <Text style={styles.placeholderText}>
@@ -60,5 +66,24 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  moduleCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  moduleTitle: {
+    fontSize: theme.typography.fontSize.lg,
+    fontFamily: theme.typography.fontFamily.semibold,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  moduleSubtitle: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textSecondary,
   },
 });
