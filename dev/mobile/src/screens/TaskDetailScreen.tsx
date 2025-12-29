@@ -30,7 +30,16 @@ export default function TaskDetailScreen() {
       setTask(data);
     } catch (err: any) {
       console.error('Failed to load task:', err);
-      setError(err?.response?.status === 403 ? 'Access denied' : 'Failed to load task');
+      const status = err?.response?.status;
+      if (status === 403) {
+        (navigation as any).navigate('NoAccess', { resource: 'task', message: 'You do not have permission to view this task.' });
+        return;
+      }
+      if (status === 404) {
+        (navigation as any).navigate('NotFound', { resource: 'task', message: 'This task could not be found.' });
+        return;
+      }
+      setError('Failed to load task');
     } finally {
       setIsLoading(false);
     }

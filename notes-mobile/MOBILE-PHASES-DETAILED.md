@@ -691,9 +691,20 @@ miningerp://tasks/{id}
 ```
 
 **Definition of Done**:
-- [ ] Deep link support works
-- [ ] Permission gating shows clear state
-- [ ] Router never crashes
+- [x] Deep link support works
+- [x] Permission gating shows clear state
+- [x] Router never crashes
+
+**Status**: Complete (Dec 29, 2025)
+**Notes**:
+- Created NoAccessScreen for 403 permission errors with clear messaging
+- Created NotFoundScreen for 404 invalid links with helpful actions
+- Added error screens to WorkStackParamList and WorkNavigator
+- Enhanced ApprovalDetailScreen with 403/404 navigation to error screens
+- Enhanced TaskDetailScreen with 403/404 navigation to error screens
+- Deep link infrastructure from M0.1/M2.3 already supports miningerp://work/approvals/{id} and miningerp://work/tasks/{id}
+- TypeScript compilation successful
+- Ready for testing on Expo Go
 
 ---
 

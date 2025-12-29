@@ -50,7 +50,16 @@ export default function ApprovalDetailScreen() {
       setApproval(data);
     } catch (err: any) {
       console.error('Failed to load approval:', err);
-      setError(err?.response?.status === 403 ? 'Access denied' : 'Failed to load approval');
+      const status = err?.response?.status;
+      if (status === 403) {
+        (navigation as any).navigate('NoAccess', { resource: 'approval', message: 'You do not have permission to view this approval.' });
+        return;
+      }
+      if (status === 404) {
+        (navigation as any).navigate('NotFound', { resource: 'approval', message: 'This approval could not be found.' });
+        return;
+      }
+      setError('Failed to load approval');
     } finally {
       setIsLoading(false);
     }

@@ -42,6 +42,8 @@ export type WorkStackParamList = {
   WorkList: undefined;
   ApprovalDetail: { approvalId: string; approvalType?: string };
   TaskDetail: { taskId: string };
+  NoAccess: { resource?: string; message?: string };
+  NotFound: { resource?: string; message?: string };
 };
 
 // Deep Link Routes (M0.1 specification)

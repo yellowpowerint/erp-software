@@ -11,6 +11,8 @@ import { theme } from '../../theme.config';
 import WorkScreen from '../screens/WorkScreen';
 import ApprovalDetailScreen from '../screens/ApprovalDetailScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
+import NoAccessScreen from '../screens/NoAccessScreen';
+import NotFoundScreen from '../screens/NotFoundScreen';
 
 const Stack = createStackNavigator<WorkStackParamList>();
 
@@ -41,6 +43,16 @@ export default function WorkNavigator() {
         name="TaskDetail" 
         component={TaskDetailScreen}
         options={{ title: 'Task' }}
+      />
+      <Stack.Screen 
+        name="NoAccess" 
+        component={NoAccessScreen}
+        options={{ title: 'Access Denied' }}
+      />
+      <Stack.Screen 
+        name="NotFound" 
+        component={NotFoundScreen}
+        options={{ title: 'Not Found' }}
       />
     </Stack.Navigator>
   );
