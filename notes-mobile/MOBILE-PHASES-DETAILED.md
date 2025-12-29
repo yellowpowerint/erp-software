@@ -825,14 +825,27 @@ POST /api/inventory/movements
 
 ### Session M4.5 - HR: Employee Directory (1 day)
 
+**Status**: Complete
+
 **Deliverables**:
 - Employee directory list
 - Employee profile screen
 - Sensitive field redaction
 
 **Definition of Done**:
-- [ ] Sensitive fields hidden
-- [ ] Directory search fast
+- [x] Sensitive fields hidden
+- [x] Directory search fast
+
+**Implementation Notes**:
+- Created `employees.service.ts` with `searchEmployees()`, `getEmployeeProfile()`, and `getDepartments()` methods
+- Created EmployeeDirectoryScreen with search (300ms debounce), department filters, status filters, pagination, pull-to-refresh
+- Created EmployeeProfileScreen with role-based field redaction (salary, bank account, personal info only visible to admin/hr_manager)
+- Sensitive fields: salary, bankAccount, emergencyContact, address, dateOfBirth, nationalId
+- 403 error navigates to NoAccess screen with appropriate message
+- 404 error navigates to NotFound screen with appropriate message
+- Avatar initials for employees without profile photos
+- Direct reports section with navigation to subordinate profiles
+- All TypeScript types defined and compilation passes
 
 ---
 
