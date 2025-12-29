@@ -123,13 +123,9 @@ export default function WorkScreen() {
       <Text style={styles.subtitle}>Approvals & Tasks</Text>
 
       <View style={styles.quickRow}>
-        <TouchableOpacity style={styles.quickCard}>
-          <Text style={styles.quickTitle}>Approvals</Text>
-          <Text style={styles.quickSubtitle}>Pending items</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickCard}>
+        <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('TaskDetail', { taskId: 'demo' })}>
           <Text style={styles.quickTitle}>Tasks</Text>
-          <Text style={styles.quickSubtitle}>Coming soon</Text>
+          <Text style={styles.quickSubtitle}>View demo task</Text>
         </TouchableOpacity>
       </View>
 
