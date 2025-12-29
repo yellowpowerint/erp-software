@@ -736,6 +736,8 @@ miningerp://tasks/{id}
 
 ### Session M4.2 - Inventory: Receiving (2 days)
 
+**Status**: Complete
+
 **Backend Requirements**:
 ```typescript
 POST /api/inventory/movements
@@ -749,9 +751,19 @@ POST /api/inventory/movements
 - Optimistic UI update
 
 **Definition of Done**:
-- [ ] Stock movement recorded
-- [ ] Photo upload supported
-- [ ] Quantity updates immediately
+- [x] Stock movement recorded
+- [x] Photo upload supported
+- [x] Quantity updates immediately
+
+**Implementation Notes**:
+- Created `ReceiveStockScreen` with quantity input, reference, notes, and photo capture
+- Added `createMovement` method to `inventory.service.ts` with FormData/multipart support
+- Integrated expo-image-picker for camera and photo library access
+- Added "Receive Stock" button to `InventoryDetailScreen`
+- Form validation ensures quantity > 0
+- Success alert with automatic navigation back to detail screen
+- Photo preview with remove option
+- All TypeScript types defined and compilation passes
 
 ---
 

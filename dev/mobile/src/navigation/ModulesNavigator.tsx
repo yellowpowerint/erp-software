@@ -11,6 +11,7 @@ import { theme } from '../../theme.config';
 import ModulesScreen from '../screens/ModulesScreen';
 import InventorySearchScreen from '../screens/InventorySearchScreen';
 import InventoryDetailScreen from '../screens/InventoryDetailScreen';
+import ReceiveStockScreen from '../screens/ReceiveStockScreen';
 import NoAccessScreen from '../screens/NoAccessScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
 
@@ -32,6 +33,7 @@ export default function ModulesNavigator() {
       <Stack.Screen name="ModulesMain" component={ModulesScreen} options={{ title: 'Modules' }} />
       <Stack.Screen name="InventorySearch" component={InventorySearchScreen} options={{ title: 'Inventory' }} />
       <Stack.Screen name="InventoryDetail" component={InventoryDetailScreen} options={{ title: 'Item Detail' }} />
+      <Stack.Screen name="ReceiveStock" component={ReceiveStockScreen} options={{ title: 'Receive Stock' }} />
       <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'Access Denied' }} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Not Found' }} />
     </Stack.Navigator>

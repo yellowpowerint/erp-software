@@ -31,6 +31,7 @@ export type ModulesStackParamList = {
   ModulesMain: undefined;
   InventorySearch: undefined;
   InventoryDetail: { itemId: string };
+  ReceiveStock: { itemId: string; itemName: string; currentStock: number; unit: string };
   NoAccess: { resource?: string; message?: string };
   NotFound: { resource?: string; message?: string };
 };

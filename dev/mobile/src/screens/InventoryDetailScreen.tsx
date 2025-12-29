@@ -73,6 +73,18 @@ export default function InventoryDetailScreen() {
         <Text style={s.label}>Reorder: {item.reorderLevel} {item.unit}</Text>
         {item.location && <Text style={s.label}>Location: {item.location}</Text>}
       </View>
+      
+      <TouchableOpacity 
+        style={s.receiveButton} 
+        onPress={() => (navigation as any).navigate('ReceiveStock', {
+          itemId: item.id,
+          itemName: item.name,
+          currentStock: item.quantity,
+          unit: item.unit,
+        })}
+      >
+        <Text style={s.receiveButtonText}>Receive Stock</Text>
+      </TouchableOpacity>
       <Text style={s.sectionTitle}>Recent Movements</Text>
       {movements.length === 0 ? (
         <Text style={s.emptyText}>No recent movements</Text>
@@ -113,5 +125,7 @@ const s = StyleSheet.create({
   movementRef: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 4 },
   movementNotes: { fontSize: 12, color: theme.colors.text, marginTop: 4, fontStyle: 'italic' },
   emptyText: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', padding: theme.spacing.lg },
+  receiveButton: { backgroundColor: theme.colors.primary, borderRadius: 8, padding: theme.spacing.md, alignItems: 'center', marginBottom: theme.spacing.lg },
+  receiveButtonText: { fontSize: 16, fontFamily: theme.typography.fontFamily.bold, color: '#fff' },
   errorText: { color: theme.colors.error },
 });

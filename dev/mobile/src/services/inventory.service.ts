@@ -57,7 +57,58 @@ export interface InventoryItemDetail extends InventoryItem {
 
 const DEFAULT_PAGE_SIZE = 20;
 
+export interface CreateMovementParams {
+  itemId: string;
+  type: 'IN' | 'OUT' | 'ADJUSTMENT';
+  quantity: number;
+  reference?: string;
+  notes?: string;
+  photoUri?: string;
+}
+
 export const inventoryService = {
+  /**
+   * Create stock movement
+   */
+  async createMovement(params: CreateMovementParams): Promise<InventoryMovement> {
+    try {
+      const formData = new FormData();
+      formData.append('itemId', params.itemId);
+      formData.append('type', params.type);
+      formData.append('quantity', params.quantity.toString());
+      if (params.reference) formData.append('reference', params.reference);
+      if (params.notes) formData.append('notes', params.notes);
+      
+      if (params.photoUri) {
+        const filename = params.photoUri.split('/').pop() || 'photo.jpg';
+        formData.append('photo', {
+          uri: params.photoUri,
+          type: 'image/jpeg',
+          name: filename,
+        } as any);
+      }
+
+      const response = await apiClient.post<any>('/inventory/movements', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      return {
+        id: response.data.id || String(Math.random()),
+        itemId: params.itemId,
+        type: params.type,
+        quantity: params.quantity,
+        unit: response.data.unit || 'units',
+        date: response.data.date || new Date().toISOString(),
+        reference: params.reference,
+        notes: params.notes,
+        performedBy: response.data.performedBy,
+      };
+    } catch (error) {
+      console.error('Failed to create movement:', error);
+      throw error;
+    }
+  },
+
   /**
    * Search inventory items with filters
    */
