@@ -58,6 +58,15 @@ export default function ProjectsListScreen() {
     }
   };
 
+  const hexToRgba = (hex: string, alpha: number) => {
+    const sanitized = hex.replace('#', '');
+    if (sanitized.length !== 6) return hex;
+    const r = parseInt(sanitized.slice(0, 2), 16);
+    const g = parseInt(sanitized.slice(2, 4), 16);
+    const b = parseInt(sanitized.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
   const renderItem = ({ item }: { item: Project }) => (
     <TouchableOpacity 
       style={s.card} 
@@ -68,7 +77,7 @@ export default function ProjectsListScreen() {
           <Text style={s.cardCode}>{item.code}</Text>
           <Text style={s.cardName}>{item.name}</Text>
         </View>
-        <View style={[s.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+        <View style={[s.statusBadge, { backgroundColor: hexToRgba(getStatusColor(item.status), 0.12) }]}>
           <Text style={[s.statusText, { color: getStatusColor(item.status) }]}>
             {item.status.toUpperCase()}
           </Text>
@@ -88,7 +97,7 @@ export default function ProjectsListScreen() {
       </View>
 
       <View style={s.cardFooter}>
-        <View style={[s.priorityBadge, { backgroundColor: getPriorityColor(item.priority) + '20' }]}>
+        <View style={[s.priorityBadge, { backgroundColor: hexToRgba(getPriorityColor(item.priority), 0.12) }]}>
           <Text style={[s.priorityText, { color: getPriorityColor(item.priority) }]}>
             {item.priority.toUpperCase()}
           </Text>
@@ -188,7 +197,7 @@ const s = StyleSheet.create({
   },
   chipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
   chipText: { fontSize: 12, fontFamily: theme.typography.fontFamily.semibold, color: theme.colors.text },
-  chipTextActive: { color: '#fff' },
+  chipTextActive: { color: theme.colors.background },
   card: { 
     backgroundColor: theme.colors.surface, 
     borderRadius: 8, 
