@@ -1,133 +1,381 @@
 /**
  * Approval Detail Screen
- * Session M0.1 - Deep link target for approvals
+ * Session M3.2 - Approval detail with approve/reject actions
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  TextInput,
+} from 'react-native';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import { approvalsService, ApprovalDetail } from '../services/approvals.service';
 import { theme } from '../../theme.config';
 
-export default function ApprovalDetailScreen({ route, navigation }: any) {
-  const { approvalId } = route.params;
+export default function ApprovalDetailScreen() {
+  const route = useRoute<any>();
+  const navigation = useNavigation();
+  const { approvalId } = route.params || {};
+
+  const [approval, setApproval] = useState<ApprovalDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
+  useEffect(() => {
+    loadApproval();
+  }, [approvalId]);
+
+  const loadApproval = async () => {
+    if (!approvalId) {
+      setError('Approval ID not provided');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await approvalsService.getApprovalDetail('INVOICE', approvalId);
+      setApproval(data);
+    } catch (err: any) {
+      console.error('Failed to load approval:', err);
+      setError(err?.response?.status === 403 ? 'Access denied' : 'Failed to load approval');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApprove = () => {
+    Alert.alert('Confirm Approval', 'Are you sure you want to approve this request?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Approve',
+        style: 'default',
+        onPress: async () => {
+          if (!approval) return;
+          try {
+            setIsApproving(true);
+            await approvalsService.approveApproval(approval.type, approval.id);
+            Alert.alert('Success', 'Approval submitted successfully');
+            navigation.goBack();
+          } catch (err) {
+            console.error('Failed to approve:', err);
+            Alert.alert('Error', 'Failed to approve. Please try again.');
+          } finally {
+            setIsApproving(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleReject = () => {
+    setShowRejectModal(true);
+  };
+
+  const submitRejection = async () => {
+    if (!approval || !rejectReason.trim()) {
+      Alert.alert('Error', 'Please provide a reason for rejection');
+      return;
+    }
+
+    try {
+      setIsRejecting(true);
+      await approvalsService.rejectApproval(approval.type, approval.id, rejectReason.trim());
+      setShowRejectModal(false);
+      Alert.alert('Success', 'Rejection submitted successfully');
+      navigation.goBack();
+    } catch (err) {
+      console.error('Failed to reject:', err);
+      Alert.alert('Error', 'Failed to reject. Please try again.');
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Loading approval...</Text>
+      </View>
+    );
+  }
+
+  if (error || !approval) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{error || 'Approval not found'}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadApproval}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Approval Detail</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>PENDING</Text>
+    <>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>{approval.title}</Text>
+            <Text style={styles.subtitle}>{approval.type}</Text>
+          </View>
+          <View style={[styles.badge, getBadgeStyle(approval.status)]}>
+            <Text style={styles.badgeText}>{approval.status}</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.infoCard}>
-        <Text style={styles.label}>Approval ID</Text>
-        <Text style={styles.value}>{approvalId}</Text>
-      </View>
+        {approval.amount !== undefined && (
+          <View style={styles.amountCard}>
+            <Text style={styles.amountLabel}>Amount</Text>
+            <Text style={styles.amountValue}>
+              {approval.currency || 'USD'} {approval.amount.toLocaleString()}
+            </Text>
+          </View>
+        )}
 
-      <View style={styles.infoCard}>
-        <Text style={styles.label}>Deep Link Route</Text>
-        <Text style={styles.valueCode}>miningerp://work/approvals/{approvalId}</Text>
-      </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Details</Text>
+          <View style={styles.card}>
+            {approval.requesterName && (
+              <InfoRow label="Requester" value={approval.requesterName} />
+            )}
+            {approval.priority && <InfoRow label="Priority" value={approval.priority} />}
+            <InfoRow label="Created" value={new Date(approval.createdAt).toLocaleString()} />
+            {approval.description && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Description</Text>
+                <Text style={styles.infoValue}>{approval.description}</Text>
+              </View>
+            )}
+          </View>
+        </View>
 
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>
-          Session M3 will implement:{'\n\n'}
-          • Full approval details{'\n'}
-          • Approve/Reject buttons{'\n'}
-          • Comment functionality{'\n'}
-          • Approval history{'\n'}
-          • Attachments viewer
-        </Text>
-      </View>
+        {approval.lineItems && approval.lineItems.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Line Items</Text>
+            <View style={styles.card}>
+              {approval.lineItems.map((item, idx) => (
+                <View key={item.id} style={[styles.lineItem, idx > 0 && styles.lineItemBorder]}>
+                  <Text style={styles.lineItemDesc}>{item.description}</Text>
+                  {item.quantity && item.unitPrice && (
+                    <Text style={styles.lineItemMeta}>
+                      {item.quantity} × {item.unitPrice.toLocaleString()} = {item.total?.toLocaleString()}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.backButtonText}>← Back to Work</Text>
-      </TouchableOpacity>
+        {approval.attachments && approval.attachments.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Attachments</Text>
+            <View style={styles.card}>
+              {approval.attachments.map((att) => (
+                <TouchableOpacity key={att.id} style={styles.attachment}>
+                  <Text style={styles.attachmentName}>📎 {att.filename}</Text>
+                  {att.size && <Text style={styles.attachmentSize}>{formatBytes(att.size)}</Text>}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {approval.history && approval.history.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>History</Text>
+            <View style={styles.card}>
+              {approval.history.map((h, idx) => (
+                <View key={h.id} style={[styles.historyItem, idx > 0 && styles.historyItemBorder]}>
+                  <Text style={styles.historyAction}>{h.action}</Text>
+                  <Text style={styles.historyMeta}>
+                    {h.actorName} • {new Date(h.timestamp).toLocaleString()}
+                  </Text>
+                  {h.comment && <Text style={styles.historyComment}>{h.comment}</Text>}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {approval.comments && approval.comments.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Comments</Text>
+            <View style={styles.card}>
+              {approval.comments.map((c, idx) => (
+                <View key={c.id} style={[styles.comment, idx > 0 && styles.commentBorder]}>
+                  <Text style={styles.commentAuthor}>{c.authorName}</Text>
+                  <Text style={styles.commentContent}>{c.content}</Text>
+                  <Text style={styles.commentDate}>{new Date(c.createdAt).toLocaleString()}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {approval.status === 'PENDING' && (
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.rejectButton]}
+            onPress={handleReject}
+            disabled={isApproving || isRejecting}
+          >
+            <Text style={styles.actionButtonText}>Reject</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.approveButton]}
+            onPress={handleApprove}
+            disabled={isApproving || isRejecting}
+          >
+            {isApproving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.actionButtonText}>Approve</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <Modal visible={showRejectModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reject Approval</Text>
+            <Text style={styles.modalLabel}>Reason for rejection (required):</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter reason..."
+              placeholderTextColor={theme.colors.textSecondary}
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                }}
+                disabled={isRejecting}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalSubmitButton]}
+                onPress={submitRejection}
+                disabled={isRejecting || !rejectReason.trim()}
+              >
+                {isRejecting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
 }
 
+function getBadgeStyle(status: string) {
+  switch (status) {
+    case 'APPROVED':
+      return { backgroundColor: '#4CAF50' };
+    case 'REJECTED':
+      return { backgroundColor: '#F44336' };
+    case 'PENDING':
+      return { backgroundColor: '#FF9800' };
+    default:
+      return { backgroundColor: '#999' };
+  }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-  },
-  title: {
-    fontSize: theme.typography.fontSize.xxl,
-    fontFamily: theme.typography.fontFamily.bold,
-    color: theme.colors.text,
-  },
-  badge: {
-    backgroundColor: theme.colors.warning,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.semibold,
-  },
-  infoCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  label: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.regular,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-  },
-  value: {
-    fontSize: theme.typography.fontSize.lg,
-    fontFamily: theme.typography.fontFamily.medium,
-    color: theme.colors.text,
-  },
-  valueCode: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.regular,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.sm,
-  },
-  placeholder: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  placeholderText: {
-    fontSize: theme.typography.fontSize.base,
-    fontFamily: theme.typography.fontFamily.regular,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  backButton: {
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: theme.typography.fontSize.base,
-    fontFamily: theme.typography.fontFamily.semibold,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing.lg, backgroundColor: theme.colors.background },
+  loadingText: { marginTop: theme.spacing.sm, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.regular },
+  errorText: { color: theme.colors.error, fontFamily: theme.typography.fontFamily.medium, marginBottom: theme.spacing.sm },
+  retryButton: { paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md },
+  retryText: { color: '#fff', fontFamily: theme.typography.fontFamily.medium },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: theme.spacing.md, backgroundColor: theme.colors.surface },
+  title: { fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.bold, color: theme.colors.text },
+  subtitle: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.textSecondary, marginTop: theme.spacing.xs },
+  badge: { paddingHorizontal: theme.spacing.sm, paddingVertical: 4, borderRadius: theme.borderRadius.full },
+  badgeText: { color: '#fff', fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.semibold },
+  amountCard: { backgroundColor: theme.colors.primary, padding: theme.spacing.md, margin: theme.spacing.md, borderRadius: theme.borderRadius.md },
+  amountLabel: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium, color: '#fff', opacity: 0.9 },
+  amountValue: { fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold, color: '#fff', marginTop: theme.spacing.xs },
+  section: { padding: theme.spacing.md },
+  sectionTitle: { fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.semibold, color: theme.colors.text, marginBottom: theme.spacing.sm },
+  card: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, padding: theme.spacing.md },
+  infoRow: { marginBottom: theme.spacing.sm },
+  infoLabel: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium, color: theme.colors.textSecondary, marginBottom: 2 },
+  infoValue: { fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.text },
+  lineItem: { paddingVertical: theme.spacing.sm },
+  lineItemBorder: { borderTopWidth: 1, borderTopColor: theme.colors.border },
+  lineItemDesc: { fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text },
+  lineItemMeta: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.textSecondary, marginTop: 2 },
+  attachment: { paddingVertical: theme.spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  attachmentName: { fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.text },
+  attachmentSize: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.textSecondary, marginTop: 2 },
+  historyItem: { paddingVertical: theme.spacing.sm },
+  historyItemBorder: { borderTopWidth: 1, borderTopColor: theme.colors.border },
+  historyAction: { fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.semibold, color: theme.colors.text },
+  historyMeta: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.textSecondary, marginTop: 2 },
+  historyComment: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.text, marginTop: theme.spacing.xs, fontStyle: 'italic' },
+  comment: { paddingVertical: theme.spacing.sm },
+  commentBorder: { borderTopWidth: 1, borderTopColor: theme.colors.border },
+  commentAuthor: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semibold, color: theme.colors.text },
+  commentContent: { fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.text, marginTop: 2 },
+  commentDate: { fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.textSecondary, marginTop: 2 },
+  actions: { flexDirection: 'row', padding: theme.spacing.md, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.border },
+  actionButton: { flex: 1, padding: theme.spacing.md, borderRadius: theme.borderRadius.md, alignItems: 'center', marginHorizontal: theme.spacing.xs },
+  approveButton: { backgroundColor: theme.colors.success },
+  rejectButton: { backgroundColor: theme.colors.error },
+  actionButtonText: { color: '#fff', fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.semibold },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.lg, padding: theme.spacing.lg, width: '90%', maxWidth: 400 },
+  modalTitle: { fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.bold, color: theme.colors.text, marginBottom: theme.spacing.md },
+  modalLabel: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text, marginBottom: theme.spacing.xs },
+  modalInput: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.text, backgroundColor: theme.colors.surface, minHeight: 100, marginBottom: theme.spacing.md },
+  modalActions: { flexDirection: 'row' },
+  modalButton: { flex: 1, padding: theme.spacing.md, borderRadius: theme.borderRadius.md, alignItems: 'center', marginHorizontal: theme.spacing.xs },
+  modalCancelButton: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
+  modalSubmitButton: { backgroundColor: theme.colors.error },
+  modalCancelText: { color: theme.colors.text, fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.medium },
+  modalSubmitText: { color: '#fff', fontSize: theme.typography.fontSize.base, fontFamily: theme.typography.fontFamily.semibold },
 });
