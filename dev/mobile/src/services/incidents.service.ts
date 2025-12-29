@@ -37,7 +37,71 @@ const DRAFT_KEY = '@incident_draft';
 const QUEUE_KEY = '@incident_queue';
 const MAX_RETRIES = 3;
 
+export interface IncidentSearchParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+  severity?: string;
+  type?: string;
+}
+
+export interface IncidentSearchResponse {
+  incidents: Incident[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+}
+
 export const incidentsService = {
+  async searchIncidents(params: IncidentSearchParams = {}): Promise<IncidentSearchResponse> {
+    try {
+      const query = {
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        ...(params.search ? { search: params.search } : {}),
+        ...(params.status ? { status: params.status } : {}),
+        ...(params.severity ? { severity: params.severity } : {}),
+        ...(params.type ? { type: params.type } : {}),
+      };
+
+      const response = await apiClient.get<any>('/safety/incidents', { params: query });
+
+      return {
+        incidents: response.data.incidents || [],
+        page: response.data.page || 1,
+        pageSize: response.data.pageSize || 20,
+        totalPages: response.data.totalPages || 1,
+        totalCount: response.data.totalCount || 0,
+      };
+    } catch (error) {
+      console.error('Failed to search incidents:', error);
+      throw error;
+    }
+  },
+
+  async getIncidentDetail(id: string): Promise<Incident> {
+    try {
+      const response = await apiClient.get<any>(`/safety/incidents/${id}`);
+      return {
+        id: response.data.id,
+        type: response.data.type,
+        severity: response.data.severity,
+        location: response.data.location,
+        date: response.data.date,
+        description: response.data.description,
+        photos: response.data.photos || [],
+        reportedBy: response.data.reportedBy,
+        status: response.data.status || 'open',
+        createdAt: response.data.createdAt,
+      };
+    } catch (error) {
+      console.error('Failed to get incident detail:', error);
+      throw error;
+    }
+  },
+
   async saveDraft(draft: IncidentDraft): Promise<void> {
     try {
       await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));

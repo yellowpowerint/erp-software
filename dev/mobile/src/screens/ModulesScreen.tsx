@@ -12,7 +12,7 @@ export default function ModulesScreen() {
   const navigation = useNavigation();
   const modules = [
     { id: 'inventory', title: 'Inventory', subtitle: 'Stock management', route: 'InventorySearch' as const, available: true },
-    { id: 'safety', title: 'Safety', subtitle: 'Report incidents', route: 'IncidentCapture' as const, available: true },
+    { id: 'safety', title: 'Safety', subtitle: 'View incidents', route: 'IncidentList' as const, available: true },
     { id: 'hr', title: 'HR', subtitle: 'Employee directory', available: false },
     { id: 'finance', title: 'Finance', subtitle: 'Financial reports', available: false },
     { id: 'projects', title: 'Projects', subtitle: 'Project tracking', available: false },

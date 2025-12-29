@@ -800,14 +800,26 @@ POST /api/inventory/movements
 
 ### Session M4.4 - Safety: Incident List + Detail (1 day)
 
+**Status**: Complete
+
 **Deliverables**:
 - Incident list (search, filters, pagination)
 - Incident detail (photos, fields, history)
 - Role-based visibility
 
 **Definition of Done**:
-- [ ] Permissions enforced
-- [ ] 403 handled gracefully
+- [x] Permissions enforced
+- [x] 403 handled gracefully
+
+**Implementation Notes**:
+- Added `searchIncidents()` and `getIncidentDetail()` methods to `incidents.service.ts`
+- Created IncidentListScreen with search, status filters, severity filters, pagination, pull-to-refresh
+- Created IncidentDetailScreen with full incident details, photos grid, status/severity badges
+- 403 error navigates to NoAccess screen with appropriate message
+- 404 error navigates to NotFound screen with appropriate message
+- Color-coded severity badges (critical=red, high=orange, medium=yellow, low=blue)
+- Color-coded status badges (open=red, investigating=yellow, resolved=green, closed=gray)
+- All TypeScript types defined and compilation passes
 
 ---
 

@@ -13,6 +13,8 @@ import InventorySearchScreen from '../screens/InventorySearchScreen';
 import InventoryDetailScreen from '../screens/InventoryDetailScreen';
 import ReceiveStockScreen from '../screens/ReceiveStockScreen';
 import IncidentCaptureScreen from '../screens/IncidentCaptureScreen';
+import IncidentListScreen from '../screens/IncidentListScreen';
+import IncidentDetailScreen from '../screens/IncidentDetailScreen';
 import OutboxScreen from '../screens/OutboxScreen';
 import NoAccessScreen from '../screens/NoAccessScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
@@ -37,6 +39,8 @@ export default function ModulesNavigator() {
       <Stack.Screen name="InventoryDetail" component={InventoryDetailScreen} options={{ title: 'Item Detail' }} />
       <Stack.Screen name="ReceiveStock" component={ReceiveStockScreen} options={{ title: 'Receive Stock' }} />
       <Stack.Screen name="IncidentCapture" component={IncidentCaptureScreen} options={{ title: 'Report Incident' }} />
+      <Stack.Screen name="IncidentList" component={IncidentListScreen} options={{ title: 'Incidents' }} />
+      <Stack.Screen name="IncidentDetail" component={IncidentDetailScreen} options={{ title: 'Incident Detail' }} />
       <Stack.Screen name="Outbox" component={OutboxScreen} options={{ title: 'Outbox' }} />
       <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'Access Denied' }} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Not Found' }} />
