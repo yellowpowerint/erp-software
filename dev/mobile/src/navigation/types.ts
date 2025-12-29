@@ -31,6 +31,8 @@ export type ModulesStackParamList = {
   ModulesMain: undefined;
   InventorySearch: undefined;
   InventoryDetail: { itemId: string };
+  NoAccess: { resource?: string; message?: string };
+  NotFound: { resource?: string; message?: string };
 };
 
 // More Stack Navigator

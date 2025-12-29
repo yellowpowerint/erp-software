@@ -32,7 +32,10 @@ export default function InventorySearchScreen() {
   }, []);
 
   useEffect(() => {
-    loadItems(1, false);
+    const debounceTimer = setTimeout(() => {
+      loadItems(1, false);
+    }, 300);
+    return () => clearTimeout(debounceTimer);
   }, [categoryFilter, lowStockOnly, search]);
 
   const loadCategories = async () => {

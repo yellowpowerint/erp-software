@@ -28,6 +28,14 @@ export default function InventoryDetailScreen() {
       setItem(itemData);
       setMovements(movementsData);
     } catch (err: any) {
+      if (err?.response?.status === 403) {
+        (navigation as any).navigate('NoAccess', { resource: 'inventory item', message: 'You do not have permission to view this item' });
+        return;
+      }
+      if (err?.response?.status === 404) {
+        (navigation as any).navigate('NotFound', { resource: 'inventory item', message: 'This item was not found or may have been deleted' });
+        return;
+      }
       setError('Failed to load item');
     } finally {
       setIsLoading(false);
@@ -38,6 +46,20 @@ export default function InventoryDetailScreen() {
   if (error || !item) return <View style={s.centered}><Text style={s.errorText}>{error}</Text></View>;
 
   const statusColor = item.quantity === 0 ? theme.colors.error : item.quantity <= item.reorderLevel ? theme.colors.warning : theme.colors.success;
+
+  const getMovementTypeColor = (type: string) => {
+    switch (type) {
+      case 'IN': return theme.colors.success;
+      case 'OUT': return theme.colors.error;
+      case 'ADJUSTMENT': return theme.colors.info;
+      default: return theme.colors.textSecondary;
+    }
+  };
+
+  const formatMovementQuantity = (movement: InventoryMovement) => {
+    const sign = movement.type === 'OUT' ? '-' : movement.type === 'IN' ? '+' : '';
+    return `${sign}${movement.quantity} ${movement.unit}`;
+  };
 
   return (
     <ScrollView style={s.container}>
@@ -52,12 +74,23 @@ export default function InventoryDetailScreen() {
         {item.location && <Text style={s.label}>Location: {item.location}</Text>}
       </View>
       <Text style={s.sectionTitle}>Recent Movements</Text>
-      {movements.map(m => (
-        <View key={m.id} style={s.movementCard}>
-          <Text style={s.movementType}>{m.type}: {m.quantity} {m.unit}</Text>
-          <Text style={s.movementDate}>{new Date(m.date).toLocaleDateString()}</Text>
-        </View>
-      ))}
+      {movements.length === 0 ? (
+        <Text style={s.emptyText}>No recent movements</Text>
+      ) : (
+        movements.map(m => (
+          <View key={m.id} style={s.movementCard}>
+            <View style={s.movementHeader}>
+              <View style={[s.movementBadge, { backgroundColor: getMovementTypeColor(m.type) + '20' }]}>
+                <Text style={[s.movementType, { color: getMovementTypeColor(m.type) }]}>{m.type}</Text>
+              </View>
+              <Text style={s.movementDate}>{new Date(m.date).toLocaleDateString()}</Text>
+            </View>
+            <Text style={[s.movementQty, { color: getMovementTypeColor(m.type) }]}>{formatMovementQuantity(m)}</Text>
+            {m.reference && <Text style={s.movementRef}>Ref: {m.reference}</Text>}
+            {m.notes && <Text style={s.movementNotes}>{m.notes}</Text>}
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
@@ -71,8 +104,14 @@ const s = StyleSheet.create({
   card: { backgroundColor: theme.colors.surface, padding: theme.spacing.md, borderRadius: 8, marginBottom: theme.spacing.md },
   label: { fontSize: 14, color: theme.colors.text, marginBottom: 8 },
   sectionTitle: { fontSize: 18, fontFamily: theme.typography.fontFamily.bold, marginBottom: theme.spacing.sm },
-  movementCard: { backgroundColor: theme.colors.surface, padding: theme.spacing.sm, borderRadius: 8, marginBottom: theme.spacing.sm },
-  movementType: { fontSize: 14, fontFamily: theme.typography.fontFamily.semibold },
+  movementCard: { backgroundColor: theme.colors.surface, padding: theme.spacing.md, borderRadius: 8, marginBottom: theme.spacing.sm, borderWidth: 1, borderColor: theme.colors.border },
+  movementHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.xs },
+  movementBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  movementType: { fontSize: 10, fontFamily: theme.typography.fontFamily.bold, textTransform: 'uppercase' },
   movementDate: { fontSize: 12, color: theme.colors.textSecondary },
+  movementQty: { fontSize: 16, fontFamily: theme.typography.fontFamily.bold, marginBottom: 4 },
+  movementRef: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 4 },
+  movementNotes: { fontSize: 12, color: theme.colors.text, marginTop: 4, fontStyle: 'italic' },
+  emptyText: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', padding: theme.spacing.lg },
   errorText: { color: theme.colors.error },
 });
