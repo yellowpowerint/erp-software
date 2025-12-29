@@ -40,6 +40,7 @@ export type MoreStackParamList = {
 // Work Stack Navigator
 export type WorkStackParamList = {
   WorkList: undefined;
+  TasksList: undefined;
   ApprovalDetail: { approvalId: string; approvalType?: string };
   TaskDetail: { taskId: string };
   NoAccess: { resource?: string; message?: string };

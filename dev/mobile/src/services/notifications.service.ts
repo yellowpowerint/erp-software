@@ -126,14 +126,40 @@ export const notificationsService = {
 
   /**
    * Parse deep link from notification
+   * Returns correct nested navigation params for react-navigation
    */
   parseDeepLink(notification: Notification): { screen: string; params?: any } | null {
     if (notification.deepLink) {
-      // Parse miningerp:// URLs
-      const match = notification.deepLink.match(/miningerp:\/\/(\w+)(?:\/(.+))?/);
-      if (match) {
-        const [, screen, params] = match;
-        return { screen, params: params ? { id: params } : undefined };
+      // Parse miningerp:// URLs and convert to nested navigation params
+      const approvalMatch = notification.deepLink.match(/miningerp:\/\/work\/approvals\/(.+)/);
+      if (approvalMatch) {
+        return { 
+          screen: 'Work', 
+          params: { screen: 'ApprovalDetail', params: { approvalId: approvalMatch[1] } } 
+        };
+      }
+
+      const taskMatch = notification.deepLink.match(/miningerp:\/\/work\/tasks\/(.+)/);
+      if (taskMatch) {
+        return { 
+          screen: 'Work', 
+          params: { screen: 'TaskDetail', params: { taskId: taskMatch[1] } } 
+        };
+      }
+
+      const notificationsMatch = notification.deepLink.match(/miningerp:\/\/notifications/);
+      if (notificationsMatch) {
+        return { screen: 'Home', params: { screen: 'Notifications' } };
+      }
+
+      const modulesMatch = notification.deepLink.match(/miningerp:\/\/modules/);
+      if (modulesMatch) {
+        return { screen: 'Modules' };
+      }
+
+      const moreMatch = notification.deepLink.match(/miningerp:\/\/more/);
+      if (moreMatch) {
+        return { screen: 'More' };
       }
     }
 

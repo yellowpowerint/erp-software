@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#ef4444',
+    backgroundColor: theme.colors.error,
     zIndex: 9999,
     ...theme.shadows.md,
   },

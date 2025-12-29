@@ -9,6 +9,7 @@ import { WorkStackParamList } from './types';
 import { theme } from '../../theme.config';
 
 import WorkScreen from '../screens/WorkScreen';
+import TasksListScreen from '../screens/TasksListScreen';
 import ApprovalDetailScreen from '../screens/ApprovalDetailScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
 import NoAccessScreen from '../screens/NoAccessScreen';
@@ -33,6 +34,11 @@ export default function WorkNavigator() {
         name="WorkList" 
         component={WorkScreen}
         options={{ title: 'Work' }}
+      />
+      <Stack.Screen 
+        name="TasksList" 
+        component={TasksListScreen}
+        options={{ title: 'Tasks' }}
       />
       <Stack.Screen 
         name="ApprovalDetail" 
