@@ -27,7 +27,6 @@ function WarehousesContent() {
   const { user } = useAuth();
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -45,20 +44,6 @@ function WarehousesContent() {
       console.error('Failed to fetch warehouses:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const seedDefaultWarehouses = async () => {
-    setSeeding(true);
-    try {
-      await api.post('/warehouses/seed');
-      alert('Default warehouses seeded successfully!');
-      fetchWarehouses();
-    } catch (error: any) {
-      console.error('Failed to seed warehouses:', error);
-      alert(error.response?.data?.message || 'Failed to seed warehouses');
-    } finally {
-      setSeeding(false);
     }
   };
 
@@ -118,14 +103,6 @@ function WarehousesContent() {
                 <Plus className="w-5 h-5" />
                 <span>Add Warehouse</span>
               </button>
-              <button
-                onClick={seedDefaultWarehouses}
-                disabled={seeding || warehouses.length > 0}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-                <span>{seeding ? 'Seeding...' : 'Seed Samples'}</span>
-              </button>
             </div>
           )}
         </div>
@@ -163,16 +140,18 @@ function WarehousesContent() {
           <Warehouse className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Warehouses Found</h3>
           <p className="text-gray-600 mb-4">
-            Get started by seeding default warehouses for your mining operations.
+            Get started by adding your first warehouse location.
           </p>
           {canManage && (
             <button
-              onClick={seedDefaultWarehouses}
-              disabled={seeding}
-              className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
+              onClick={() => {
+                setSelectedWarehouse(null);
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
               <Plus className="w-5 h-5" />
-              <span>{seeding ? 'Seeding...' : 'Seed Default Warehouses'}</span>
+              <span>Add Warehouse</span>
             </button>
           )}
         </div>
