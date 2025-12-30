@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Warehouse, Plus, MapPin, Package, CheckCircle, XCircle } from 'lucide-react';
+import { Warehouse, Plus, MapPin, Package, CheckCircle, XCircle, Edit } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import ImportModal from '@/components/csv/ImportModal';
 import ExportModal from '@/components/csv/ExportModal';
+import WarehouseModal from '@/components/inventory/WarehouseModal';
 
 interface WarehouseItem {
   id: string;
@@ -29,6 +30,8 @@ function WarehousesContent() {
   const [seeding, setSeeding] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseItem | null>(null);
 
   useEffect(() => {
     fetchWarehouses();
@@ -59,6 +62,28 @@ function WarehousesContent() {
     }
   };
 
+  const handleEditWarehouse = (warehouse: WarehouseItem) => {
+    setSelectedWarehouse(warehouse);
+    setModalOpen(true);
+  };
+
+  const handleSaveWarehouse = async (data: any) => {
+    if (selectedWarehouse) {
+      await api.put(`/warehouses/${selectedWarehouse.id}`, data);
+      alert('Warehouse updated successfully!');
+      fetchWarehouses();
+    } else {
+      await api.post('/warehouses', data);
+      alert('Warehouse created successfully!');
+      fetchWarehouses();
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedWarehouse(null);
+  };
+
   const canManage = user && ['SUPER_ADMIN', 'CEO'].includes(user.role);
 
   return (
@@ -84,12 +109,22 @@ function WarehousesContent() {
                 Export CSV
               </button>
               <button
-                onClick={seedDefaultWarehouses}
-                disabled={seeding || warehouses.length > 0}
-                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
+                onClick={() => {
+                  setSelectedWarehouse(null);
+                  setModalOpen(true);
+                }}
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 <Plus className="w-5 h-5" />
-                <span>{seeding ? 'Seeding...' : 'Seed Default Warehouses'}</span>
+                <span>Add Warehouse</span>
+              </button>
+              <button
+                onClick={seedDefaultWarehouses}
+                disabled={seeding || warehouses.length > 0}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>{seeding ? 'Seeding...' : 'Seed Samples'}</span>
               </button>
             </div>
           )}
@@ -109,6 +144,13 @@ function WarehousesContent() {
         module="warehouses"
         title="Export Warehouses"
         defaultFilters={{}}
+      />
+
+      <WarehouseModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        warehouse={selectedWarehouse}
+        onSave={handleSaveWarehouse}
       />
 
       {loading ? (
@@ -194,10 +236,19 @@ function WarehousesContent() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
                 <p className="text-xs text-gray-500">
                   Created {new Date(warehouse.createdAt).toLocaleDateString()}
                 </p>
+                {canManage && (
+                  <button
+                    onClick={() => handleEditWarehouse(warehouse)}
+                    className="flex items-center space-x-1 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>Edit</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
