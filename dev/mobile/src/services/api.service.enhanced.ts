@@ -137,7 +137,7 @@ class ApiServiceEnhanced {
     );
   }
 
-  setToken(token: string) {
+  setToken(token: string | null) {
     this.inMemoryToken = token;
   }
 

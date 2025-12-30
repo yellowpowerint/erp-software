@@ -102,5 +102,7 @@ class ApiService {
   }
 }
 
-export const apiService = new ApiService();
-export const apiClient = apiService.getClient();
+export const apiServiceLegacy = new ApiService();
+export const apiClientLegacy = apiServiceLegacy.getClient();
+
+export { apiServiceEnhanced as apiService, apiClient } from './api.service.enhanced';

@@ -8,6 +8,7 @@ import { User, authService, LoginCredentials } from '../services/auth.service';
 import { storageService } from '../services/storage.service';
 import { apiService } from '../services/api.service';
 import { pushService } from '../services/push.service';
+import { clearSentryUser, setSentryUser } from '../config/sentry.config';
 
 apiService.setLogoutCallback(() => {
   useAuthStore.getState().logout();
@@ -38,6 +39,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (response.token) {
         apiService.setToken(response.token);
       }
+
+      setSentryUser(response.user.id, response.user.role);
       set({
         user: response.user,
         isAuthenticated: true,
@@ -69,6 +72,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       
       await authService.logout();
+
+      clearSentryUser();
       set({
         user: null,
         isAuthenticated: false,
@@ -77,6 +82,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (error: any) {
       console.error('Logout failed:', error);
+
+      clearSentryUser();
       set({
         user: null,
         isAuthenticated: false,
@@ -92,6 +99,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const token = await storageService.getToken();
 
       if (!token) {
+        clearSentryUser();
         set({
           user: null,
           isAuthenticated: false,
@@ -102,6 +110,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       apiService.setToken(token);
       const user = await authService.getMe();
+
+      setSentryUser(user.id, user.role);
       set({
         user,
         isAuthenticated: true,
@@ -110,6 +120,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (error: any) {
       console.error('Session bootstrap failed:', error);
+      clearSentryUser();
       set({
         user: null,
         isAuthenticated: false,

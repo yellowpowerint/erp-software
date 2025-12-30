@@ -10,9 +10,13 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import RootNavigator from './src/navigation/RootNavigator';
 import AuthProvider from './src/providers/AuthProvider';
 import ConfigGate from './src/providers/ConfigGate';
-import { OfflineBanner } from './src/components';
+import { ErrorBoundary, OfflineBanner } from './src/components';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from './theme.config';
+
+import { initSentry } from './src/config/sentry.config';
+
+initSentry();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -31,13 +35,15 @@ export default function App() {
   }
 
   return (
-    <ConfigGate>
-      <AuthProvider>
-        <OfflineBanner />
-        <RootNavigator />
-        <StatusBar style="auto" />
-      </AuthProvider>
-    </ConfigGate>
+    <ErrorBoundary>
+      <ConfigGate>
+        <AuthProvider>
+          <OfflineBanner />
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </AuthProvider>
+      </ConfigGate>
+    </ErrorBoundary>
   );
 }
 
