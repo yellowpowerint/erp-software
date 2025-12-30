@@ -29,6 +29,7 @@ export type HomeStackParamList = {
 // Modules Stack Navigator
 export type ModulesStackParamList = {
   ModulesMain: undefined;
+  DocumentList: undefined;
   InventorySearch: undefined;
   InventoryDetail: { itemId: string };
   ReceiveStock: { itemId: string; itemName: string; currentStock: number; unit: string };
@@ -41,8 +42,11 @@ export type ModulesStackParamList = {
   LeaveRequest: undefined;
   ExpensesList: undefined;
   ExpenseSubmit: undefined;
+  ExpenseDetail: { expenseId: string };
   ProjectsList: undefined;
   ProjectDetail: { projectId: string };
+  DocumentUpload: undefined;
+  DocumentViewer: { documentId: string; url?: string; name?: string; mimeType?: string; size?: number };
   Outbox: undefined;
   NoAccess: { resource?: string; message?: string };
   NotFound: { resource?: string; message?: string };

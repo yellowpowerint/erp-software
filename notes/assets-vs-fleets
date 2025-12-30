@@ -1,0 +1,100 @@
+I'll check the codebase to explain the difference between the Assets module and Fleet Management.
+
+Let me check the frontend structure to see the actual modules:
+
+I can see both [assets/](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/frontend/app/assets:0:0-0:0) and [fleet/](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/frontend/app/fleet:0:0-0:0) directories. Let me check what's in each to understand the distinction:
+
+
+
+
+
+Let me check the backend to understand the data models better:
+
+Let me search for the Asset and FleetAsset models in the Prisma schema:
+
+
+
+## Difference Between Assets Module and Fleet Management
+
+Based on the codebase analysis, here's the key distinction:
+
+---
+
+### **Assets Module** ([/assets](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/frontend/app/assets:0:0-0:0))
+**General-purpose asset tracking** for all company equipment and property.
+
+**What it tracks:**
+- **All types of assets**: Equipment, machinery, tools, furniture, computers, etc.
+- **Categories**: VEHICLE, EQUIPMENT, MACHINERY, TOOLS, FURNITURE, IT_EQUIPMENT, OTHER
+- **Focus**: Asset lifecycle, depreciation, basic maintenance scheduling
+
+**Key features:**
+- Asset registration (code, name, category, purchase info)
+- Current value & depreciation tracking
+- Location tracking
+- Maintenance scheduling (basic)
+- Condition monitoring (EXCELLENT → CRITICAL)
+- Status tracking (ACTIVE, MAINTENANCE, INACTIVE, RETIRED, DAMAGED)
+- Project assignment
+
+**Use case:** Track **any company asset** regardless of type - from office chairs to mining drills.
+
+---
+
+### **Fleet Management Module** ([/fleet](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/frontend/app/fleet:0:0-0:0))
+**Specialized vehicle & mobile equipment management** with operational tracking.
+
+**What it tracks:**
+- **Vehicles & mobile machinery only**: Trucks, excavators, drilling rigs, transport vehicles
+- **Types**: VEHICLE, HEAVY_MACHINERY, DRILLING_EQUIPMENT, PROCESSING_EQUIPMENT, SUPPORT_EQUIPMENT, TRANSPORT
+- **Focus**: Operations, compliance, fuel, assignments, breakdowns
+
+**Key features:**
+- **Vehicle-specific data**: Registration number, engine/chassis numbers, odometer, hours
+- **Fuel management**: Fuel type, tank capacity, fuel records, fuel tank transactions
+- **Operator assignments**: Who's driving/operating, assignment history
+- **Compliance tracking**: 
+  - Insurance (provider, policy, expiry)
+  - Mining permits
+  - Safety inspections
+  - Emissions certificates
+- **Operational tracking**:
+  - Usage logs (hours, distance)
+  - Breakdown logs
+  - Maintenance schedules & records
+  - Fleet inspections
+- **Cost analytics**: Fuel costs, maintenance costs, total cost MTD/YTD
+- **Alerts**: Expiring documents, overdue maintenance, low fuel
+
+**Use case:** Manage **vehicles and mobile equipment** that require fuel, operators, permits, and operational tracking.
+
+---
+
+### **Simple Rule:**
+
+| Question | Module |
+|----------|--------|
+| Does it move and need fuel/operators? | **Fleet Management** |
+| Is it stationary or general equipment? | **Assets** |
+| Does it need permits/insurance? | **Fleet Management** |
+| Just tracking value & basic maintenance? | **Assets** |
+
+---
+
+### **Example:**
+
+- **Mining truck** → **Fleet Management** (needs fuel, operator, permits, odometer tracking)
+- **Conveyor belt system** → **Assets** (stationary equipment, just needs maintenance)
+- **Excavator** → **Fleet Management** (mobile, needs operator, fuel, hours tracking)
+- **Office computers** → **Assets** (general equipment, depreciation tracking)
+- **Drill rig** → **Fleet Management** (mobile, needs operator, compliance tracking)
+- **Generator** → **Assets** (stationary, basic maintenance)
+
+---
+
+### **In Summary:**
+
+**Assets** = General asset registry for everything  
+**Fleet** = Specialized module for vehicles/mobile equipment with operational & compliance needs
+
+Fleet Management is essentially a **superset** of asset tracking, adding vehicle-specific operations, fuel, compliance, and assignment features that don't apply to general assets.

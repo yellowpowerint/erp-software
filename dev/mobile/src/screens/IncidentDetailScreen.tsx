@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, TouchableOpacity, RefreshControl } from 'react-native';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import { incidentsService, Incident } from '../services/incidents.service';
 import { theme } from '../../theme.config';
 import { ModulesStackParamList } from '../navigation/types';
+import { AttachmentsCard } from '../components';
+import { Attachment } from '../types/attachment';
+import { mediaPickerService } from '../services/mediaPicker.service';
 
 type IncidentDetailRouteProp = RouteProp<ModulesStackParamList, 'IncidentDetail'>;
 
 export default function IncidentDetailScreen() {
   const route = useRoute<IncidentDetailRouteProp>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<ModulesStackParamList>>();
   const { incidentId } = route.params;
   const [incident, setIncident] = useState<Incident | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     loadIncident();
@@ -70,6 +74,25 @@ export default function IncidentDetailScreen() {
       case 'resolved': return theme.colors.success;
       case 'closed': return theme.colors.textSecondary;
       default: return theme.colors.textSecondary;
+    }
+  };
+
+  const handleAddAttachment = async () => {
+    if (!incident) return;
+
+    try {
+      const result = await mediaPickerService.pickDocument();
+      if (!result) return;
+
+      setIsUploading(true);
+      await incidentsService.uploadAttachment(incident.id, result.uri, result.name, result.mimeType);
+      Alert.alert('Success', 'Attachment uploaded successfully');
+      await loadIncident();
+    } catch (err: any) {
+      console.error('Failed to upload attachment:', err);
+      Alert.alert('Error', err?.message || 'Failed to upload attachment');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -159,6 +182,31 @@ export default function IncidentDetailScreen() {
           </View>
         </View>
       )}
+
+      <View style={s.section}>
+        <AttachmentsCard
+          attachments={(incident.attachments || []).map((att): Attachment => ({
+            id: att.id,
+            name: att.fileName,
+            url: att.fileUrl,
+            mimeType: att.fileType,
+            uploadedAt: att.uploadedAt,
+          }))}
+          onAdd={incident.status !== 'closed' && !isUploading ? handleAddAttachment : undefined}
+          onPressItem={(att) => {
+            if (att.url) {
+              navigation.navigate('DocumentViewer', {
+                documentId: att.id,
+                url: att.url,
+                name: att.name,
+                mimeType: att.mimeType,
+              });
+            } else {
+              Alert.alert('No URL', 'This attachment has no download URL.');
+            }
+          }}
+        />
+      </View>
     </ScrollView>
   );
 }

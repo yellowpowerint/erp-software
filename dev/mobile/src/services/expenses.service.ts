@@ -1,4 +1,5 @@
 import { apiClient } from './api.service';
+import { uploadService } from './upload.service';
 
 export interface Expense {
   id: string;
@@ -12,6 +13,26 @@ export interface Expense {
   receiptUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+}
+
+export interface ExpenseDetail {
+  id: string;
+  expenseNumber: string;
+  category: string;
+  amount: number;
+  currency: string;
+  expenseDate: string;
+  description: string;
+  status: 'pending' | 'approved' | 'rejected';
+  project?: { id: string; name: string; projectCode?: string } | null;
+  submittedBy?: { id: string; firstName: string; lastName: string } | null;
+  attachments?: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileType: string;
+    uploadedAt: string;
+  }>;
 }
 
 export interface ExpenseSubmit {
@@ -101,5 +122,45 @@ export const expensesService = {
     } catch {
       return ['Travel', 'Meals', 'Accommodation', 'Supplies', 'Equipment', 'Other'];
     }
+  },
+
+  async getExpenseDetail(expenseId: string): Promise<ExpenseDetail> {
+    const response = await apiClient.get<any>(`/finance/expenses/${expenseId}`);
+    const data = response.data;
+
+    return {
+      id: data.id,
+      expenseNumber: data.expenseNumber || data.number || `EXP-${data.id}`,
+      category: data.category,
+      amount: data.amount,
+      currency: data.currency || 'USD',
+      expenseDate: data.expenseDate || data.date,
+      description: data.description,
+      status: data.status || 'pending',
+      project: data.project || null,
+      submittedBy: data.submittedBy || null,
+      attachments: data.attachments || [],
+    };
+  },
+
+  async uploadAttachment(
+    expenseId: string,
+    uri: string,
+    filename: string,
+    mimeType: string,
+  ): Promise<any> {
+    const uploadId = `expense-${expenseId}-${Date.now()}`;
+
+    const result = await uploadService.uploadFile({
+      uploadId,
+      endpoint: `/finance/expenses/${expenseId}/attachments`,
+      file: { uri, name: filename, mimeType },
+    });
+
+    if (result.status !== 'success') {
+      throw new Error(result.error || 'Upload failed');
+    }
+
+    return result.data;
   },
 };

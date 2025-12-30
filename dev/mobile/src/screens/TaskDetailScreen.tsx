@@ -1,16 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import { tasksService, TaskDetail } from '../services/tasks.service';
 import { theme } from '../../theme.config';
+import { ModulesStackParamList } from '../navigation/types';
+import { AttachmentsCard } from '../components';
+import { Attachment } from '../types/attachment';
+import { mediaPickerService } from '../services/mediaPicker.service';
 
 export default function TaskDetailScreen() {
   const route = useRoute<any>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<ModulesStackParamList>>();
   const { taskId } = route.params || {};
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     loadTask();
@@ -42,6 +47,25 @@ export default function TaskDetailScreen() {
       setError('Failed to load task');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddAttachment = async () => {
+    if (!task) return;
+
+    try {
+      const result = await mediaPickerService.pickDocument();
+      if (!result) return;
+
+      setIsUploading(true);
+      await tasksService.uploadAttachment(task.id, result.uri, result.name, result.mimeType);
+      Alert.alert('Success', 'Attachment uploaded successfully');
+      await loadTask();
+    } catch (err: any) {
+      console.error('Failed to upload attachment:', err);
+      Alert.alert('Error', err?.message || 'Failed to upload attachment');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -118,19 +142,30 @@ export default function TaskDetailScreen() {
         </View>
       )}
 
-      {task.attachments && task.attachments.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Attachments</Text>
-          <View style={styles.card}>
-            {task.attachments.map((att) => (
-              <TouchableOpacity key={att.id} style={styles.attachment}>
-                <Text style={styles.attachmentName}>📎 {att.filename}</Text>
-                {att.size && <Text style={styles.attachmentSize}>{formatBytes(att.size)}</Text>}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
+      <View style={styles.section}>
+        <AttachmentsCard
+          attachments={(task.attachments || []).map((att): Attachment => ({
+            id: att.id,
+            name: att.filename,
+            url: att.url,
+            size: att.size,
+            uploadedAt: att.uploadedAt,
+          }))}
+          onAdd={task.status !== 'COMPLETED' && !isUploading ? handleAddAttachment : undefined}
+          onPressItem={(att) => {
+            if (att.url) {
+              navigation.navigate('DocumentViewer', {
+                documentId: att.id,
+                url: att.url,
+                name: att.name,
+                size: att.size,
+              });
+            } else {
+              Alert.alert('No URL', 'This attachment has no download URL.');
+            }
+          }}
+        />
+      </View>
     </ScrollView>
   );
 }

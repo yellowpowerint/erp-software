@@ -31,6 +31,13 @@ export interface Incident {
   reportedBy: string;
   status: 'open' | 'investigating' | 'resolved' | 'closed';
   createdAt: string;
+  attachments?: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileType: string;
+    uploadedAt: string;
+  }>;
 }
 
 const DRAFT_KEY = '@incident_draft';
@@ -251,5 +258,27 @@ export const incidentsService = {
   async retryQueueItem(id: string): Promise<void> {
     await this.updateQueueItem(id, { status: 'pending', retryCount: 0, lastError: undefined });
     await this.processQueue();
+  },
+
+  async uploadAttachment(
+    incidentId: string,
+    uri: string,
+    filename: string,
+    mimeType: string,
+  ): Promise<any> {
+    const uploadId = `incident-${incidentId}-${Date.now()}`;
+    const { uploadService } = await import('./upload.service');
+    
+    const result = await uploadService.uploadFile({
+      uploadId,
+      endpoint: `/safety/incidents/${incidentId}/attachments`,
+      file: { uri, name: filename, mimeType },
+    });
+
+    if (result.status !== 'success') {
+      throw new Error(result.error || 'Upload failed');
+    }
+
+    return result.data;
   },
 };

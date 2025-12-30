@@ -15,13 +15,16 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, NavigationProp } from '@react-navigation/native';
 import { approvalsService, ApprovalDetail } from '../services/approvals.service';
+import { ModulesStackParamList } from '../navigation/types';
 import { theme } from '../../theme.config';
+import { AttachmentsCard } from '../components';
+import { mediaPickerService } from '../services/mediaPicker.service';
 
 export default function ApprovalDetailScreen() {
   const route = useRoute<any>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<ModulesStackParamList>>();
   const { approvalId, approvalType } = route.params || {};
 
   const [approval, setApproval] = useState<ApprovalDetail | null>(null);
@@ -31,6 +34,7 @@ export default function ApprovalDetailScreen() {
   const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     loadApproval();
@@ -113,6 +117,33 @@ export default function ApprovalDetailScreen() {
     }
   };
 
+  const handleAddAttachment = async () => {
+    if (!approval) return;
+
+    try {
+      const result = await mediaPickerService.pickDocument();
+      if (!result) return;
+
+      setIsUploading(true);
+      await approvalsService.uploadAttachment({
+        type: approval.type,
+        id: approval.id,
+        file: {
+          uri: result.uri,
+          name: result.name,
+          mimeType: result.mimeType,
+        },
+      });
+      Alert.alert('Success', 'Attachment uploaded successfully');
+      await loadApproval();
+    } catch (err: any) {
+      console.error('Failed to upload attachment:', err);
+      Alert.alert('Error', err?.message || 'Failed to upload attachment');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -190,19 +221,25 @@ export default function ApprovalDetailScreen() {
           </View>
         )}
 
-        {approval.attachments && approval.attachments.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Attachments</Text>
-            <View style={styles.card}>
-              {approval.attachments.map((att) => (
-                <TouchableOpacity key={att.id} style={styles.attachment}>
-                  <Text style={styles.attachmentName}>📎 {att.filename}</Text>
-                  {att.size && <Text style={styles.attachmentSize}>{formatBytes(att.size)}</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
+        <View style={styles.section}>
+          <AttachmentsCard
+            attachments={approval.attachments || []}
+            onAdd={approval.status === 'PENDING' && !isUploading ? handleAddAttachment : undefined}
+            onPressItem={(att) => {
+              if (att.url) {
+                navigation.navigate('DocumentViewer', {
+                  documentId: att.id,
+                  url: att.url,
+                  name: att.name,
+                  mimeType: att.mimeType,
+                  size: att.size,
+                });
+              } else {
+                Alert.alert('No URL', 'This attachment has no download URL.');
+              }
+            }}
+          />
+        </View>
 
         {approval.history && approval.history.length > 0 && (
           <View style={styles.section}>

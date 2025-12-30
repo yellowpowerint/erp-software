@@ -16,7 +16,7 @@ export default function ModulesScreen() {
     { id: 'hr', title: 'HR', subtitle: 'Employee directory', route: 'EmployeeDirectory' as const, available: true },
     { id: 'finance', title: 'Finance', subtitle: 'Expenses', route: 'ExpensesList' as const, available: true },
     { id: 'projects', title: 'Projects', subtitle: 'Project tracking', route: 'ProjectsList' as const, available: true },
-    { id: 'documents', title: 'Documents', subtitle: 'Document library', available: false },
+    { id: 'documents', title: 'Documents', subtitle: 'Document library', route: 'DocumentList' as const, available: true },
   ];
 
   return (

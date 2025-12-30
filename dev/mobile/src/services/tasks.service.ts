@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from './api.service';
+import { uploadService } from './upload.service';
 
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -85,5 +86,26 @@ export const tasksService = {
   async getTaskDetail(id: string): Promise<TaskDetail> {
     const response = await apiClient.get<TaskDetail>(`/tasks/${id}`);
     return response.data;
+  },
+
+  async uploadAttachment(
+    taskId: string,
+    uri: string,
+    filename: string,
+    mimeType: string,
+  ): Promise<any> {
+    const uploadId = `task-${taskId}-${Date.now()}`;
+    
+    const result = await uploadService.uploadFile({
+      uploadId,
+      endpoint: `/tasks/${taskId}/attachments`,
+      file: { uri, name: filename, mimeType },
+    });
+
+    if (result.status !== 'success') {
+      throw new Error(result.error || 'Upload failed');
+    }
+
+    return result.data;
   },
 };

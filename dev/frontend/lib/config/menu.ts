@@ -472,6 +472,13 @@ export const menuItems: MenuItem[] = [
     roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER, UserRole.DEPARTMENT_HEAD],
     children: [
       {
+        id: 'operations-sites',
+        label: 'Sites',
+        icon: HardHat,
+        path: '/operations/sites',
+        roles: [UserRole.SUPER_ADMIN, UserRole.CEO, UserRole.OPERATIONS_MANAGER, UserRole.DEPARTMENT_HEAD],
+      },
+      {
         id: 'operations-projects',
         label: 'Projects',
         icon: HardHat,

@@ -45,7 +45,11 @@ export default function ExpensesListScreen() {
   };
 
   const renderItem = ({ item }: { item: Expense }) => (
-    <View style={s.card}>
+    <TouchableOpacity
+      style={s.card}
+      activeOpacity={0.85}
+      onPress={() => navigation.navigate('ExpenseDetail', { expenseId: item.id })}
+    >
       <View style={s.cardHeader}>
         <View style={{ flex: 1 }}>
           <Text style={s.cardCategory}>{item.category}</Text>
@@ -61,7 +65,7 @@ export default function ExpensesListScreen() {
       <Text style={s.cardDate}>{new Date(item.date).toLocaleDateString()}</Text>
       <Text style={s.cardDescription} numberOfLines={2}>{item.description}</Text>
       {item.receiptUrl && <Text style={s.cardReceipt}>📎 Receipt attached</Text>}
-    </View>
+    </TouchableOpacity>
   );
 
   if (isLoading) {
