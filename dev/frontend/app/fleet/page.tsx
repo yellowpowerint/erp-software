@@ -184,12 +184,14 @@ function FleetDashboardContent() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center gap-2 mb-4">
                 <ClipboardList className="w-5 h-5 text-gray-700" />
-                <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Fleet Management Tips</h2>
               </div>
-              <p className="text-sm text-gray-600">
-                Session 19.5 adds cost analysis, reporting, and dashboard analytics. Use Analytics for KPIs and trend
-                views, and Reports for cost records and exports.
-              </p>
+              <ul className="text-sm text-gray-600 space-y-2">
+                <li>• Check compliance alerts regularly to avoid expired permits</li>
+                <li>• Schedule maintenance before due dates to prevent breakdowns</li>
+                <li>• Monitor fuel levels and costs for better budget control</li>
+                <li>• Keep operator assignments updated for accurate tracking</li>
+              </ul>
             </div>
           </div>
 
