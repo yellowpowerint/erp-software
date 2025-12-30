@@ -1,6 +1,7 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { TasksListQueryDto } from "./dto";
+import { StorageService } from "../documents/services/storage.service";
 
 type TaskListItem = {
   id: string;
@@ -24,7 +25,10 @@ type TasksListResponse = {
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) {}
 
   private canSeeAll(role: string) {
     return ["SUPER_ADMIN", "CEO", "OPERATIONS_MANAGER"].includes(String(role));
@@ -114,5 +118,35 @@ export class TasksService {
     }
 
     return task;
+  }
+
+  async uploadAttachment(
+    taskId: string,
+    file: Express.Multer.File,
+    userId: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException("File is required");
+    }
+
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException("Task not found");
+    }
+
+    const upload = await this.storageService.uploadFile(file, "tasks");
+
+    return this.prisma.taskAttachment.create({
+      data: {
+        taskId,
+        filename: file.originalname,
+        url: upload.url,
+        size: file.size,
+        uploadedById: userId,
+      },
+    });
   }
 }

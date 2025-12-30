@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { StorageService } from "../documents/services/storage.service";
 import {
   PaymentStatus,
   PaymentMethod,
@@ -10,7 +11,10 @@ import {
 
 @Injectable()
 export class FinanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) {}
 
   // ==================== Payments ====================
 
@@ -159,15 +163,30 @@ export class FinanceService {
     submittedById: string;
     receipt?: string;
     notes?: string;
-    attachments?: string[];
   }) {
     const expenseCount = await this.prisma.expense.count();
     const expenseNumber = `EXP-${Date.now()}-${expenseCount + 1}`;
 
     return this.prisma.expense.create({
       data: {
-        ...data,
         expenseNumber,
+        category: data.category,
+        description: data.description,
+        amount: data.amount,
+        currency: data.currency,
+        expenseDate: data.expenseDate,
+        submittedBy: {
+          connect: { id: data.submittedById },
+        },
+        receipt: data.receipt,
+        notes: data.notes,
+        ...(data.projectId
+          ? {
+              project: {
+                connect: { id: data.projectId },
+              },
+            }
+          : {}),
       },
       include: {
         project: {
@@ -240,6 +259,16 @@ export class FinanceService {
       where: { id },
       include: {
         project: true,
+        attachments: {
+          select: {
+            id: true,
+            fileName: true,
+            fileUrl: true,
+            fileType: true,
+            uploadedAt: true,
+            uploadedById: true,
+          },
+        },
         submittedBy: {
           select: {
             id: true,
@@ -569,5 +598,35 @@ export class FinanceService {
       totalBudgetSpent: budgetsSum._sum.spentAmount || 0,
       activeSuppliers: totalSuppliers,
     };
+  }
+
+  async uploadExpenseAttachment(
+    expenseId: string,
+    file: Express.Multer.File,
+    userId: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException("File is required");
+    }
+
+    const expense = await this.prisma.expense.findUnique({
+      where: { id: expenseId },
+    });
+
+    if (!expense) {
+      throw new NotFoundException("Expense not found");
+    }
+
+    const upload = await this.storageService.uploadFile(file, "expenses");
+
+    return this.prisma.expenseAttachment.create({
+      data: {
+        expenseId,
+        fileName: file.originalname,
+        fileUrl: upload.url,
+        fileType: file.mimetype,
+        uploadedById: userId,
+      },
+    });
   }
 }

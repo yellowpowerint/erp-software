@@ -3,11 +3,14 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { ITRequestsService } from "./it-requests.service";
 import { PaymentRequestsService } from "./payment-requests.service";
+import { StorageService } from "../documents/services/storage.service";
+import { UserRole } from "@prisma/client";
 import {
   CreateInvoiceDto,
   CreatePurchaseRequestDto,
@@ -72,6 +75,7 @@ export class ApprovalsService {
     private notificationsService: NotificationsService,
     private itRequestsService: ITRequestsService,
     private paymentRequestsService: PaymentRequestsService,
+    private storageService: StorageService,
   ) {}
 
   async getApprovalsList(
@@ -1097,6 +1101,66 @@ export class ApprovalsService {
           rejectedPurchaseRequests,
       },
       totalPending: pendingInvoices + pendingPurchaseRequests,
+    };
+  }
+
+  async uploadAttachment(
+    type: string,
+    id: string,
+    file: Express.Multer.File,
+    userId: string,
+    role: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException("File is required");
+    }
+
+    const normalizedType = type.toUpperCase() as UnifiedApprovalType;
+    
+    // Verify access to the approval item
+    await this.getApprovalDetail(userId, role, normalizedType, id);
+
+    const upload = await this.storageService.uploadFile(file, "approvals");
+
+    // Persist attachment link on the underlying item. These approval types currently
+    // store a single attachment URL (attachmentUrl).
+    switch (normalizedType) {
+      case "INVOICE":
+        await this.prisma.invoice.update({
+          where: { id },
+          data: { attachmentUrl: upload.url },
+        });
+        break;
+      case "PURCHASE_REQUEST":
+        await this.prisma.purchaseRequest.update({
+          where: { id },
+          data: { attachmentUrl: upload.url },
+        });
+        break;
+      case "IT_REQUEST":
+        await this.prisma.iTRequest.update({
+          where: { id },
+          data: { attachmentUrl: upload.url },
+        });
+        break;
+      case "PAYMENT_REQUEST":
+        await this.prisma.paymentRequest.update({
+          where: { id },
+          data: { attachmentUrl: upload.url },
+        });
+        break;
+      default:
+        throw new BadRequestException(`Unsupported approval type: ${type}`);
+    }
+
+    return {
+      id: `${normalizedType}-${id}-${Date.now()}`,
+      name: file.originalname,
+      url: upload.url,
+      mimeType: file.mimetype,
+      size: file.size,
+      uploadedAt: new Date().toISOString(),
+      uploadedById: userId,
     };
   }
 }

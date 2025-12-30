@@ -8,7 +8,11 @@ import {
   Body,
   Res,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { multerConfig } from "../documents/config/multer.config";
 import type { Response } from "express";
 import { parse as json2csv } from "json2csv";
 import { SafetyService } from "./safety.service";
@@ -83,6 +87,23 @@ export class SafetyController {
   )
   getIncidentById(@Param("id") id: string, @CurrentUser() user: any) {
     return this.safetyService.getIncidentById(user, id);
+  }
+
+  @Post("incidents/:id/attachments")
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.SAFETY_OFFICER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.EMPLOYEE,
+  )
+  @UseInterceptors(FileInterceptor("file", multerConfig))
+  uploadIncidentAttachment(
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    return this.safetyService.uploadIncidentAttachment(id, file, user.userId);
   }
 
   // Inspections

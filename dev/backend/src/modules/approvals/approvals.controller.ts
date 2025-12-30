@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { multerConfig } from "../documents/config/multer.config";
 import { ApprovalsService } from "./approvals.service";
 import {
   CreateInvoiceDto,
@@ -154,5 +156,17 @@ export class ApprovalsController {
   @Get("stats")
   getApprovalStats(@CurrentUser() user: any) {
     return this.approvalsService.getApprovalStats(user.userId, user.role);
+  }
+
+  // Attachments
+  @Post("item/:type/:id/attachments")
+  @UseInterceptors(FileInterceptor("file", multerConfig))
+  uploadAttachment(
+    @Param("type") type: string,
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    return this.approvalsService.uploadAttachment(type, id, file, user.userId, user.role);
   }
 }

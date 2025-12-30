@@ -170,6 +170,9 @@ model User {
   requisitionsRejected           Requisition[]           @relation("RequisitionRejecter")
   requisitionStageApprovals      RequisitionApproval[]   @relation("RequisitionStageApprover")
   requisitionAttachmentsUploaded RequisitionAttachment[] @relation("RequisitionAttachmentUploader")
+  taskAttachmentsUploaded        TaskAttachment[]        @relation("TaskAttachmentUploader")
+  incidentAttachmentsUploaded    IncidentAttachment[]    @relation("IncidentAttachmentUploader")
+  expenseAttachmentsUploaded     ExpenseAttachment[]     @relation("ExpenseAttachmentUploader")
 
   procurementWorkflowsCreated       ProcurementWorkflow[]      @relation("WorkflowCreator")
   procurementWorkflowStageApprovals ProcurementWorkflowStage[] @relation("StageApprover")
@@ -2147,24 +2150,41 @@ model Milestone {
 }
 
 model Task {
-  id          String     @id @default(uuid())
+  id          String           @id @default(uuid())
   projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
   description String?
-  status      TaskStatus @default(PENDING)
+  status      TaskStatus       @default(PENDING)
   assignedTo  String?
   dueDate     DateTime?
-  isCompleted Boolean    @default(false)
+  isCompleted Boolean          @default(false)
   completedAt DateTime?
-  order       Int        @default(0)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  order       Int              @default(0)
+  attachments TaskAttachment[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([projectId])
   @@index([status])
   @@index([assignedTo])
   @@map("tasks")
+}
+
+model TaskAttachment {
+  id           String   @id @default(uuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  filename     String
+  url          String
+  size         Int?
+  uploadedById String
+  uploadedBy   User     @relation("TaskAttachmentUploader", fields: [uploadedById], references: [id])
+  uploadedAt   DateTime @default(now())
+
+  @@index([taskId])
+  @@index([uploadedById])
+  @@map("task_attachments")
 }
 
 // Production & Field Operations System
@@ -2333,12 +2353,12 @@ model Expense {
   submittedBy   User            @relation("ExpenseSubmitter", fields: [submittedById], references: [id])
   approvedById  String?
   approvedBy    User?           @relation("ExpenseApprover", fields: [approvedById], references: [id])
-  status        ApprovalStatus  @default(PENDING)
+  status        ApprovalStatus      @default(PENDING)
   receipt       String?
   notes         String?
-  attachments   String[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  attachments   ExpenseAttachment[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   @@index([expenseNumber])
   @@index([category])
@@ -2346,6 +2366,22 @@ model Expense {
   @@index([status])
   @@index([expenseDate])
   @@map("expenses")
+}
+
+model ExpenseAttachment {
+  id           String   @id @default(uuid())
+  expenseId    String
+  expense      Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  fileName     String
+  fileUrl      String
+  fileType     String
+  uploadedById String
+  uploadedBy   User     @relation("ExpenseAttachmentUploader", fields: [uploadedById], references: [id])
+  uploadedAt   DateTime @default(now())
+
+  @@index([expenseId])
+  @@index([uploadedById])
+  @@map("expense_attachments")
 }
 
 model Budget {
@@ -2492,12 +2528,30 @@ model SafetyIncident {
   notes             String?          @db.Text
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  attachments       IncidentAttachment[]
 
   @@index([type])
   @@index([severity])
   @@index([status])
   @@index([incidentDate])
+  @@index([reportedBy])
   @@map("safety_incidents")
+}
+
+model IncidentAttachment {
+  id           String         @id @default(uuid())
+  incidentId   String
+  incident     SafetyIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  fileName     String
+  fileUrl      String
+  fileType     String
+  uploadedById String
+  uploadedBy   User           @relation("IncidentAttachmentUploader", fields: [uploadedById], references: [id])
+  uploadedAt   DateTime       @default(now())
+
+  @@index([incidentId])
+  @@index([uploadedById])
+  @@map("incident_attachments")
 }
 
 // HR & Personnel Management

@@ -9,6 +9,7 @@ import { WorkflowsController } from "./workflows.controller";
 import { WorkflowsService } from "./workflows.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { StorageService } from "../documents/services/storage.service";
 
 @Module({
   imports: [NotificationsModule],
@@ -24,6 +25,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
     PaymentRequestsService,
     WorkflowsService,
     PrismaService,
+    StorageService,
   ],
   exports: [
     ApprovalsService,

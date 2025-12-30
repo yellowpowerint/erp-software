@@ -16,6 +16,7 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { multerConfig } from "../documents/config/multer.config";
 import type { Response } from "express";
 import { FinanceService } from "./finance.service";
 import {
@@ -143,7 +144,6 @@ export class FinanceController {
       submittedById: req.user.userId,
       receipt: body.receipt,
       notes: body.notes,
-      attachments: body.attachments,
     });
   }
 
@@ -187,6 +187,30 @@ export class FinanceController {
     @Body() body: UpdateExpenseDto,
   ) {
     return this.financeService.updateExpense(id, body);
+  }
+
+  @Post("expenses/:id/attachments")
+  @Roles(
+    "SUPER_ADMIN",
+    "CEO",
+    "CFO",
+    "ACCOUNTANT",
+    "DEPARTMENT_HEAD",
+    "PROCUREMENT_OFFICER",
+    "OPERATIONS_MANAGER",
+    "IT_MANAGER",
+    "HR_MANAGER",
+    "SAFETY_OFFICER",
+    "WAREHOUSE_MANAGER",
+    "EMPLOYEE",
+  )
+  @UseInterceptors(FileInterceptor("file", multerConfig))
+  uploadExpenseAttachment(
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
+    return this.financeService.uploadExpenseAttachment(id, file, req.user.userId);
   }
 
   @Put("expenses/:id/receipt")

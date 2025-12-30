@@ -6,10 +6,14 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateSafetyIncidentDto, SafetyIncidentsListQueryDto } from "./dto";
+import { StorageService } from "../documents/services/storage.service";
 
 @Injectable()
 export class SafetyService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) {}
 
   private canSeeAllIncidents(role: string) {
     return [
@@ -580,5 +584,35 @@ export class SafetyService {
       expiringCertifications,
       scheduledDrills,
     };
+  }
+
+  async uploadIncidentAttachment(
+    incidentId: string,
+    file: Express.Multer.File,
+    userId: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException("File is required");
+    }
+
+    const incident = await this.prisma.safetyIncident.findUnique({
+      where: { id: incidentId },
+    });
+
+    if (!incident) {
+      throw new NotFoundException("Incident not found");
+    }
+
+    const upload = await this.storageService.uploadFile(file, "incidents");
+
+    return this.prisma.incidentAttachment.create({
+      data: {
+        incidentId,
+        fileName: file.originalname,
+        fileUrl: upload.url,
+        fileType: file.mimetype,
+        uploadedById: userId,
+      },
+    });
   }
 }
