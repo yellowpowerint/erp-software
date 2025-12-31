@@ -6,7 +6,13 @@ export type CsvModule =
   | 'warehouses'
   | 'projects'
   | 'project_tasks'
-  | 'assets';
+  | 'assets'
+  | 'fleet_assets'
+  | 'fleet_fuel'
+  | 'fleet_maintenance'
+  | 'fleet_inspections'
+  | 'fleet_assignments'
+  | 'fleet_breakdowns';
 
 export type ImportStatus = 'PENDING' | 'VALIDATING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 export type ExportStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';

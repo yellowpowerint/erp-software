@@ -1,0 +1,10 @@
+Run these commands on the VPS to complete the deployment:
+
+cd /var/www/mining-erp
+git pull origin main
+cd dev/frontend
+npm run build
+pm2 restart erp-frontend
+pm2 status
+
+The JSX syntax error has been fixed and pushed to GitHub.
