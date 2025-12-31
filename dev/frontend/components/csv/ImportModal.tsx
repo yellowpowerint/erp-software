@@ -68,6 +68,75 @@ function defaultKeysForModule(module: CsvModule): Array<{ key: string; required:
     return [{ key: 'title', required: true }];
   }
 
+  if (module === 'fleet_assets') {
+    return [
+      { key: 'assetCode', required: true },
+      { key: 'name', required: true },
+      { key: 'type', required: true },
+      { key: 'category', required: true },
+      { key: 'status', required: true },
+      { key: 'condition', required: true },
+      { key: 'currentLocation', required: true },
+    ];
+  }
+
+  if (module === 'fleet_fuel') {
+    return [
+      { key: 'transactionDate', required: true },
+      { key: 'transactionType', required: true },
+      { key: 'fuelType', required: true },
+      { key: 'quantity', required: true },
+      { key: 'unitPrice', required: true },
+      { key: 'siteLocation', required: true },
+      { key: 'assetCode', required: false },
+    ];
+  }
+
+  if (module === 'fleet_maintenance') {
+    return [
+      { key: 'name', required: true },
+      { key: 'type', required: true },
+      { key: 'frequency', required: true },
+      { key: 'intervalValue', required: true },
+      { key: 'intervalUnit', required: true },
+      { key: 'priority', required: true },
+      { key: 'assetCode', required: true },
+    ];
+  }
+
+  if (module === 'fleet_inspections') {
+    return [
+      { key: 'type', required: true },
+      { key: 'inspectionDate', required: true },
+      { key: 'overallResult', required: true },
+      { key: 'assetCode', required: true },
+      { key: 'score', required: false },
+      { key: 'followUpRequired', required: false },
+    ];
+  }
+
+  if (module === 'fleet_assignments') {
+    return [
+      { key: 'assetCode', required: true },
+      { key: 'operatorEmail', required: true },
+      { key: 'siteLocation', required: true },
+      { key: 'startDate', required: true },
+      { key: 'status', required: true },
+    ];
+  }
+
+  if (module === 'fleet_breakdowns') {
+    return [
+      { key: 'title', required: true },
+      { key: 'breakdownDate', required: true },
+      { key: 'location', required: true },
+      { key: 'siteLocation', required: true },
+      { key: 'category', required: true },
+      { key: 'severity', required: true },
+      { key: 'assetCode', required: true },
+    ];
+  }
+
   return [
     { key: 'assetCode', required: true },
     { key: 'name', required: true },
