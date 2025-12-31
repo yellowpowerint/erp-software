@@ -277,7 +277,7 @@ function Inner() {
         onClose={() => setExportOpen(false)}
         module="fleet_inspections"
         title="Export Fleet Inspections"
-        filters={{ assetId, inspectorId, type }}
+        defaultFilters={{ assetId, inspectorId, type }}
       />
     </DashboardLayout>
   );

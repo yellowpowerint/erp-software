@@ -281,7 +281,7 @@ function Inner() {
         onClose={() => setExportOpen(false)}
         module="fleet_breakdowns"
         title="Export Fleet Breakdowns"
-        filters={{ search, status, severity, activeOnly }}
+        defaultFilters={{ search, status, severity, activeOnly }}
       />
     </DashboardLayout>
   );

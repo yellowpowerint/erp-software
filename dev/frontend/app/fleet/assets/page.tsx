@@ -316,7 +316,7 @@ function FleetAssetsContent() {
         onClose={() => setExportOpen(false)}
         module="fleet_assets"
         title="Export Fleet Assets"
-        filters={{ type, status, condition, location, search }}
+        defaultFilters={{ type, status, condition, location, search }}
       />
     </DashboardLayout>
   );

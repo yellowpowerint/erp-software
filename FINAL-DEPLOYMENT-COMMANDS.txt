@@ -1,0 +1,52 @@
+===============================================
+FINAL DEPLOYMENT COMMANDS FOR VPS
+===============================================
+
+All fixes have been pushed to GitHub. Run these commands on your VPS:
+
+cd /var/www/mining-erp
+git pull origin main
+cd dev/frontend
+npm run build
+pm2 restart erp-frontend
+pm2 status
+
+===============================================
+WHAT WAS FIXED
+===============================================
+
+1. JSX syntax error in Fuel Management page (extra closing div tags)
+2. TypeScript type definition - added fleet module types to CsvModule
+
+Fleet module types added:
+- fleet_assets
+- fleet_fuel
+- fleet_maintenance
+- fleet_inspections
+- fleet_assignments
+- fleet_breakdowns
+
+===============================================
+VERIFICATION STEPS
+===============================================
+
+After deployment, verify:
+1. Website loads without 502 error
+2. Navigate to /fleet/assets
+3. Check that Export and Import buttons are visible
+4. Test Export functionality (should download CSV)
+5. Test Import modal (should open with template download option)
+
+===============================================
+GIT COMMITS
+===============================================
+
+- bce16ee: Add CSV import/export to Fleet Management pages (Vehicles, Fuel, Maintenance)
+- 48c3b0b: Add CSV import/export to Fleet Management pages (Maintenance, Inspections, Assignments, Breakdowns)
+- 9f73a94: Update ImportModal to support fleet module CSV keys
+- c2c7d42: Add deployment script for Fleet CSV import/export
+- f3053b4: Add deployment instructions for Fleet CSV import/export
+- 0163241: Fix JSX syntax error in Fuel Management page
+- 142b304: Add fleet module types to CsvModule type definition
+
+===============================================
