@@ -31,15 +31,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "mining-erp-mobile"
-      }
-    },
-    "owner": "yellowpowerinternational",
     "plugins": [
       "expo-font",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "544d7d27-373c-4a83-acaa-69c4b1208948"
+      }
+    }
   }
 }

@@ -1,0 +1,242 @@
+I'll review the mobile app structure and provide you with the exact commands for generating iOS IPA and Android APK/AAB files.
+
+# 📱 Mobile App Build Commands - iOS & Android
+
+Based on your Expo-based mobile app configuration, here are the exact commands for generating production builds:
+
+---
+
+## 🍎 **iOS - Generate IPA File**
+
+### **Prerequisites**
+1. Install EAS CLI globally:
+```bash
+npm install -g eas-cli
+```
+
+2. Login to Expo account:
+```bash
+eas login
+```
+
+3. Configure the project (first time only):
+```bash
+cd dev/mobile
+eas build:configure
+```
+
+### **Build Commands**
+
+#### **Option 1: Production IPA (for App Store)**
+```bash
+cd dev/mobile
+eas build --platform ios --profile production
+```
+
+#### **Option 2: Development Build (for testing)**
+```bash
+eas build --platform ios --profile development
+```
+
+#### **Option 3: Ad-hoc Distribution (TestFlight alternative)**
+```bash
+eas build --platform ios --profile preview
+```
+
+### **What You'll Need**
+- **Apple Developer Account** ($99/year)
+- **Bundle Identifier**: `com.yellowpowerinternational.miningerp` (already configured in [app.json](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/mobile/app.json:0:0-0:0))
+- **Certificates**: EAS will auto-generate or you can provide your own
+
+### **Download IPA**
+After build completes, EAS provides a download link. You can also run:
+```bash
+eas build:list
+```
+
+---
+
+## 🤖 **Android - Generate APK & AAB Files**
+
+### **APK (for Direct Installation/Testing)**
+
+```bash
+cd dev/mobile
+eas build --platform android --profile preview
+```
+
+**Output**: `.apk` file (ready to install directly on devices)
+
+### **AAB (for Google Play Store)**
+
+```bash
+cd dev/mobile
+eas build --platform android --profile production
+```
+
+**Output**: `.aab` file (Android App Bundle - required for Play Store)
+
+### **What You'll Need**
+- **Google Play Developer Account** ($25 one-time fee)
+- **Package Name**: `com.yellowpowerinternational.miningerp` (already configured)
+- **Keystore**: EAS will auto-generate or you can provide your own
+
+---
+
+## 🚀 **Build Both Platforms Simultaneously**
+
+```bash
+cd dev/mobile
+eas build --platform all --profile production
+```
+
+This builds both iOS (IPA) and Android (AAB) at the same time.
+
+---
+
+## 📋 **Current EAS Configuration**
+
+From your [eas.json](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/mobile/eas.json:0:0-0:0):
+
+```json
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"  // ← Generates APK
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "aab"  // ← Generates AAB for Play Store
+      }
+    }
+  }
+}
+```
+
+---
+
+## 🔧 **Alternative: Local Builds (Advanced)**
+
+If you prefer building locally instead of using EAS cloud:
+
+### **iOS (Requires macOS + Xcode)**
+
+1. **Prebuild native code**:
+```bash
+cd dev/mobile
+npx expo prebuild --platform ios
+```
+
+2. **Open in Xcode**:
+```bash
+open ios/MiningERP.xcworkspace
+```
+
+3. **In Xcode**:
+   - Select target device/simulator
+   - Product → Archive
+   - Distribute App → Export IPA
+
+### **Android (Any OS + Android Studio)**
+
+1. **Prebuild native code**:
+```bash
+cd dev/mobile
+npx expo prebuild --platform android
+```
+
+2. **Generate APK**:
+```bash
+cd android
+./gradlew assembleRelease
+```
+**Output**: `android/app/build/outputs/apk/release/app-release.apk`
+
+3. **Generate AAB**:
+```bash
+cd android
+./gradlew bundleRelease
+```
+**Output**: `android/app/build/outputs/bundle/release/app-release.aab`
+
+---
+
+## 📦 **Quick Reference Table**
+
+| Build Type | Platform | Command | Output | Use Case |
+|------------|----------|---------|--------|----------|
+| **APK** | Android | `eas build -p android --profile preview` | `.apk` | Direct install, testing |
+| **AAB** | Android | `eas build -p android --profile production` | `.aab` | Google Play Store |
+| **IPA** | iOS | `eas build -p ios --profile production` | `.ipa` | App Store |
+| **Both** | iOS + Android | `eas build -p all --profile production` | `.ipa` + `.aab` | Store submission |
+
+---
+
+## ⚙️ **Environment Setup Required**
+
+Before building, create `dev/mobile/.env` with:
+
+```env
+API_BASE_URL=https://api.yellowpowerinternational.com
+API_TIMEOUT=30000
+```
+
+---
+
+## 🎯 **Recommended Build Flow**
+
+1. **Testing Phase**:
+   ```bash
+   eas build --platform android --profile preview  # Get APK for testing
+   ```
+
+2. **Production Release**:
+   ```bash
+   eas build --platform all --profile production   # Get IPA + AAB for stores
+   ```
+
+3. **Submit to Stores**:
+   ```bash
+   eas submit --platform ios
+   eas submit --platform android
+   ```
+
+---
+
+## 📝 **Notes**
+
+- ✅ Your app is already configured with correct bundle IDs and package names
+- ✅ EAS Build handles code signing automatically (or you can provide your own certificates)
+- ✅ Build time: ~10-20 minutes per platform on EAS cloud
+- ✅ You can track builds at: https://expo.dev/accounts/yellowpowerinternational/projects/mining-erp-mobile
+
+**Ready to build?** Just run the commands above from the [dev/mobile](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/mobile:0:0-0:0) directory! 🚀
+
+----------
+
+Perfect! EAS has successfully configured your project and generated a valid `projectId`. 
+
+**Select "All"** to configure both iOS and Android platforms at once. This will set up everything you need for building both platforms.
+
+Use the arrow keys to select **"All"** and press Enter.
+
+After this completes, you'll be ready to build:
+
+**For testing (APK):**
+```bash
+eas build --platform android --profile preview
+```
+
+**For production (AAB + IPA):**
+```bash
+eas build --platform all --profile production
+```
+
+The configuration will set up the necessary credentials and build profiles for both platforms.
