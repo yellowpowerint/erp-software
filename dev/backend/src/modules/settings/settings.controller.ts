@@ -185,6 +185,12 @@ export class SettingsController {
     return this.settingsService.resetUserPassword(id, data.newPassword);
   }
 
+  @Post("users/bulk-import")
+  @Roles(UserRole.SUPER_ADMIN)
+  async bulkImportUsers(@Body() data: { users: any[] }) {
+    return this.settingsService.bulkImportUsers(data.users);
+  }
+
   @Post("change-password")
   async changePassword(
     @CurrentUser() user: any,

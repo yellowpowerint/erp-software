@@ -815,6 +815,65 @@ export class SettingsService {
     };
   }
 
+  async bulkImportUsers(users: any[]) {
+    let imported = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const userData of users) {
+      try {
+        if (!userData.email || !userData.firstName || !userData.lastName) {
+          failed++;
+          errors.push(`Missing required fields for user: ${userData.email || 'unknown'}`);
+          continue;
+        }
+
+        const existingUser = await this.prisma.user.findUnique({
+          where: { email: userData.email },
+        });
+
+        if (existingUser) {
+          failed++;
+          errors.push(`User already exists: ${userData.email}`);
+          continue;
+        }
+
+        const hashedPassword = userData.password
+          ? await bcrypt.hash(userData.password, 10)
+          : await bcrypt.hash('ChangeMe123!', 10);
+
+        await this.prisma.user.create({
+          data: {
+            email: userData.email,
+            password: hashedPassword,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            phone: userData.phone || null,
+            role: userData.role || 'EMPLOYEE',
+            status: userData.status || 'ACTIVE',
+            department: userData.department || null,
+            position: userData.position || null,
+            reportsToTitles: userData.reportsToTitles || [],
+            modulePermissions: userData.modulePermissions || {},
+            mustChangePassword: userData.mustChangePassword !== false,
+          },
+        });
+
+        imported++;
+      } catch (error) {
+        failed++;
+        errors.push(`Failed to import ${userData.email}: ${error.message}`);
+      }
+    }
+
+    return {
+      imported,
+      failed,
+      errors: errors.slice(0, 10),
+      message: `Imported ${imported} users, ${failed} failed`,
+    };
+  }
+
   // System Statistics
   async getSystemStats() {
     const [totalUsers, activeUsers, recentLogins, usersByRole] =

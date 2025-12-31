@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Users, ArrowLeft, Search, Plus, Edit, CheckCircle, XCircle } from 'lucide-react';
+import { Users, ArrowLeft, Search, Plus, Edit, CheckCircle, XCircle, Download, Upload } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { UserRole } from '@/types/auth';
@@ -97,6 +97,28 @@ const REPORTS_TO_TITLE_GROUPS = [
 ] as const;
 
 const REPORTS_TO_TITLES = REPORTS_TO_TITLE_GROUPS.flatMap((g) => g.items);
+
+const DEPARTMENTS = [
+  'Executive Management',
+  'Operations',
+  'Finance & Accounting',
+  'Procurement & Supply Chain',
+  'Human Resources',
+  'Information Technology',
+  'Mining Operations',
+  'Plant & Processing',
+  'Engineering & Maintenance',
+  'Exploration & Geology',
+  'Health, Safety & Environment (HSE)',
+  'Fleet & Transport',
+  'Warehouse & Logistics',
+  'Security',
+  'Administration',
+  'Legal & Compliance',
+  'Quality Assurance',
+  'Community Relations',
+  'Other',
+] as const;
 
 const ROLE_GROUPS = [
   {
@@ -481,6 +503,190 @@ function UserManagementContent() {
     }
   };
 
+  const handleExportCSV = () => {
+    const csvHeaders = [
+      'First Name',
+      'Last Name',
+      'Email',
+      'Phone',
+      'Department',
+      'Position',
+      'Role',
+      'Status',
+      'Reports To Titles',
+    ];
+
+    const csvRows = users.map((user) => [
+      user.firstName,
+      user.lastName,
+      user.email,
+      user.phone || '',
+      user.department || '',
+      user.position || '',
+      user.role,
+      user.status,
+      Array.isArray(user.reportsToTitles) ? user.reportsToTitles.join('; ') : '',
+    ]);
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadTemplate = () => {
+    const csvHeaders = [
+      'First Name',
+      'Last Name',
+      'Email',
+      'Phone',
+      'Department',
+      'Position',
+      'Role',
+      'Status',
+      'Reports To Titles',
+      'Password',
+      'Must Change Password',
+    ];
+
+    const sampleRows = [
+      [
+        'John',
+        'Doe',
+        'john.doe@example.com',
+        '+233123456789',
+        'Mining Operations',
+        'Mine Manager',
+        'OPERATIONS_MANAGER',
+        'ACTIVE',
+        'Managing Director (MD); Operations Manager',
+        'TempPass123!',
+        'true',
+      ],
+      [
+        'Jane',
+        'Smith',
+        'jane.smith@example.com',
+        '+233987654321',
+        'Finance & Accounting',
+        'Finance Manager',
+        'ACCOUNTANT',
+        'ACTIVE',
+        'Chief Operating Officer (COO)',
+        'SecurePass456!',
+        'true',
+      ],
+    ];
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...sampleRows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'users_import_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter((line) => line.trim());
+        
+        if (lines.length < 2) {
+          alert('CSV file is empty or invalid');
+          return;
+        }
+
+        const headers = lines[0].split(',').map((h) => h.replace(/^"|"$/g, '').trim());
+        const rows = lines.slice(1);
+
+        const usersToImport = rows.map((row) => {
+          const values = row.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)?.map((v) =>
+            v.replace(/^"|"$/g, '').replace(/""/g, '"').trim()
+          ) || [];
+
+          const userData: any = {};
+          headers.forEach((header, index) => {
+            const value = values[index] || '';
+            switch (header) {
+              case 'First Name':
+                userData.firstName = value;
+                break;
+              case 'Last Name':
+                userData.lastName = value;
+                break;
+              case 'Email':
+                userData.email = value;
+                break;
+              case 'Phone':
+                userData.phone = value || undefined;
+                break;
+              case 'Department':
+                userData.department = value || undefined;
+                break;
+              case 'Position':
+                userData.position = value || undefined;
+                break;
+              case 'Role':
+                userData.role = value || 'EMPLOYEE';
+                break;
+              case 'Status':
+                userData.status = value || 'ACTIVE';
+                break;
+              case 'Reports To Titles':
+                userData.reportsToTitles = value ? value.split(';').map((t) => t.trim()).filter(Boolean) : [];
+                break;
+              case 'Password':
+                userData.password = value || undefined;
+                break;
+              case 'Must Change Password':
+                userData.mustChangePassword = value.toLowerCase() === 'true';
+                break;
+            }
+          });
+
+          return userData;
+        });
+
+        const response = await api.post('/settings/users/bulk-import', { users: usersToImport });
+        alert(`Successfully imported ${response.data.imported} users. Failed: ${response.data.failed}`);
+        fetchUsers();
+      } catch (error: any) {
+        console.error('Failed to import users:', error);
+        alert(error.response?.data?.message || 'Failed to import users. Please check the CSV format.');
+      }
+    };
+
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
   const updateModulePermission = (
     moduleKey: ModuleKey,
     permission: 'view' | 'create' | 'update' | 'delete',
@@ -557,13 +763,41 @@ function UserManagementContent() {
               <p className="text-gray-600">Manage users, roles, and permissions</p>
             </div>
           </div>
-          <button
-            onClick={handleCreateUser}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add User</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 border border-gray-300"
+              title="Download CSV Template"
+            >
+              <Download className="w-4 h-4" />
+              <span>Template</span>
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              title="Export Users to CSV"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export</span>
+            </button>
+            <label className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
+              <Upload className="w-4 h-4" />
+              <span>Import</span>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleImportCSV}
+                className="hidden"
+              />
+            </label>
+            <button
+              onClick={handleCreateUser}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add User</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -762,12 +996,18 @@ function UserManagementContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                    <input
-                      type="text"
-                      value={formData.department}
+                    <select
+                      value={formData.department || ''}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
+                    >
+                      <option value="">Select Department</option>
+                      {DEPARTMENTS.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div />
                   <div className="col-span-2">
