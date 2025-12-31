@@ -88,6 +88,22 @@ export class AiService {
     return JSON.parse(content) as T;
   }
 
+  async openAiJsonRuntime<T>(opts: {
+    system: string;
+    user: string;
+    temperature?: number;
+  }): Promise<T | null> {
+    const cfg = await this.getOpenAiRuntime();
+    if (!cfg.enabled || cfg.provider !== "OPENAI" || !cfg.apiKey) return null;
+    return this.openAiJson<T>({
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      system: opts.system,
+      user: opts.user,
+      temperature: opts.temperature,
+    });
+  }
+
   private async tryOpenAiProjectSummary(
     project: any,
     stats: {
