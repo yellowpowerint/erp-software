@@ -248,8 +248,8 @@ function Inner() {
               <p className="text-sm text-gray-500">No fuel transactions found.</p>
             )}
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       <ImportModal
         open={importOpen}
