@@ -25,9 +25,11 @@ export class CareersService {
         description: true,
         requirements: true,
         responsibilities: true,
+        qualifications: true,
         benefits: true,
         openDate: true,
-        salaryRange: true,
+        salaryMin: true,
+        salaryMax: true,
       },
     });
   }
@@ -57,14 +59,13 @@ export class CareersService {
           email: dto.email,
           phone: dto.phone,
           resumeText: dto.resumeText,
-          source: 'WEBSITE',
+          linkedinUrl: dto.linkedinUrl,
         },
       });
     }
 
     const application = await this.prisma.application.create({
       data: {
-        applicationId: 'APP-' + Date.now(),
         jobPostingId: dto.jobPostingId,
         candidateId: candidate.id,
         status: 'SUBMITTED',
