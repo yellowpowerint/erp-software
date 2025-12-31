@@ -27,7 +27,10 @@ type ModuleKey =
   | "projects"
   | "project_tasks"
   | "assets"
-  | "fleet";
+  | "fleet"
+  | "hr_attendance"
+  | "hr_leave_requests"
+  | "hr_performance_reviews";
 
 type DuplicateStrategy = "skip" | "update" | "error";
 
@@ -737,6 +740,76 @@ export class CsvService {
           },
           { key: "dueDate", header: "dueDate", required: false, type: "date" },
           { key: "order", header: "order", required: false, type: "int" },
+        ],
+      };
+    }
+
+    if (module === "hr_attendance") {
+      return {
+        columns: [
+          { key: "employeeId", header: "employeeId", required: true, type: "string" },
+          { key: "date", header: "date", required: true, type: "date" },
+          {
+            key: "status",
+            header: "status",
+            required: true,
+            type: "enum",
+            enumValues: ["PRESENT", "ABSENT", "LATE", "HALF_DAY", "ON_LEAVE"],
+          },
+          { key: "checkIn", header: "checkIn", required: false, type: "string" },
+          { key: "checkOut", header: "checkOut", required: false, type: "string" },
+          { key: "notes", header: "notes", required: false, type: "string" },
+        ],
+      };
+    }
+
+    if (module === "hr_leave_requests") {
+      return {
+        columns: [
+          { key: "employeeId", header: "employeeId", required: true, type: "string" },
+          {
+            key: "leaveType",
+            header: "leaveType",
+            required: true,
+            type: "enum",
+            enumValues: ["ANNUAL", "SICK", "MATERNITY", "PATERNITY", "UNPAID", "EMERGENCY"],
+          },
+          { key: "startDate", header: "startDate", required: true, type: "date" },
+          { key: "endDate", header: "endDate", required: true, type: "date" },
+          { key: "reason", header: "reason", required: true, type: "string" },
+          {
+            key: "status",
+            header: "status",
+            required: false,
+            type: "enum",
+            enumValues: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
+          },
+        ],
+      };
+    }
+
+    if (module === "hr_performance_reviews") {
+      return {
+        columns: [
+          { key: "employeeId", header: "employeeId", required: true, type: "string" },
+          { key: "reviewPeriod", header: "reviewPeriod", required: true, type: "string" },
+          { key: "reviewDate", header: "reviewDate", required: true, type: "date" },
+          { key: "reviewerId", header: "reviewerId", required: true, type: "string" },
+          {
+            key: "overallRating",
+            header: "overallRating",
+            required: true,
+            type: "enum",
+            enumValues: ["EXCELLENT", "GOOD", "SATISFACTORY", "NEEDS_IMPROVEMENT", "UNSATISFACTORY"],
+          },
+          { key: "technicalSkills", header: "technicalSkills", required: false, type: "int" },
+          { key: "communication", header: "communication", required: false, type: "int" },
+          { key: "teamwork", header: "teamwork", required: false, type: "int" },
+          { key: "productivity", header: "productivity", required: false, type: "int" },
+          { key: "leadership", header: "leadership", required: false, type: "int" },
+          { key: "strengths", header: "strengths", required: false, type: "string" },
+          { key: "areasForImprovement", header: "areasForImprovement", required: false, type: "string" },
+          { key: "goals", header: "goals", required: false, type: "string" },
         ],
       };
     }
@@ -2092,6 +2165,173 @@ export class CsvService {
       return created;
     }
 
+    if (module === "hr_attendance") {
+      const employeeId = String(data.employeeId || "").trim();
+      if (!employeeId) {
+        throw new BadRequestException("Missing required field: employeeId");
+      }
+
+      const employee = await this.prisma.employee.findUnique({
+        where: { employeeId },
+      });
+      if (!employee) {
+        throw new BadRequestException(`Employee not found: ${employeeId}`);
+      }
+
+      const date = data.date ? new Date(data.date) : new Date();
+      const existing = await this.prisma.attendance.findFirst({
+        where: {
+          employeeId: employee.id,
+          date: {
+            gte: new Date(date.setHours(0, 0, 0, 0)),
+            lt: new Date(date.setHours(23, 59, 59, 999)),
+          },
+        },
+      });
+
+      if (existing) {
+        if (duplicateStrategy === "skip") {
+          return { skipped: true };
+        }
+        if (duplicateStrategy === "error") {
+          throw new BadRequestException(
+            `Attendance already exists for ${employeeId} on ${data.date}`,
+          );
+        }
+
+        const beforeAttendance = { ...existing };
+        const updated = await this.prisma.attendance.update({
+          where: { id: existing.id },
+          data: {
+            status: data.status ?? undefined,
+            checkIn: data.checkIn ? new Date(`${data.date}T${data.checkIn}`) : undefined,
+            checkOut: data.checkOut ? new Date(`${data.date}T${data.checkOut}`) : undefined,
+            notes: data.notes ?? undefined,
+          } as any,
+        });
+
+        await this.recordImportChange(
+          job,
+          "attendance",
+          updated.id,
+          "UPDATE",
+          beforeAttendance,
+          updated,
+        );
+        return updated;
+      }
+
+      const created = await this.prisma.attendance.create({
+        data: {
+          employeeId: employee.id,
+          date: new Date(data.date),
+          status: data.status,
+          checkIn: data.checkIn ? new Date(`${data.date}T${data.checkIn}`) : undefined,
+          checkOut: data.checkOut ? new Date(`${data.date}T${data.checkOut}`) : undefined,
+          notes: data.notes ?? undefined,
+        } as any,
+      });
+
+      await this.recordImportChange(
+        job,
+        "attendance",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
+    }
+
+    if (module === "hr_leave_requests") {
+      const employeeId = String(data.employeeId || "").trim();
+      if (!employeeId) {
+        throw new BadRequestException("Missing required field: employeeId");
+      }
+
+      const employee = await this.prisma.employee.findUnique({
+        where: { employeeId },
+      });
+      if (!employee) {
+        throw new BadRequestException(`Employee not found: ${employeeId}`);
+      }
+
+      const created = await this.prisma.leaveRequest.create({
+        data: {
+          employeeId: employee.id,
+          leaveType: data.leaveType,
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+          reason: data.reason,
+          status: data.status || "PENDING",
+        } as any,
+      });
+
+      await this.recordImportChange(
+        job,
+        "leaveRequest",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
+    }
+
+    if (module === "hr_performance_reviews") {
+      const employeeId = String(data.employeeId || "").trim();
+      const reviewerId = String(data.reviewerId || "").trim();
+      
+      if (!employeeId) {
+        throw new BadRequestException("Missing required field: employeeId");
+      }
+      if (!reviewerId) {
+        throw new BadRequestException("Missing required field: reviewerId");
+      }
+
+      const employee = await this.prisma.employee.findUnique({
+        where: { employeeId },
+      });
+      if (!employee) {
+        throw new BadRequestException(`Employee not found: ${employeeId}`);
+      }
+
+      const reviewer = await this.prisma.employee.findUnique({
+        where: { employeeId: reviewerId },
+      });
+      if (!reviewer) {
+        throw new BadRequestException(`Reviewer not found: ${reviewerId}`);
+      }
+
+      const created = await this.prisma.performanceReview.create({
+        data: {
+          employeeId: employee.id,
+          reviewPeriod: data.reviewPeriod,
+          reviewDate: new Date(data.reviewDate),
+          reviewerId: reviewer.id,
+          overallRating: data.overallRating,
+          technicalSkills: data.technicalSkills ?? undefined,
+          communication: data.communication ?? undefined,
+          teamwork: data.teamwork ?? undefined,
+          productivity: data.productivity ?? undefined,
+          leadership: data.leadership ?? undefined,
+          strengths: data.strengths ?? undefined,
+          areasForImprovement: data.areasForImprovement ?? undefined,
+          goals: data.goals ?? undefined,
+        } as any,
+      });
+
+      await this.recordImportChange(
+        job,
+        "performanceReview",
+        created.id,
+        "CREATE",
+        undefined,
+        created,
+      );
+      return created;
+    }
+
     if (module === "projects") {
       const projectCode = String(data.projectCode || "").trim();
       if (!projectCode) {
@@ -3110,6 +3350,52 @@ export class CsvService {
           assignedTo: "EMP-0001",
           dueDate: "2025-01-10",
           order: 1,
+        },
+      ];
+    }
+
+    if (module === "hr_attendance") {
+      return [
+        {
+          employeeId: "EMP001",
+          date: "2025-01-15",
+          status: "PRESENT",
+          checkIn: "08:00",
+          checkOut: "17:00",
+          notes: "On time",
+        },
+      ];
+    }
+
+    if (module === "hr_leave_requests") {
+      return [
+        {
+          employeeId: "EMP001",
+          leaveType: "ANNUAL",
+          startDate: "2025-02-01",
+          endDate: "2025-02-05",
+          reason: "Family vacation",
+          status: "PENDING",
+        },
+      ];
+    }
+
+    if (module === "hr_performance_reviews") {
+      return [
+        {
+          employeeId: "EMP001",
+          reviewPeriod: "Q4 2024",
+          reviewDate: "2025-01-10",
+          reviewerId: "MGR001",
+          overallRating: "EXCELLENT",
+          technicalSkills: 5,
+          communication: 5,
+          teamwork: 4,
+          productivity: 5,
+          leadership: 4,
+          strengths: "Strong technical skills and leadership qualities",
+          areasForImprovement: "Time management during peak periods",
+          goals: "Lead new mining automation project in Q1 2025",
         },
       ];
     }

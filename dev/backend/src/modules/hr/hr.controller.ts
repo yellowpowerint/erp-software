@@ -222,6 +222,253 @@ export class HrController {
     return { success: true, data: job };
   }
 
+  // ==================== CSV: Attendance ====================
+
+  @Post("attendance/import")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "HR_MANAGER", "DEPARTMENT_HEAD")
+  @UseInterceptors(FileInterceptor("file"))
+  async importAttendance(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mappings?: string; duplicateStrategy?: string },
+    @Request() req: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException("file is required");
+    }
+
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
+    const context = { duplicateStrategy: body.duplicateStrategy };
+    const job = await this.csvService.createImportJob(
+      "hr_attendance",
+      file,
+      req.user.userId,
+      mappings,
+      context,
+    );
+    return { success: true, data: job };
+  }
+
+  @Get("attendance/import/sample")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async downloadAttendanceSample(@Res({ passthrough: true }) res: Response) {
+    const template = await this.csvService.getSampleTemplate("hr_attendance");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=attendance-sample.csv`,
+    );
+    return template;
+  }
+
+  @Get("attendance/export")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async exportAttendance(
+    @Query("startDate") startDate: string | undefined,
+    @Query("endDate") endDate: string | undefined,
+    @Query("employeeId") employeeId: string | undefined,
+    @Query("status") status: string | undefined,
+    @Query("columns") columns: string | undefined,
+    @Request() req: any,
+  ) {
+    const cols = columns
+      ? String(columns)
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [
+          "employeeId",
+          "date",
+          "status",
+          "checkIn",
+          "checkOut",
+          "workHours",
+          "notes",
+        ];
+
+    const filters: any = {};
+    if (startDate) filters.startDate = new Date(startDate);
+    if (endDate) filters.endDate = new Date(endDate);
+    if (employeeId) filters.employeeId = employeeId;
+    if (status) filters.status = status;
+
+    const job = await this.csvService.createExportJob(
+      "hr_attendance",
+      filters,
+      cols,
+      req.user.userId,
+      undefined,
+    );
+    return { success: true, data: job };
+  }
+
+  // ==================== CSV: Leave Requests ====================
+
+  @Post("leave-requests/import")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "HR_MANAGER", "DEPARTMENT_HEAD")
+  @UseInterceptors(FileInterceptor("file"))
+  async importLeaveRequests(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mappings?: string; duplicateStrategy?: string },
+    @Request() req: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException("file is required");
+    }
+
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
+    const context = { duplicateStrategy: body.duplicateStrategy };
+    const job = await this.csvService.createImportJob(
+      "hr_leave_requests",
+      file,
+      req.user.userId,
+      mappings,
+      context,
+    );
+    return { success: true, data: job };
+  }
+
+  @Get("leave-requests/import/sample")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async downloadLeaveRequestsSample(@Res({ passthrough: true }) res: Response) {
+    const template = await this.csvService.getSampleTemplate("hr_leave_requests");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=leave-requests-sample.csv`,
+    );
+    return template;
+  }
+
+  @Get("leave-requests/export")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async exportLeaveRequests(
+    @Query("status") status: string | undefined,
+    @Query("leaveType") leaveType: string | undefined,
+    @Query("employeeId") employeeId: string | undefined,
+    @Query("columns") columns: string | undefined,
+    @Request() req: any,
+  ) {
+    const cols = columns
+      ? String(columns)
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [
+          "employeeId",
+          "leaveType",
+          "startDate",
+          "endDate",
+          "totalDays",
+          "reason",
+          "status",
+          "createdAt",
+        ];
+
+    const filters: any = {};
+    if (status) filters.status = status;
+    if (leaveType) filters.leaveType = leaveType;
+    if (employeeId) filters.employeeId = employeeId;
+
+    const job = await this.csvService.createExportJob(
+      "hr_leave_requests",
+      filters,
+      cols,
+      req.user.userId,
+      undefined,
+    );
+    return { success: true, data: job };
+  }
+
+  // ==================== CSV: Performance Reviews ====================
+
+  @Post("performance-reviews/import")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "HR_MANAGER", "DEPARTMENT_HEAD")
+  @UseInterceptors(FileInterceptor("file"))
+  async importPerformanceReviews(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mappings?: string; duplicateStrategy?: string },
+    @Request() req: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException("file is required");
+    }
+
+    const mappings = body.mappings
+      ? this.csvService.parseJson(body.mappings, "mappings")
+      : undefined;
+    const context = { duplicateStrategy: body.duplicateStrategy };
+    const job = await this.csvService.createImportJob(
+      "hr_performance_reviews",
+      file,
+      req.user.userId,
+      mappings,
+      context,
+    );
+    return { success: true, data: job };
+  }
+
+  @Get("performance-reviews/import/sample")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async downloadPerformanceReviewsSample(@Res({ passthrough: true }) res: Response) {
+    const template = await this.csvService.getSampleTemplate("hr_performance_reviews");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=performance-reviews-sample.csv`,
+    );
+    return template;
+  }
+
+  @Get("performance-reviews/export")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async exportPerformanceReviews(
+    @Query("employeeId") employeeId: string | undefined,
+    @Query("reviewPeriod") reviewPeriod: string | undefined,
+    @Query("columns") columns: string | undefined,
+    @Request() req: any,
+  ) {
+    const cols = columns
+      ? String(columns)
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [
+          "employeeId",
+          "reviewPeriod",
+          "reviewDate",
+          "reviewerId",
+          "overallRating",
+          "technicalSkills",
+          "communication",
+          "teamwork",
+          "productivity",
+          "leadership",
+          "strengths",
+          "areasForImprovement",
+          "goals",
+        ];
+
+    const filters: any = {};
+    if (employeeId) filters.employeeId = employeeId;
+    if (reviewPeriod) filters.reviewPeriod = reviewPeriod;
+
+    const job = await this.csvService.createExportJob(
+      "hr_performance_reviews",
+      filters,
+      cols,
+      req.user.userId,
+      undefined,
+    );
+    return { success: true, data: job };
+  }
+
   // Recruitment & AI HR Assistant
   @Post("recruitment/generate-job-description")
   generateJobDescription(@Body() body: any) {
