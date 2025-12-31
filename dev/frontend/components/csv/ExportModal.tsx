@@ -57,6 +57,18 @@ function defaultColumnsForModule(module: CsvModule): string[] {
     return ['title', 'description', 'status', 'assignedTo', 'dueDate', 'order', 'createdAt'];
   }
 
+  if (module === 'hr_attendance') {
+    return ['employeeId', 'employeeName', 'department', 'date', 'status', 'checkIn', 'checkOut', 'workHours', 'notes', 'createdAt'];
+  }
+
+  if (module === 'hr_leave_requests') {
+    return ['employeeId', 'employeeName', 'department', 'leaveType', 'startDate', 'endDate', 'totalDays', 'reason', 'status', 'approvedAt', 'createdAt'];
+  }
+
+  if (module === 'hr_performance_reviews') {
+    return ['employeeId', 'employeeName', 'department', 'reviewPeriod', 'reviewDate', 'reviewerId', 'reviewerName', 'overallRating', 'technicalSkills', 'communication', 'teamwork', 'productivity', 'leadership', 'strengths', 'areasForImprovement', 'goals', 'createdAt'];
+  }
+
   return ['assetCode', 'name', 'category', 'manufacturer', 'model', 'serialNumber', 'purchaseDate', 'purchasePrice', 'currentValue', 'depreciationRate', 'location', 'status', 'condition', 'assignedTo', 'notes', 'createdAt'];
 }
 

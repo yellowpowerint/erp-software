@@ -325,6 +325,9 @@ export class CsvService {
       "project_tasks",
       "assets",
       "fleet",
+      "hr_attendance",
+      "hr_leave_requests",
+      "hr_performance_reviews",
     ];
     if (!allowed.includes(m as ModuleKey)) {
       throw new BadRequestException(`Unsupported module: ${module}`);
@@ -2178,13 +2181,25 @@ export class CsvService {
         throw new BadRequestException(`Employee not found: ${employeeId}`);
       }
 
-      const date = data.date ? new Date(data.date) : new Date();
+      const rawDate = String(data.date || "").trim();
+      if (!rawDate) {
+        throw new BadRequestException("Missing required field: date");
+      }
+      const parsedDate = new Date(rawDate);
+      if (!Number.isFinite(parsedDate.getTime())) {
+        throw new BadRequestException(`Invalid date: ${rawDate}`);
+      }
+      const dayStart = new Date(parsedDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(parsedDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
       const existing = await this.prisma.attendance.findFirst({
         where: {
           employeeId: employee.id,
           date: {
-            gte: new Date(date.setHours(0, 0, 0, 0)),
-            lt: new Date(date.setHours(23, 59, 59, 999)),
+            gte: dayStart,
+            lt: dayEnd,
           },
         },
       });
@@ -2204,8 +2219,8 @@ export class CsvService {
           where: { id: existing.id },
           data: {
             status: data.status ?? undefined,
-            checkIn: data.checkIn ? new Date(`${data.date}T${data.checkIn}`) : undefined,
-            checkOut: data.checkOut ? new Date(`${data.date}T${data.checkOut}`) : undefined,
+            checkIn: data.checkIn ? new Date(`${rawDate}T${data.checkIn}`) : undefined,
+            checkOut: data.checkOut ? new Date(`${rawDate}T${data.checkOut}`) : undefined,
             notes: data.notes ?? undefined,
           } as any,
         });
@@ -2224,10 +2239,10 @@ export class CsvService {
       const created = await this.prisma.attendance.create({
         data: {
           employeeId: employee.id,
-          date: new Date(data.date),
+          date: dayStart,
           status: data.status,
-          checkIn: data.checkIn ? new Date(`${data.date}T${data.checkIn}`) : undefined,
-          checkOut: data.checkOut ? new Date(`${data.date}T${data.checkOut}`) : undefined,
+          checkIn: data.checkIn ? new Date(`${rawDate}T${data.checkIn}`) : undefined,
+          checkOut: data.checkOut ? new Date(`${rawDate}T${data.checkOut}`) : undefined,
           notes: data.notes ?? undefined,
         } as any,
       });
@@ -2256,12 +2271,17 @@ export class CsvService {
         throw new BadRequestException(`Employee not found: ${employeeId}`);
       }
 
+      const startDate = new Date(data.startDate);
+      const endDate = new Date(data.endDate);
+      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
       const created = await this.prisma.leaveRequest.create({
         data: {
           employeeId: employee.id,
           leaveType: data.leaveType,
-          startDate: new Date(data.startDate),
-          endDate: new Date(data.endDate),
+          startDate,
+          endDate,
+          totalDays,
           reason: data.reason,
           status: data.status || "PENDING",
         } as any,
@@ -2303,12 +2323,15 @@ export class CsvService {
         throw new BadRequestException(`Reviewer not found: ${reviewerId}`);
       }
 
+      const reviewerName = `${reviewer.firstName} ${reviewer.lastName}`.trim();
+
       const created = await this.prisma.performanceReview.create({
         data: {
           employeeId: employee.id,
           reviewPeriod: data.reviewPeriod,
           reviewDate: new Date(data.reviewDate),
           reviewerId: reviewer.id,
+          reviewerName,
           overallRating: data.overallRating,
           technicalSkills: data.technicalSkills ?? undefined,
           communication: data.communication ?? undefined,
@@ -2804,6 +2827,90 @@ export class CsvService {
         orderBy: { createdAt: "desc" },
       });
       return items.map((x) => this.pickColumns(x as any, columns));
+    }
+
+    if (module === "hr_attendance") {
+      const items = await this.prisma.attendance.findMany({
+        where,
+        include: {
+          employee: {
+            select: {
+              employeeId: true,
+              firstName: true,
+              lastName: true,
+              department: true,
+            },
+          },
+        },
+        orderBy: { date: "desc" },
+      });
+      return items.map((item) =>
+        this.pickColumns(
+          {
+            ...item,
+            employeeId: item.employee?.employeeId,
+            employeeName: `${item.employee?.firstName || ""} ${item.employee?.lastName || ""}`.trim(),
+            department: item.employee?.department,
+          } as any,
+          columns,
+        ),
+      );
+    }
+
+    if (module === "hr_leave_requests") {
+      const items = await this.prisma.leaveRequest.findMany({
+        where,
+        include: {
+          employee: {
+            select: {
+              employeeId: true,
+              firstName: true,
+              lastName: true,
+              department: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      return items.map((item) =>
+        this.pickColumns(
+          {
+            ...item,
+            employeeId: item.employee?.employeeId,
+            employeeName: `${item.employee?.firstName || ""} ${item.employee?.lastName || ""}`.trim(),
+            department: item.employee?.department,
+          } as any,
+          columns,
+        ),
+      );
+    }
+
+    if (module === "hr_performance_reviews") {
+      const items = await this.prisma.performanceReview.findMany({
+        where,
+        include: {
+          employee: {
+            select: {
+              employeeId: true,
+              firstName: true,
+              lastName: true,
+              department: true,
+            },
+          },
+        },
+        orderBy: { reviewDate: "desc" },
+      });
+      return items.map((item) =>
+        this.pickColumns(
+          {
+            ...item,
+            employeeId: item.employee?.employeeId,
+            employeeName: `${item.employee?.firstName || ""} ${item.employee?.lastName || ""}`.trim(),
+            department: item.employee?.department,
+          } as any,
+          columns,
+        ),
+      );
     }
 
     const items = await this.prisma.asset.findMany({

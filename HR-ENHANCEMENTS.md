@@ -63,3 +63,21 @@ JOB001,Mining Engineer,Operations,Accra,FULL_TIME,SENIOR
 4. Add Payroll Module (High - critical)
 5. Add Training Module (Medium)
 6. Add Employee Self-Service (High - reduces HR workload)
+
+
+---------
+
+cd /var/www/mining-erp
+git pull origin main
+
+# Backend
+cd dev/backend
+npm ci && npm run build && npx prisma generate
+pm2 restart erp-backend
+
+# Frontend  
+cd ../frontend
+npm ci && npm run build
+pm2 restart erp-frontend
+
+pm2 status
