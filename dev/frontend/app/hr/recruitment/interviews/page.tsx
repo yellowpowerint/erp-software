@@ -81,7 +81,7 @@ function InterviewsPageContent() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this interview?')) return;
     try {
-      await api.delete(/hr/recruitment/interviews/);
+      await api.delete(`/hr/recruitment/interviews/${id}`);
       fetchInterviews();
     } catch (error) {
       alert('Failed to delete interview');
@@ -91,7 +91,7 @@ function InterviewsPageContent() {
   const handleGenerateSummary = async (id: string) => {
     if (!confirm('Generate AI summary for this interview?')) return;
     try {
-      await api.post(/hr/recruitment/generate-interview-summary/);
+      await api.post(`/hr/recruitment/generate-interview-summary/${id}`);
       alert('AI summary generated successfully');
       fetchInterviews();
     } catch (error) {
@@ -100,7 +100,7 @@ function InterviewsPageContent() {
   };
 
   const filteredInterviews = interviews.filter(i =>
-    ${i.candidate?.firstName}   .toLowerCase().includes(searchTerm.toLowerCase())
+    `${i.candidate?.firstName} ${i.candidate?.lastName} ${i.interviewType} ${i.location}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {

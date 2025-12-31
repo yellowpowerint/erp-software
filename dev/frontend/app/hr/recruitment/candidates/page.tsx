@@ -45,7 +45,7 @@ function CandidatesPageContent() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure?')) return;
     try {
-      await api.delete(/hr/recruitment/candidates/);
+      await api.delete(`/hr/recruitment/candidates/${id}`);
       fetchCandidates();
     } catch (error) {
       alert('Failed to delete candidate');
@@ -53,7 +53,7 @@ function CandidatesPageContent() {
   };
 
   const filteredCandidates = candidates.filter(c =>
-    ${c.firstName}  .toLowerCase().includes(searchTerm.toLowerCase())
+    `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
