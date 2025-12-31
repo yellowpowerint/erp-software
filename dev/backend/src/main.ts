@@ -19,6 +19,12 @@ async function bootstrap() {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  
+  // Add company website domains for careers integration
+  allowedOrigins.push(
+    "https://yellowpowerinternational.com",
+    "https://www.yellowpowerinternational.com"
+  );
 
   app.enableCors({
     origin: (origin, callback) => {

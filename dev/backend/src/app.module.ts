@@ -24,6 +24,7 @@ import { CsvModule } from "./modules/csv/csv.module";
 import { ProcurementModule } from "./modules/procurement/procurement.module";
 import { FleetModule } from "./modules/fleet/fleet.module";
 import { MobileModule } from "./modules/mobile/mobile.module";
+import { CareersModule } from "./modules/careers/careers.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
 
 @Module({
@@ -52,6 +53,7 @@ import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
     ProcurementModule,
     FleetModule,
     MobileModule,
+    CareersModule,
   ],
   controllers: [AppController],
   providers: [
