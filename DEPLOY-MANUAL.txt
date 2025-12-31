@@ -1,0 +1,38 @@
+HR CSV DEPLOYMENT - MANUAL STEPS
+=================================
+
+CODE PUSHED: Commit e0f19d1 to main branch
+
+DEPLOY ON VPS (216.158.230.187):
+
+1. ssh root@216.158.230.187
+
+2. cd /var/www/mining-erp && git pull origin main
+
+3. Backend:
+   cd dev/backend
+   npm ci && npm run build && npx prisma generate
+   pm2 restart erp-backend
+
+4. Frontend:
+   cd ../frontend
+   npm ci && npm run build
+   pm2 restart erp-frontend
+
+5. Verify:
+   pm2 status
+   pm2 logs erp-backend --lines 20
+   pm2 logs erp-frontend --lines 20
+
+WHAT WAS FIXED:
+- Backend: HR module support in normalizeModule()
+- Backend: Attendance date validation & duplicate detection
+- Backend: Leave requests totalDays calculation
+- Backend: Performance reviews reviewerName field
+- Backend: Export row fetching for all 3 HR modules
+- Frontend: Default export columns for HR modules
+
+TEST AFTER DEPLOY:
+- /hr/attendance - Import/Export buttons work
+- /hr/leave-requests - Import/Export buttons work
+- /hr/performance - Import/Export buttons work
