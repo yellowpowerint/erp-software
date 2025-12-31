@@ -5,8 +5,10 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/lib/api';
-import { AlertTriangle, Droplet, Fuel, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Droplet, Fuel, TrendingUp, Download, Upload } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 type FuelTank = {
   id: string;
@@ -51,6 +53,8 @@ function Inner() {
   const [recent, setRecent] = useState<Paginated<FuelRecordRow> | null>(null);
   const [efficiency, setEfficiency] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -92,6 +96,24 @@ function Inner() {
           <p className="text-gray-600 mt-1">Track fuel transactions, site tanks, and consumption trends</p>
         </div>
         <div className="flex gap-2">
+          {canManage && (
+            <>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Import
+              </button>
+            </>
+          )}
           <Link
             href="/fleet/fuel/record"
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
@@ -226,8 +248,25 @@ function Inner() {
               <p className="text-sm text-gray-500">No fuel transactions found.</p>
             )}
           </div>
-        </>
-      )}
+        </div>
+      </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          window.location.reload();
+        }}
+        module="fleet_fuel"
+        title="Import Fuel Records"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="fleet_fuel"
+        title="Export Fuel Records"
+      />
     </DashboardLayout>
   );
 }

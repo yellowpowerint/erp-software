@@ -5,8 +5,10 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/lib/api';
-import { Calendar, AlertTriangle, Plus } from 'lucide-react';
+import { Calendar, AlertTriangle, Plus, Download, Upload } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 type ScheduleRow = {
   id: string;
@@ -35,6 +37,8 @@ function FleetMaintenanceDashboardContent() {
   const [costs, setCosts] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [runningReminders, setRunningReminders] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const canManage = useMemo(() => {
     return !!user && ['SUPER_ADMIN', 'CEO', 'CFO', 'OPERATIONS_MANAGER', 'WAREHOUSE_MANAGER'].includes(user.role);
