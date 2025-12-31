@@ -1,12 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { LeaveStatus, LeaveType, UserRole } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { AiService } from "../ai/ai.service";
 import { CreateLeaveRequestDto } from "./dto/create-leave-request.dto";
 import { UpdateLeaveStatusDto } from "./dto/update-leave-status.dto";
 
 @Injectable()
 export class HrService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private aiService: AiService,
+  ) {}
 
   private canViewSensitiveEmployeeFields(role?: UserRole) {
     return role === "SUPER_ADMIN" || role === "HR_MANAGER";
@@ -565,43 +569,38 @@ export class HrService {
     level?: string;
     requirements?: string;
   }) {
-    // AI-powered job description generation
-    const description = `We are seeking a talented ${data.title} to join our ${data.department} team. 
-This role offers an excellent opportunity to contribute to our mining operations and advance your career in a dynamic environment.
+    type Out = {
+      description: string;
+      responsibilities: string;
+      requirements: string;
+      qualifications: string;
+    };
 
-The successful candidate will be responsible for ${data.title.toLowerCase()} duties, collaborating with cross-functional teams, and driving excellence in ${data.department.toLowerCase()}.`;
+    const out = await this.aiService.openAiJsonRuntime<Out>({
+      system:
+        "You are an HR assistant for a mining ERP. Generate structured job posting content. Output must be valid JSON with keys: description, responsibilities, requirements, qualifications. Keep each field concise and business-ready.",
+      user:
+        "Generate a job description package for: " +
+        JSON.stringify({
+          title: data.title,
+          department: data.department,
+          level: data.level ?? null,
+          additionalRequirements: data.requirements ?? null,
+        }),
+      temperature: 0.2,
+    });
 
-    const responsibilities = [
-      `Lead and execute ${data.title.toLowerCase()} initiatives within the ${data.department} department`,
-      "Collaborate with team members to achieve operational excellence",
-      "Maintain high standards of safety and compliance",
-      "Contribute to continuous improvement processes",
-      "Participate in training and development programs",
-    ].join("\n• ");
-
-    const requirements = [
-      `Proven experience in ${data.title.toLowerCase()} or related field`,
-      data.requirements ||
-        "Relevant educational background or equivalent experience",
-      "Strong communication and interpersonal skills",
-      "Ability to work effectively in a team environment",
-      "Commitment to safety and environmental standards",
-      "Mining industry experience preferred",
-    ].join("\n• ");
-
-    const qualifications = [
-      "Bachelor's degree in relevant field or equivalent experience",
-      "2-5 years of experience in a similar role",
-      "Technical proficiency in industry-standard tools",
-      "Valid certifications as required for the role",
-      "Strong analytical and problem-solving abilities",
-    ].join("\n• ");
+    if (!out) {
+      throw new ServiceUnavailableException(
+        "AI is not configured. Set AI_ENABLED=true and OPENAI_API_KEY (or AI_OPENAI_API_KEY).",
+      );
+    }
 
     return {
-      description,
-      responsibilities: "• " + responsibilities,
-      requirements: "• " + requirements,
-      qualifications: "• " + qualifications,
+      description: String(out.description ?? "").trim(),
+      responsibilities: String(out.responsibilities ?? "").trim(),
+      requirements: String(out.requirements ?? "").trim(),
+      qualifications: String(out.qualifications ?? "").trim(),
     };
   }
 
@@ -665,32 +664,51 @@ The successful candidate will be responsible for ${data.title.toLowerCase()} dut
 
   // CV Parsing (AI)
   async parseCV(data: { candidateId: string; resumeText: string }) {
-    // AI-powered CV parsing
-    const skills = [
-      "Leadership",
-      "Project Management",
-      "Technical Analysis",
-      "Communication",
-      "Problem Solving",
-    ];
+    type Out = {
+      skills: string[];
+      experience?: string;
+      education?: string;
+      yearsExperience?: number;
+      aiSummary?: string;
+    };
 
-    const experience = `Professional with proven track record in the mining industry.
-Demonstrated expertise in operational excellence and team collaboration.
-Strong background in safety compliance and process improvement.`;
+    const out = await this.aiService.openAiJsonRuntime<Out>({
+      system:
+        "You are an HR assistant. Extract structured candidate info from resume text. Output valid JSON with keys: skills (string[]), experience (string), education (string), yearsExperience (number), aiSummary (string). Keep skills <= 20.",
+      user:
+        "Parse this resume into structured fields. Resume text: " +
+        JSON.stringify({ resumeText: data.resumeText }),
+      temperature: 0.2,
+    });
 
-    const education =
-      "Bachelor's Degree in relevant field\nProfessional certifications";
+    if (!out) {
+      throw new ServiceUnavailableException(
+        "AI is not configured. Set AI_ENABLED=true and OPENAI_API_KEY (or AI_OPENAI_API_KEY).",
+      );
+    }
 
-    const yearsExperience = Math.floor(Math.random() * 10) + 2;
+    const skills = Array.isArray(out.skills)
+      ? out.skills
+          .map((s) => String(s).trim())
+          .filter((s) => s.length > 0)
+          .slice(0, 20)
+      : [];
+
+    const yearsExperience =
+      typeof out.yearsExperience === "number" && Number.isFinite(out.yearsExperience)
+        ? Math.max(0, Math.round(out.yearsExperience))
+        : undefined;
 
     return this.prisma.candidate.update({
       where: { id: data.candidateId },
       data: {
         cvParsed: true,
+        resumeText: data.resumeText,
         skills,
-        experience,
-        education,
+        experience: out.experience ? String(out.experience).trim() : undefined,
+        education: out.education ? String(out.education).trim() : undefined,
         yearsExperience,
+        aiSummary: out.aiSummary ? String(out.aiSummary).trim() : undefined,
       },
     });
   }
@@ -709,34 +727,69 @@ Strong background in safety compliance and process improvement.`;
       throw new NotFoundException("Application not found");
     }
 
-    // AI-powered screening
-    const aiScore = Math.random() * 40 + 60; // 60-100 range
-    const skillMatch = Math.random() * 30 + 70;
-    const experienceMatch = Math.random() * 30 + 65;
-    const cultureFit = Math.random() * 25 + 70;
+    type Out = {
+      aiScore: number;
+      skillMatch: number;
+      experienceMatch: number;
+      cultureFit: number;
+      aiRecommendation: string;
+      aiStrengths: string[];
+      aiWeaknesses: string[];
+    };
 
-    const aiRecommendation =
-      aiScore >= 85
-        ? "Highly Recommended - This candidate demonstrates exceptional qualifications and strong alignment with role requirements. Proceed to interview stage."
-        : aiScore >= 75
-          ? "Recommended - Candidate shows good potential and meets most job requirements. Consider for interview."
-          : aiScore >= 65
-            ? "Consider - Candidate meets basic requirements but may need additional evaluation."
-            : "Further Review Needed - Candidate may require skill development or additional experience.";
+    const out = await this.aiService.openAiJsonRuntime<Out>({
+      system:
+        "You are an HR recruitment screening assistant for a mining company. Score the candidate for the job. Output valid JSON with keys: aiScore, skillMatch, experienceMatch, cultureFit (0-100 numbers), aiRecommendation (string), aiStrengths (string[]), aiWeaknesses (string[]). Keep arrays <= 6.",
+      user:
+        "Screen this candidate application. Data: " +
+        JSON.stringify({
+          job: {
+            title: application.jobPosting.title,
+            department: application.jobPosting.department,
+            location: application.jobPosting.location,
+            jobType: application.jobPosting.jobType,
+            requirements: data.jobRequirements || application.jobPosting.requirements,
+            description: application.jobPosting.description,
+          },
+          candidate: {
+            firstName: application.candidate.firstName,
+            lastName: application.candidate.lastName,
+            email: application.candidate.email,
+            skills: application.candidate.skills,
+            experience: application.candidate.experience,
+            education: application.candidate.education,
+            yearsExperience: application.candidate.yearsExperience,
+            resumeText: application.candidate.resumeText,
+          },
+        }),
+      temperature: 0.2,
+    });
 
-    const aiStrengths = [
-      "Strong technical background and relevant experience",
-      "Demonstrated leadership capabilities",
-      "Excellent communication skills",
-      "Proven track record in similar roles",
-    ];
+    if (!out) {
+      throw new ServiceUnavailableException(
+        "AI is not configured. Set AI_ENABLED=true and OPENAI_API_KEY (or AI_OPENAI_API_KEY).",
+      );
+    }
 
-    const aiWeaknesses = [
-      "Limited experience with specific mining equipment",
-      "May benefit from additional safety certifications",
-    ];
+    const clamp = (n) => {
+      const x = Number(n);
+      if (!Number.isFinite(x)) return 0;
+      return Math.max(0, Math.min(100, x));
+    };
 
-    // Update application with AI screening
+    const aiScore = clamp(out.aiScore);
+    const skillMatch = clamp(out.skillMatch);
+    const experienceMatch = clamp(out.experienceMatch);
+    const cultureFit = clamp(out.cultureFit);
+
+    const aiRecommendation = String(out.aiRecommendation ?? "").trim();
+    const aiStrengths = Array.isArray(out.aiStrengths)
+      ? out.aiStrengths.map((s) => String(s).trim()).filter(Boolean).slice(0, 6)
+      : [];
+    const aiWeaknesses = Array.isArray(out.aiWeaknesses)
+      ? out.aiWeaknesses.map((s) => String(s).trim()).filter(Boolean).slice(0, 6)
+      : [];
+
     await this.prisma.application.update({
       where: { id: data.applicationId },
       data: {
@@ -750,7 +803,6 @@ Strong background in safety compliance and process improvement.`;
       },
     });
 
-    // Update candidate with AI analysis
     await this.prisma.candidate.update({
       where: { id: application.candidateId },
       data: {
@@ -874,26 +926,50 @@ Strong background in safety compliance and process improvement.`;
       throw new NotFoundException("Interview not found");
     }
 
-    const aiSummary = `Interview conducted for ${interview.candidate.firstName} ${interview.candidate.lastName} for the position of ${interview.application.jobPosting.title}.
+    type Out = {
+      aiSummary: string;
+      aiKeyPoints: string[];
+      aiRecommendation: string;
+    };
 
-The candidate demonstrated strong technical knowledge and excellent communication skills. They showed enthusiasm for the role and aligned well with the company values.
+    const out = await this.aiService.openAiJsonRuntime<Out>({
+      system:
+        "You are an HR assistant. Generate a concise interview summary for internal hiring records. Output valid JSON with keys: aiSummary (string), aiKeyPoints (string[]), aiRecommendation (string). Keep aiKeyPoints <= 8.",
+      user:
+        "Generate an interview summary from this data: " +
+        JSON.stringify({
+          candidate: {
+            firstName: interview.candidate.firstName,
+            lastName: interview.candidate.lastName,
+            email: interview.candidate.email,
+          },
+          job: {
+            title: interview.application.jobPosting.title,
+            department: interview.application.jobPosting.department,
+          },
+          interview: {
+            interviewType: interview.interviewType,
+            scheduledDate: interview.scheduledDate,
+            duration: interview.duration,
+            interviewers: interview.interviewers,
+            feedback: interview.feedback,
+            rating: interview.rating,
+          },
+        }),
+      temperature: 0.2,
+    });
 
-Key discussion points included previous experience, technical competencies, and career aspirations. The candidate asked thoughtful questions about the role and team structure.`;
+    if (!out) {
+      throw new ServiceUnavailableException(
+        "AI is not configured. Set AI_ENABLED=true and OPENAI_API_KEY (or AI_OPENAI_API_KEY).",
+      );
+    }
 
-    const aiKeyPoints = [
-      "Strong technical background relevant to the position",
-      "Excellent communication and interpersonal skills",
-      "Demonstrated problem-solving abilities through real examples",
-      "Cultural fit appears positive",
-      "Salary expectations align with budget",
-    ];
-
-    const aiRecommendation =
-      interview.rating && interview.rating >= 4
-        ? "Strongly recommend moving forward with an offer. Candidate exceeds expectations."
-        : interview.rating && interview.rating >= 3
-          ? "Recommend for next interview round. Candidate shows good potential."
-          : "Consider other candidates or provide additional evaluation.";
+    const aiSummary = String(out.aiSummary ?? "").trim();
+    const aiKeyPoints = Array.isArray(out.aiKeyPoints)
+      ? out.aiKeyPoints.map((s) => String(s).trim()).filter(Boolean).slice(0, 8)
+      : [];
+    const aiRecommendation = String(out.aiRecommendation ?? "").trim();
 
     await this.prisma.interview.update({
       where: { id: interviewId },

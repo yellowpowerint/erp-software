@@ -56,8 +56,7 @@ function CandidatesPageContent() {
           <div className="space-y-4">
             {candidates.map((candidate) => (
               <div key={candidate.id} className="border rounded p-4">
-                <h3 className="font-semibold">{candidate.firstName} {candidate.lastName}</h3>
-                <p className="text-sm text-gray-600">{candidate.email}</p>
+                <div className="flex justify-between mb-2"><h3 className="font-semibold">{candidate.firstName} {candidate.lastName}</h3><span className="px-2 py-1 text-xs rounded bg-gray-100">{candidate.status}</span></div><p className="text-sm text-gray-600">{candidate.email}</p>{candidate.phone && <p className="text-sm text-gray-600">Phone: {candidate.phone}</p>}
               </div>
             ))}
           </div>

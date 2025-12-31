@@ -471,6 +471,7 @@ export class HrController {
 
   // Recruitment & AI HR Assistant
   @Post("recruitment/generate-job-description")
+  @Roles("HR_MANAGER", "SUPER_ADMIN")
   generateJobDescription(@Body() body: any) {
     return this.hrService.generateJobDescription(body);
   }
@@ -504,6 +505,7 @@ export class HrController {
   }
 
   @Post("recruitment/parse-cv")
+  @Roles("HR_MANAGER", "SUPER_ADMIN")
   parseCV(@Body() body: any) {
     return this.hrService.parseCV(body);
   }
@@ -527,6 +529,7 @@ export class HrController {
   }
 
   @Post("recruitment/screen-candidate")
+  @Roles("HR_MANAGER", "SUPER_ADMIN")
   screenCandidate(@Body() body: any) {
     return this.hrService.screenCandidate(body);
   }
@@ -550,6 +553,7 @@ export class HrController {
   }
 
   @Post("recruitment/generate-interview-summary/:id")
+  @Roles("HR_MANAGER", "SUPER_ADMIN")
   generateInterviewSummary(@Param("id") id: string) {
     return this.hrService.generateInterviewSummary(id);
   }

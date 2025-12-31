@@ -56,8 +56,31 @@ function InterviewsPageContent() {
           <div className="space-y-4">
             {interviews.map((interview) => (
               <div key={interview.id} className="border rounded p-4">
-                <h3 className="font-semibold">{interview.title}</h3>
-                <p className="text-sm text-gray-600">{interview.scheduledAt}</p>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-semibold">
+                    {interview.candidate?.firstName} {interview.candidate?.lastName} - {interview.interviewType}
+                  </h3>
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    interview.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                    interview.status === 'SCHEDULED' ? 'bg-blue-100 text-blue-800' :
+                    interview.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {interview.status}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Scheduled: {new Date(interview.scheduledDate).toLocaleString()}
+                </p>
+                {interview.location && (
+                  <p className="text-sm text-gray-600">Location: {interview.location}</p>
+                )}
+                {interview.duration && (
+                  <p className="text-sm text-gray-600">Duration: {interview.duration} minutes</p>
+                )}
+                {interview.rating && (
+                  <p className="text-sm text-gray-600">Rating: {interview.rating}/5</p>
+                )}
               </div>
             ))}
           </div>

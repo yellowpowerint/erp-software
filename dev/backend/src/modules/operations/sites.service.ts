@@ -58,7 +58,7 @@ export class SitesService {
             productionLogs: true,
             fieldReports: true,
             shifts: true,
-            equipmentUsage: true,
+            usageLogs: true,
           },
         },
       },
@@ -91,7 +91,7 @@ export class SitesService {
             productionLogs: true,
             fieldReports: true,
             shifts: true,
-            equipmentUsage: true,
+            usageLogs: true,
           },
         },
       },
@@ -145,7 +145,7 @@ export class SitesService {
   async deleteSite(id: string) {
     const site = await this.getSiteById(id);
 
-    if (site._count.projects > 0) {
+    if (site._count && site._count.projects > 0) {
       throw new BadRequestException(
         'Cannot delete site with associated projects. Remove or reassign projects first.',
       );
