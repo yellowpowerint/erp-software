@@ -12,7 +12,10 @@ export type CsvModule =
   | 'fleet_maintenance'
   | 'fleet_inspections'
   | 'fleet_assignments'
-  | 'fleet_breakdowns';
+  | 'fleet_breakdowns'
+  | 'hr_attendance'
+  | 'hr_leave_requests'
+  | 'hr_performance_reviews';
 
 export type ImportStatus = 'PENDING' | 'VALIDATING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 export type ExportStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';

@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { ClipboardList, Users, ArrowLeft, Search } from "lucide-react";
+import { ClipboardList, Users, ArrowLeft, Search, Download, Upload } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import { UserRole } from "@/types/auth";
+import ImportModal from "@/components/csv/ImportModal";
+import ExportModal from "@/components/csv/ExportModal";
 
 interface PerformanceReview {
   id: string;
@@ -35,9 +38,12 @@ interface PerformanceReview {
 }
 
 function PerformanceReviewsContent() {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<PerformanceReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -65,6 +71,20 @@ function PerformanceReviewsContent() {
       review.reviewPeriod.toLowerCase().includes(term)
     );
   });
+
+  const canManage =
+    user &&
+    [UserRole.SUPER_ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_HEAD].includes(user.role);
+
+  const fetchReviews = async () => {
+    try {
+      const response = await api.get("/hr/performance-reviews");
+      setReviews(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch performance reviews:", error);
+      setReviews([]);
+    }
+  };
 
   if (loading) {
     return (
@@ -98,6 +118,26 @@ function PerformanceReviewsContent() {
                 View employee performance reviews and ratings.
               </p>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {canManage && (
+              <>
+                <button
+                  onClick={() => setExportOpen(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </button>
+                <button
+                  onClick={() => setImportOpen(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -191,6 +231,23 @@ function PerformanceReviewsContent() {
           </div>
         </div>
       )}
+      <ImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          fetchReviews();
+        }}
+        module="hr_performance_reviews"
+        title="Import Performance Reviews"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="hr_performance_reviews"
+        title="Export Performance Reviews"
+        defaultFilters={{ search }}
+      />
     </DashboardLayout>
   );
 }

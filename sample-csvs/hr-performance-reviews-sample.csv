@@ -1,0 +1,11 @@
+employeeId,reviewPeriod,reviewDate,reviewerId,overallRating,technicalSkills,communication,teamwork,productivity,leadership,strengths,areasForImprovement,goals
+EMP001,Q4 2024,2025-01-10,MGR001,EXCELLENT,5,5,4,5,4,"Strong technical skills and leadership qualities. Consistently delivers high-quality work.","Time management during peak periods","Lead new mining automation project in Q1 2025"
+EMP002,Q4 2024,2025-01-11,MGR001,GOOD,4,4,5,4,3,"Great team player with excellent communication. Reliable and dependable.","Technical depth in specialized areas","Complete advanced mining certification by Q2"
+EMP003,Q4 2024,2025-01-12,MGR002,SATISFACTORY,3,4,4,3,3,"Good communication skills and positive attitude","Productivity and focus on priorities","Improve output by 20% and reduce errors"
+EMP004,Q4 2024,2025-01-13,MGR002,GOOD,4,5,4,4,4,"Excellent communication and client relations","Technical skills development","Attend 2 technical workshops in Q1"
+EMP005,Q4 2024,2025-01-14,MGR003,EXCELLENT,5,4,5,5,5,"Outstanding productivity and team leadership","Delegation and mentoring","Mentor 2 junior staff members"
+EMP006,Q4 2024,2025-01-15,MGR003,NEEDS_IMPROVEMENT,2,3,3,2,2,"Shows potential and willingness to learn","Productivity, technical skills, punctuality","Complete performance improvement plan within 60 days"
+EMP007,Q4 2024,2025-01-16,MGR001,GOOD,4,4,4,4,3,"Consistent performer with good technical skills","Leadership development","Take on team lead role for small project"
+EMP008,Q4 2024,2025-01-17,MGR004,EXCELLENT,5,5,5,5,4,"Exceptional technical expertise and innovation","Work-life balance","Maintain high performance while managing workload"
+EMP009,Q4 2024,2025-01-18,MGR004,SATISFACTORY,3,3,4,3,2,"Good team collaboration","Technical skills and productivity","Complete skills training program"
+EMP010,Q4 2024,2025-01-19,MGR002,GOOD,4,4,4,4,4,"Well-rounded performer with steady improvement","Proactive problem-solving","Identify and implement 1 process improvement"

@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Calendar, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, ArrowLeft, CheckCircle, XCircle, Download, Upload } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { UserRole } from '@/types/auth';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 interface LeaveRequest {
   id: string;
@@ -26,9 +30,12 @@ interface LeaveRequest {
 }
 
 function LeaveRequestsPageContent() {
+  const { user } = useAuth();
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchLeaves();
@@ -81,6 +88,10 @@ function LeaveRequestsPageContent() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const canManage =
+    user &&
+    [UserRole.SUPER_ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_HEAD].includes(user.role);
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -96,16 +107,36 @@ function LeaveRequestsPageContent() {
               <p className="text-gray-600">Manage employee leave applications</p>
             </div>
           </div>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">All Requests</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
+          <div className="flex items-center gap-2">
+            {canManage && (
+              <>
+                <button
+                  onClick={() => setExportOpen(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </button>
+                <button
+                  onClick={() => setImportOpen(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import
+                </button>
+              </>
+            )}
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All Requests</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -178,6 +209,24 @@ function LeaveRequestsPageContent() {
           </div>
         )}
       </div>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          fetchLeaves();
+        }}
+        module="hr_leave_requests"
+        title="Import Leave Requests"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="hr_leave_requests"
+        title="Export Leave Requests"
+        defaultFilters={{ status: filter }}
+      />
     </DashboardLayout>
   );
 }

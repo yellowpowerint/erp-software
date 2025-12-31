@@ -137,6 +137,46 @@ function defaultKeysForModule(module: CsvModule): Array<{ key: string; required:
     ];
   }
 
+  if (module === 'hr_attendance') {
+    return [
+      { key: 'employeeId', required: true },
+      { key: 'date', required: true },
+      { key: 'status', required: true },
+      { key: 'checkIn', required: false },
+      { key: 'checkOut', required: false },
+      { key: 'notes', required: false },
+    ];
+  }
+
+  if (module === 'hr_leave_requests') {
+    return [
+      { key: 'employeeId', required: true },
+      { key: 'leaveType', required: true },
+      { key: 'startDate', required: true },
+      { key: 'endDate', required: true },
+      { key: 'reason', required: true },
+      { key: 'status', required: false },
+    ];
+  }
+
+  if (module === 'hr_performance_reviews') {
+    return [
+      { key: 'employeeId', required: true },
+      { key: 'reviewPeriod', required: true },
+      { key: 'reviewDate', required: true },
+      { key: 'reviewerId', required: true },
+      { key: 'overallRating', required: true },
+      { key: 'technicalSkills', required: false },
+      { key: 'communication', required: false },
+      { key: 'teamwork', required: false },
+      { key: 'productivity', required: false },
+      { key: 'leadership', required: false },
+      { key: 'strengths', required: false },
+      { key: 'areasForImprovement', required: false },
+      { key: 'goals', required: false },
+    ];
+  }
+
   return [
     { key: 'assetCode', required: true },
     { key: 'name', required: true },
