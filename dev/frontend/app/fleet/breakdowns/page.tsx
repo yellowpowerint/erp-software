@@ -6,7 +6,9 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { AlertTriangle, Plus, Search } from 'lucide-react';
+import { AlertTriangle, Plus, Search, Download, Upload } from 'lucide-react';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 type BreakdownRow = {
   id: string;
@@ -43,6 +45,8 @@ function Inner() {
   const [severity, setSeverity] = useState('ALL');
   const [activeOnly, setActiveOnly] = useState(true);
   const [page, setPage] = useState(1);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const params = useMemo(() => {
     const p: any = { page, pageSize: 25 };
@@ -80,6 +84,24 @@ function Inner() {
           <p className="text-gray-600 mt-1">Report and track equipment breakdowns and downtime</p>
         </div>
         <div className="flex gap-2">
+          {canManage && (
+            <>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Import
+              </button>
+            </>
+          )}
           <Link
             href="/fleet/breakdowns/new"
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
@@ -243,6 +265,24 @@ function Inner() {
           </div>
         </div>
       )}
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          window.location.reload();
+        }}
+        module="fleet_breakdowns"
+        title="Import Fleet Breakdowns"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="fleet_breakdowns"
+        title="Export Fleet Breakdowns"
+        filters={{ search, status, severity, activeOnly }}
+      />
     </DashboardLayout>
   );
 }

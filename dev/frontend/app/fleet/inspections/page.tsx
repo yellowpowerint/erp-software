@@ -6,7 +6,9 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { ClipboardCheck, Plus } from 'lucide-react';
+import { ClipboardCheck, Plus, Download, Upload } from 'lucide-react';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 type InspectionRow = {
   id: string;
@@ -40,6 +42,8 @@ function Inner() {
   const [inspectorId, setInspectorId] = useState('');
   const [type, setType] = useState('ALL');
   const [page, setPage] = useState(1);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const params = useMemo(() => {
     const p: any = { page, pageSize: 25 };
@@ -81,6 +85,24 @@ function Inner() {
           <p className="text-gray-600 mt-1">Record and review pre/post operation and periodic inspections</p>
         </div>
         <div className="flex gap-2">
+          {canManage && (
+            <>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Import
+              </button>
+            </>
+          )}
           <Link
             href="/fleet/inspections/new"
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
@@ -239,6 +261,24 @@ function Inner() {
           </div>
         </div>
       )}
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          window.location.reload();
+        }}
+        module="fleet_inspections"
+        title="Import Fleet Inspections"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="fleet_inspections"
+        title="Export Fleet Inspections"
+        filters={{ assetId, inspectorId, type }}
+      />
     </DashboardLayout>
   );
 }

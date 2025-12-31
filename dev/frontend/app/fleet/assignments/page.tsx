@@ -6,6 +6,9 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { Download, Upload } from 'lucide-react';
+import ImportModal from '@/components/csv/ImportModal';
+import ExportModal from '@/components/csv/ExportModal';
 
 type AssignmentRow = {
   id: string;
@@ -23,6 +26,8 @@ function FleetAssignmentsContent() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const canManage = user && ['SUPER_ADMIN', 'CEO', 'CFO', 'OPERATIONS_MANAGER', 'WAREHOUSE_MANAGER'].includes(user.role);
 
@@ -61,12 +66,32 @@ function FleetAssignmentsContent() {
           <h1 className="text-2xl font-bold text-gray-900">Fleet Assignments</h1>
           <p className="text-gray-600 mt-1">Current active operator/site assignments</p>
         </div>
-        <Link
-          href="/fleet/assets"
-          className="px-4 py-2 border border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Fleet Assets
-        </Link>
+        <div className="flex gap-2">
+          {canManage && (
+            <>
+              <button
+                onClick={() => setExportOpen(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+              <button
+                onClick={() => setImportOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Import
+              </button>
+            </>
+          )}
+          <Link
+            href="/fleet/assets"
+            className="px-4 py-2 border border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Fleet Assets
+          </Link>
+        </div>
       </div>
 
       {loading ? (
@@ -132,6 +157,23 @@ function FleetAssignmentsContent() {
           </table>
         </div>
       )}
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          fetchData();
+        }}
+        module="fleet_assignments"
+        title="Import Fleet Assignments"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="fleet_assignments"
+        title="Export Fleet Assignments"
+      />
     </DashboardLayout>
   );
 }

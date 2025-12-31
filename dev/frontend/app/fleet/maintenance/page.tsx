@@ -221,6 +221,23 @@ function FleetMaintenanceDashboardContent() {
           </div>
         </>
       )}
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          window.location.reload();
+        }}
+        module="fleet_maintenance"
+        title="Import Maintenance Records"
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        module="fleet_maintenance"
+        title="Export Maintenance Records"
+      />
     </DashboardLayout>
   );
 }
