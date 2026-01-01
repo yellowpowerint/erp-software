@@ -94,13 +94,19 @@ class ApiServiceEnhanced {
 
         // Handle 401 - Session expired
         if (normalizedError.statusCode === 401) {
-          await storageService.clearAll();
-          this.inMemoryToken = null;
-          
-          if (this.logoutCallback) {
-            this.logoutCallback();
+          const requestUrl = config?.url || '';
+          const isLoginRequest = requestUrl.includes('/auth/login');
+          const isLogoutRequest = requestUrl.includes('/auth/logout');
+
+          if (!isLoginRequest) {
+            await storageService.clearAll();
+            this.inMemoryToken = null;
+
+            if (!isLogoutRequest && this.logoutCallback) {
+              this.logoutCallback();
+            }
           }
-          
+
           return Promise.reject(error);
         }
 

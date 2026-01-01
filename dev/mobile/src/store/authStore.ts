@@ -17,7 +17,8 @@ apiService.setLogoutCallback(() => {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  isBootstrapping: boolean;
+  isAuthBusy: boolean;
   error: string | null;
   
   login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>;
@@ -29,11 +30,12 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: true,
+  isBootstrapping: true,
+  isAuthBusy: false,
   error: null,
 
   login: async (credentials: LoginCredentials, rememberMe = true) => {
-    set({ isLoading: true, error: null });
+    set({ isAuthBusy: true, error: null });
     try {
       const response = await authService.login(credentials, rememberMe);
       if (response.token) {
@@ -44,7 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user: response.user,
         isAuthenticated: true,
-        isLoading: false,
+        isAuthBusy: false,
         error: null,
       });
       
@@ -56,7 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user: null,
         isAuthenticated: false,
-        isLoading: false,
+        isAuthBusy: false,
         error: error.message || 'Login failed',
       });
       throw error;
@@ -64,7 +66,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    set({ isLoading: true });
+    set({ isAuthBusy: true });
     try {
       // Unregister device for push notifications
       await pushService.unregisterDevice().catch((err) => {
@@ -77,7 +79,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user: null,
         isAuthenticated: false,
-        isLoading: false,
+        isAuthBusy: false,
         error: null,
       });
     } catch (error: any) {
@@ -87,14 +89,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user: null,
         isAuthenticated: false,
-        isLoading: false,
+        isAuthBusy: false,
         error: null,
       });
     }
   },
 
   bootstrap: async () => {
-    set({ isLoading: true, error: null });
+    set({ isBootstrapping: true, error: null });
     try {
       const token = await storageService.getToken();
 
@@ -103,7 +105,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({
           user: null,
           isAuthenticated: false,
-          isLoading: false,
+          isBootstrapping: false,
         });
         return;
       }
@@ -115,7 +117,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user,
         isAuthenticated: true,
-        isLoading: false,
+        isBootstrapping: false,
         error: null,
       });
     } catch (error: any) {
@@ -124,7 +126,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user: null,
         isAuthenticated: false,
-        isLoading: false,
+        isBootstrapping: false,
         error: null,
       });
     }

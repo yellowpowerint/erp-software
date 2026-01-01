@@ -14,7 +14,7 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const isBootstrapping = useAuthStore((state) => state.isBootstrapping);
   const hasBootstrapped = useRef(false);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
   }, []);
 
-  if (isLoading) {
+  if (isBootstrapping) {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.logoContainer}>
