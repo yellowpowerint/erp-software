@@ -3,7 +3,7 @@
  * Session M1.2 - Session bootstrap and auth state management
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { notificationPreferencesService } from '../services/notificationPreferences.service';
@@ -14,29 +14,25 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  const bootstrap = useAuthStore((state) => state.bootstrap);
   const isLoading = useAuthStore((state) => state.isLoading);
+  const hasBootstrapped = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
+    if (hasBootstrapped.current) return;
+    
+    hasBootstrapped.current = true;
     
     const initializeAuth = async () => {
-      if (mounted) {
-        await bootstrap();
-        
-        // Preload notification preferences on app start
-        notificationPreferencesService.getPreferences().catch((err) => {
-          console.error('Failed to preload notification preferences:', err);
-        });
-      }
+      await useAuthStore.getState().bootstrap();
+      
+      // Preload notification preferences on app start
+      notificationPreferencesService.getPreferences().catch((err) => {
+        console.error('Failed to preload notification preferences:', err);
+      });
     };
     
     initializeAuth();
-    
-    return () => {
-      mounted = false;
-    };
-  }, [bootstrap]);
+  }, []);
 
   if (isLoading) {
     return (
