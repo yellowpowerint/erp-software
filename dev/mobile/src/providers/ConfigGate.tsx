@@ -35,7 +35,10 @@ export default function ConfigGate({ children }: ConfigGateProps) {
       setConfig(fetchedConfig);
     } catch (err: any) {
       console.error('Config gate error:', err);
-      setError(err.message || 'Failed to load configuration');
+      const errorDetails = err.response?.data?.message || err.message || 'Failed to load configuration';
+      const errorStatus = err.response?.status ? ` (Status: ${err.response.status})` : '';
+      const fullError = `${errorDetails}${errorStatus}\n\nAPI: ${err.config?.baseURL || 'unknown'}${err.config?.url || ''}`;
+      setError(fullError);
       
       const cachedConfig = await configService.getCachedConfig();
       if (cachedConfig) {
@@ -65,9 +68,6 @@ export default function ConfigGate({ children }: ConfigGateProps) {
         <Text style={styles.errorIcon}>⚠️</Text>
         <Text style={styles.errorTitle}>Configuration Error</Text>
         <Text style={styles.errorMessage}>{error}</Text>
-        <Text style={styles.errorHint}>
-          Please check your internet connection and try again.
-        </Text>
       </View>
     );
   }
@@ -156,16 +156,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorMessage: {
-    fontSize: theme.typography.fontSize.base,
-    fontFamily: theme.typography.fontFamily.regular,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  errorHint: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
   },
 });
