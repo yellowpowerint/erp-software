@@ -2,7 +2,7 @@
  * Work Screen - Approvals List (M3.1)
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { approvalsService, Approval, ApprovalStatus, ApprovalType } from '../services/approvals.service';
@@ -30,11 +30,7 @@ export default function WorkScreen() {
 
   const canAccess = useMemo(() => !!user, [user]);
 
-  useEffect(() => {
-    loadApprovals(1, false);
-  }, [typeFilter, statusFilter, search]);
-
-  const loadApprovals = async (targetPage = 1, append = false) => {
+  const loadApprovals = useCallback(async (targetPage = 1, append = false) => {
     if (!canAccess) return;
     if (targetPage > 1 && isFetchingMore) return;
 
@@ -64,7 +60,11 @@ export default function WorkScreen() {
       setIsFetchingMore(false);
       setIsRefreshing(false);
     }
-  };
+  }, [canAccess, isFetchingMore, search, typeFilter, statusFilter]);
+
+  useEffect(() => {
+    loadApprovals(1, false);
+  }, [typeFilter, statusFilter]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
