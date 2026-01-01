@@ -28,9 +28,13 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
+      // Allow configured frontend origins
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"), false);
+      // Allow all origins for mobile app compatibility
+      // In production, you may want to restrict this further
+      return callback(null, true);
     },
     credentials: true,
   });
