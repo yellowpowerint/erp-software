@@ -46,7 +46,15 @@ class ApiServiceEnhanced {
       async (config) => {
         const token = this.inMemoryToken || (await storageService.getToken());
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          const headersAny = config.headers as any;
+          if (headersAny && typeof headersAny.set === 'function') {
+            headersAny.set('Authorization', `Bearer ${token}`);
+          } else {
+            config.headers = {
+              ...(config.headers || {}),
+              Authorization: `Bearer ${token}`,
+            } as any;
+          }
         }
 
         // Track API call with Sentry span
