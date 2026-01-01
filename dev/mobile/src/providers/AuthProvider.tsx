@@ -14,16 +14,29 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  const { bootstrap, isLoading } = useAuthStore();
+  const bootstrap = useAuthStore((state) => state.bootstrap);
+  const isLoading = useAuthStore((state) => state.isLoading);
 
   useEffect(() => {
-    bootstrap();
+    let mounted = true;
     
-    // Preload notification preferences on app start
-    notificationPreferencesService.getPreferences().catch((err) => {
-      console.error('Failed to preload notification preferences:', err);
-    });
-  }, []);
+    const initializeAuth = async () => {
+      if (mounted) {
+        await bootstrap();
+        
+        // Preload notification preferences on app start
+        notificationPreferencesService.getPreferences().catch((err) => {
+          console.error('Failed to preload notification preferences:', err);
+        });
+      }
+    };
+    
+    initializeAuth();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [bootstrap]);
 
   if (isLoading) {
     return (
