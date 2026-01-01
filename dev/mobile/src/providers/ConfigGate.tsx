@@ -84,16 +84,17 @@ export default function ConfigGate({ children }: ConfigGateProps) {
     );
   }
 
-  if (config.maintenanceMode) {
-    return <MaintenanceScreen message={config.maintenanceMessage} />;
+  if (config.maintenance.enabled) {
+    return <MaintenanceScreen message={config.maintenance.message} />;
   }
 
-  const isSupported = configService.isVersionSupported(APP_VERSION, config.minimumVersion);
-  if (!isSupported || config.forceUpdate) {
+  const minimumVersion = config.minimumVersions.android;
+  const isSupported = configService.isVersionSupported(APP_VERSION, minimumVersion);
+  if (!isSupported || config.forceUpdateMessage) {
     return (
       <ForceUpdateScreen
         currentVersion={APP_VERSION}
-        minimumVersion={config.minimumVersion}
+        minimumVersion={minimumVersion}
       />
     );
   }

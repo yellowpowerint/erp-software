@@ -10,19 +10,28 @@ const CONFIG_CACHE_KEY = 'mobile_config_cache';
 const CONFIG_CACHE_EXPIRY = 3600000; // 1 hour in milliseconds
 
 export interface MobileConfig {
-  minimumVersion: string;
-  currentVersion: string;
-  forceUpdate: boolean;
-  maintenanceMode: boolean;
-  maintenanceMessage?: string;
+  minimumVersions: {
+    ios: string;
+    android: string;
+  };
+  storeUrls: {
+    ios: string;
+    android: string;
+  };
   featureFlags: {
-    approvals: boolean;
-    inventory: boolean;
-    safety: boolean;
-    tasks: boolean;
-    reports: boolean;
+    home: boolean;
+    work: boolean;
+    modules: boolean;
+    notifications: boolean;
+    more: boolean;
     [key: string]: boolean;
   };
+  maintenance: {
+    enabled: boolean;
+    message: string;
+  };
+  forceUpdateMessage: string | null;
+  serverTime: string;
 }
 
 interface CachedConfig {

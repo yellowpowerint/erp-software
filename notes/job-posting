@@ -1,0 +1,98 @@
+Great! Now let's complete the integration by updating the website code to fetch jobs from the ERP API and add the application form. Then we'll redeploy.
+
+Let me update the website pages to fetch jobs from the ERP API and integrate the application form:
+
+### Step 1: Update main careers page to fetch from ERP
+
+Now let me update the job listing page and add the application form to job detail pages:
+
+Now let me check and update the jobs listing page:
+
+
+
+
+
+
+
+Now let me check and update the job detail page to add the ApplicationForm:
+
+I can see the job detail page already has a JobApplicationForm component. Let me check if it exists and update it to use our new ApplicationForm:
+
+
+
+Now let me update the job detail page to handle the ERP job data structure properly:
+
+Now let me update the rest of the job detail page to use the parsed data:
+
+Let me commit the changes we have so far and push to GitHub:
+
+
+
+
+
+Perfect! Changes pushed to GitHub. Now let's redeploy the website to production:
+
+## Deployment Commands for VPS
+
+Run these commands on the VPS to deploy the updated website:
+
+```bash
+# Step 1: Pull latest changes
+cd /var/www/yellowpower-website
+git fetch origin
+git pull origin main
+
+# Step 2: Navigate to dev directory and rebuild
+cd dev
+npm install
+npm run build
+
+# Step 3: Restart the application
+pm2 restart ypi-website
+
+# Step 4: Verify deployment
+pm2 status
+curl -I http://localhost:3002
+```
+
+## What's Been Completed
+
+✅ **Website Integration:**
+- Careers page now fetches jobs from ERP API
+- Job listings page fetches live data
+- Job detail pages fetch from ERP
+- ApplicationForm component created
+- Environment variable configured
+
+✅ **Backend API:**
+- Public endpoints deployed and working
+- CORS configured for website domain
+- No authentication required
+
+## Next Steps After Deployment
+
+### 1. Create Demo Jobs in ERP
+Login to ERP at `https://erp.yellowpowerinternational.com`:
+- Navigate to: **HR & Personnel → Recruitment → Job Postings**
+- Click **"Create Job Posting"**
+- Fill in details:
+  - Title, Department, Location
+  - Job Type (FULL_TIME, PART_TIME, CONTRACT)
+  - Description, Requirements, Responsibilities, Qualifications
+  - Benefits (optional)
+  - Salary Min/Max (optional)
+  - **Set Status to "OPEN"** (important!)
+- Create 3-5 different job postings
+
+### 2. Test Integration
+After creating jobs:
+1. Visit `https://yellowpowerinternational.com/careers`
+2. Verify jobs appear on the page
+3. Click "View All Jobs" - should show all open positions
+4. Click on a job - should show details
+5. Scroll down and test the application form
+6. Submit an application
+7. Check ERP → HR & Personnel → Recruitment → Candidates
+8. Verify the candidate and application were created
+
+The integration is now complete and ready to test! 🎉
