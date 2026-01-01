@@ -26,9 +26,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       await useAuthStore.getState().bootstrap();
       
       // Preload notification preferences on app start
-      notificationPreferencesService.getPreferences().catch((err) => {
-        console.error('Failed to preload notification preferences:', err);
-      });
+      if (useAuthStore.getState().isAuthenticated) {
+        notificationPreferencesService.getPreferences().catch((err) => {
+          console.error('Failed to preload notification preferences:', err);
+        });
+      }
     };
     
     initializeAuth();
