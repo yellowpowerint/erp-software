@@ -12,7 +12,8 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  token: string;
+  access_token: string;
+  token?: string; // Deprecated, use access_token
   user: User;
 }
 
@@ -35,18 +36,21 @@ export const authService = {
     try {
       console.log('[AUTH_SERVICE] Calling /auth/login API...');
       const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+      const token = response.data.access_token || response.data.token;
       console.log('[AUTH_SERVICE] Login API response received:', {
-        hasToken: !!response.data.token,
-        tokenLength: response.data.token?.length || 0,
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        hasAccessToken: !!response.data.access_token,
+        hasLegacyToken: !!response.data.token,
       });
       
-      if (response.data.token) {
+      if (token) {
         // Always keep an in-memory copy for immediate requests
-        apiService.setToken(response.data.token);
+        apiService.setToken(token);
         console.log('[AUTH_SERVICE] Token set in apiService (in-memory)');
 
         if (rememberMe) {
-          await storageService.saveToken(response.data.token);
+          await storageService.saveToken(token);
           console.log('[AUTH_SERVICE] Token saved to secure storage');
         } else {
           // Ensure no persisted token when rememberMe is off

@@ -39,15 +39,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       console.log('[AUTH] Starting login for:', credentials.email);
       const response = await authService.login(credentials, rememberMe);
+      const token = response.access_token || response.token;
       console.log('[AUTH] Login response received:', {
-        hasToken: !!response.token,
-        tokenLength: response.token?.length || 0,
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        hasAccessToken: !!response.access_token,
+        hasLegacyToken: !!response.token,
         userId: response.user?.id,
         rememberMe,
       });
       
-      if (response.token) {
-        apiService.setToken(response.token);
+      if (token) {
+        apiService.setToken(token);
         console.log('[AUTH] Token set in apiService');
       }
 
