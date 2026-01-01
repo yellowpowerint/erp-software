@@ -20,7 +20,7 @@ export default function WorkScreen() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [search, setSearch] = useState('');

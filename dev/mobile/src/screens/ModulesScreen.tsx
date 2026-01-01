@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../theme.config';
 
@@ -20,7 +20,7 @@ export default function ModulesScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Modules</Text>
@@ -33,27 +33,17 @@ export default function ModulesScreen() {
           <Text style={styles.outboxButtonText}>📋 Outbox</Text>
         </TouchableOpacity>
       </View>
-      {modules.map((module) => (
-        module.available ? (
-          <TouchableOpacity key={module.id} style={styles.moduleCard} onPress={() => (navigation as any).navigate(module.route)}>
-            <Text style={styles.moduleTitle}>{module.title}</Text>
-            <Text style={styles.moduleSubtitle}>{module.subtitle}</Text>
-          </TouchableOpacity>
-        ) : null
-      ))}
-      
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>
-          Session M4 will implement:{'\n\n'}
-          • Inventory module{'\n'}
-          • Safety module{'\n'}
-          • HR module{'\n'}
-          • Finance module{'\n'}
-          • Projects module{'\n'}
-          • Documents module
-        </Text>
+      <View style={styles.gridContainer}>
+        {modules.map((module) => (
+          module.available ? (
+            <TouchableOpacity key={module.id} style={styles.moduleCard} onPress={() => (navigation as any).navigate(module.route)}>
+              <Text style={styles.moduleTitle}>{module.title}</Text>
+              <Text style={styles.moduleSubtitle}>{module.subtitle}</Text>
+            </TouchableOpacity>
+          ) : null
+        ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -61,7 +51,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  contentContainer: {
     padding: theme.spacing.md,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   header: {
     flexDirection: 'row',
@@ -94,37 +91,23 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.semibold,
     color: theme.colors.primary,
   },
-  placeholder: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: theme.typography.fontSize.base,
-    fontFamily: theme.typography.fontFamily.regular,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
   moduleCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    width: '48%',
   },
   moduleTitle: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: theme.typography.fontSize.base,
     fontFamily: theme.typography.fontFamily.semibold,
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   moduleSubtitle: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
   },
