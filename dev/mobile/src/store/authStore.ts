@@ -143,12 +143,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (error: any) {
       console.error('Session bootstrap failed:', error);
+      // Clear any stale tokens
+      await storageService.clearAll();
+      apiService.setToken(null);
       clearSentryUser();
       set({
         user: null,
         isAuthenticated: false,
         isBootstrapping: false,
-        error: null,
+        error: null, // Don't show bootstrap errors on login screen
       });
     }
   },

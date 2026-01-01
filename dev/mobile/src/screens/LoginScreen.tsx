@@ -3,7 +3,7 @@
  * Session M1.2 - User authentication with email/password
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Switch } from 'react-native';
 import { Button, Input } from '../components';
 import { useAuthStore } from '../store/authStore';
@@ -14,8 +14,19 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [diagnosticLog, setDiagnosticLog] = useState<string[]>([]);
   
   const { login, error, clearError } = useAuthStore();
+
+  useEffect(() => {
+    const addLog = (msg: string) => {
+      setDiagnosticLog(prev => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${msg}`]);
+    };
+    
+    if (error) {
+      addLog(`ERROR: ${error}`);
+    }
+  }, [error]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -24,11 +35,14 @@ export default function LoginScreen() {
 
     setIsSubmitting(true);
     clearError();
+    setDiagnosticLog(prev => [...prev, `${new Date().toLocaleTimeString()}: Starting login...`]);
 
     try {
       await login({ email: email.trim(), password }, rememberMe);
-    } catch (error) {
+      setDiagnosticLog(prev => [...prev, `${new Date().toLocaleTimeString()}: Login successful`]);
+    } catch (error: any) {
       console.error('Login error:', error);
+      setDiagnosticLog(prev => [...prev, `${new Date().toLocaleTimeString()}: Login failed: ${error?.message || 'Unknown error'}`]);
     } finally {
       setIsSubmitting(false);
     }
@@ -93,6 +107,15 @@ export default function LoginScreen() {
           {error && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {__DEV__ && diagnosticLog.length > 0 && (
+            <View style={styles.diagnosticContainer}>
+              <Text style={styles.diagnosticTitle}>Diagnostic Log:</Text>
+              {diagnosticLog.map((log, idx) => (
+                <Text key={idx} style={styles.diagnosticText}>{log}</Text>
+              ))}
             </View>
           )}
 
@@ -169,9 +192,27 @@ const styles = StyleSheet.create({
     borderLeftColor: theme.colors.error,
   },
   errorText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.error,
+    fontSize: 14,
+  },
+  diagnosticContainer: {
+    backgroundColor: '#1f2937',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    maxHeight: 200,
+  },
+  diagnosticTitle: {
+    color: '#10b981',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  diagnosticText: {
+    color: '#d1d5db',
+    fontSize: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginBottom: 4,
   },
   rememberRow: {
     flexDirection: 'row',
