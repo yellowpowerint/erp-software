@@ -29,17 +29,16 @@ export default function WorkScreen() {
   const [error, setError] = useState<string | null>(null);
   
   const searchRef = useRef('');
-  const loadingRef = useRef(false);
 
   const canAccess = useMemo(() => !!user, [user]);
 
   const loadApprovals = useCallback(async (targetPage = 1, append = false) => {
-    if (!canAccess || loadingRef.current) return;
-    loadingRef.current = true;
+    if (!canAccess) return;
 
     try {
       if (targetPage === 1) {
         setIsLoading(true);
+        setIsFetchingMore(false);
         setError(null);
       } else {
         setIsFetchingMore(true);
@@ -55,14 +54,17 @@ export default function WorkScreen() {
       setPage(res.page);
       setTotalPages(res.totalPages);
       setApprovals((prev) => (append ? [...prev, ...res.items] : res.items));
+      setError(null);
     } catch (err: any) {
       console.error('Failed to load approvals', err);
       setError(err?.response?.status === 403 ? 'Access denied' : 'Failed to load approvals');
+      if (!append) {
+        setApprovals([]);
+      }
     } finally {
       setIsLoading(false);
       setIsFetchingMore(false);
       setIsRefreshing(false);
-      loadingRef.current = false;
     }
   }, [canAccess, typeFilter, statusFilter]);
 
