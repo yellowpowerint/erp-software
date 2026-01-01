@@ -42,9 +42,18 @@ export const useAuthStore = create<AuthState>((set) => ({
         apiService.setToken(response.token);
       }
 
-      setSentryUser(response.user.id, response.user.role);
+      let user = response.user;
+      try {
+        user = await authService.getMe();
+      } catch (err) {
+        await storageService.clearAll();
+        apiService.setToken(null);
+        throw err;
+      }
+
+      setSentryUser(user.id, user.role);
       set({
-        user: response.user,
+        user,
         isAuthenticated: true,
         isAuthBusy: false,
         error: null,

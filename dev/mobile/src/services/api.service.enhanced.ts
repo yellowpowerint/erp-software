@@ -97,8 +97,15 @@ class ApiServiceEnhanced {
           const requestUrl = config?.url || '';
           const isLoginRequest = requestUrl.includes('/auth/login');
           const isLogoutRequest = requestUrl.includes('/auth/logout');
+          const headersAny = config?.headers as any;
+          const authHeader =
+            (typeof headersAny?.get === 'function' ? headersAny.get('Authorization') : undefined) ||
+            headersAny?.Authorization ||
+            headersAny?.authorization;
+          const hadAuthHeader = !!authHeader;
+          const isSessionCheckRequest = requestUrl.includes('/auth/me');
 
-          if (!isLoginRequest) {
+          if (!isLoginRequest && hadAuthHeader && isSessionCheckRequest) {
             await storageService.clearAll();
             this.inMemoryToken = null;
 
