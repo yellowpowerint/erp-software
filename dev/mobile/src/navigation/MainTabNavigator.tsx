@@ -5,10 +5,11 @@
 
 import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, Platform } from 'react-native';
 import { MainTabParamList } from './types';
 import { theme } from '../../theme.config';
 import { useNotificationsStore } from '../store/notificationsStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeNavigator from './HomeNavigator';
 import WorkNavigator from './WorkNavigator';
@@ -19,6 +20,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabNavigator() {
   const { unreadCount, fetchUnreadCount } = useNotificationsStore();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     fetchUnreadCount();
@@ -35,9 +37,9 @@ export default function MainTabNavigator() {
           backgroundColor: theme.colors.background,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
-          paddingBottom: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 8,
-          height: 60,
+          height: 60 + Math.max(insets.bottom, 8),
         },
         tabBarLabelStyle: {
           fontSize: theme.typography.fontSize.xs,

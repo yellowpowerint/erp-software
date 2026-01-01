@@ -2,7 +2,7 @@
  * Work Screen - Approvals List (M3.1)
  */
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { approvalsService, Approval, ApprovalStatus, ApprovalType } from '../services/approvals.service';
@@ -27,12 +27,15 @@ export default function WorkScreen() {
   const [typeFilter, setTypeFilter] = useState<ApprovalType | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<ApprovalStatus | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  
+  const searchRef = useRef('');
+  const loadingRef = useRef(false);
 
   const canAccess = useMemo(() => !!user, [user]);
 
   const loadApprovals = useCallback(async (targetPage = 1, append = false) => {
-    if (!canAccess) return;
-    if (targetPage > 1 && isFetchingMore) return;
+    if (!canAccess || loadingRef.current) return;
+    loadingRef.current = true;
 
     try {
       if (targetPage === 1) {
@@ -44,7 +47,7 @@ export default function WorkScreen() {
 
       const res = await approvalsService.getApprovals({
         page: targetPage,
-        search: search.trim() || undefined,
+        search: searchRef.current.trim() || undefined,
         type: typeFilter,
         status: statusFilter,
       });
@@ -59,8 +62,9 @@ export default function WorkScreen() {
       setIsLoading(false);
       setIsFetchingMore(false);
       setIsRefreshing(false);
+      loadingRef.current = false;
     }
-  }, [canAccess, isFetchingMore, search, typeFilter, statusFilter]);
+  }, [canAccess, typeFilter, statusFilter]);
 
   useEffect(() => {
     loadApprovals(1, false);
@@ -135,7 +139,10 @@ export default function WorkScreen() {
           placeholder="Search approvals (invoice #, supplier, requester)..."
           placeholderTextColor={theme.colors.textSecondary}
           value={search}
-          onChangeText={setSearch}
+          onChangeText={(text) => {
+            setSearch(text);
+            searchRef.current = text;
+          }}
           returnKeyType="search"
           onSubmitEditing={() => loadApprovals(1, false)}
         />
