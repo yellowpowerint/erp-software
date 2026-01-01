@@ -37,15 +37,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (credentials: LoginCredentials, rememberMe = true) => {
     set({ isAuthBusy: true, error: null });
     try {
+      console.log('[AUTH] Starting login for:', credentials.email);
       const response = await authService.login(credentials, rememberMe);
+      console.log('[AUTH] Login response received:', {
+        hasToken: !!response.token,
+        tokenLength: response.token?.length || 0,
+        userId: response.user?.id,
+        rememberMe,
+      });
+      
       if (response.token) {
         apiService.setToken(response.token);
+        console.log('[AUTH] Token set in apiService');
       }
 
       let user = response.user;
+      console.log('[AUTH] Calling authService.getMe() to validate session...');
       try {
         user = await authService.getMe();
+        console.log('[AUTH] Session validated successfully:', user.id);
       } catch (err) {
+        console.error('[AUTH] Session validation failed:', err);
         await storageService.clearAll();
         apiService.setToken(null);
         throw err;

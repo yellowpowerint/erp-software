@@ -33,17 +33,25 @@ export const authService = {
    */
   async login(credentials: LoginCredentials, rememberMe = true): Promise<LoginResponse> {
     try {
+      console.log('[AUTH_SERVICE] Calling /auth/login API...');
       const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+      console.log('[AUTH_SERVICE] Login API response received:', {
+        hasToken: !!response.data.token,
+        tokenLength: response.data.token?.length || 0,
+      });
       
       if (response.data.token) {
         // Always keep an in-memory copy for immediate requests
         apiService.setToken(response.data.token);
+        console.log('[AUTH_SERVICE] Token set in apiService (in-memory)');
 
         if (rememberMe) {
           await storageService.saveToken(response.data.token);
+          console.log('[AUTH_SERVICE] Token saved to secure storage');
         } else {
           // Ensure no persisted token when rememberMe is off
           await storageService.removeToken();
+          console.log('[AUTH_SERVICE] Token NOT saved (rememberMe=false)');
         }
       }
       

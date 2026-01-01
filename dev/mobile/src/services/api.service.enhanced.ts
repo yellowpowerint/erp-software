@@ -45,16 +45,31 @@ class ApiServiceEnhanced {
     this.client.interceptors.request.use(
       async (config) => {
         const token = this.inMemoryToken || (await storageService.getToken());
+        console.log('[API] Request interceptor:', {
+          url: config.url,
+          method: config.method,
+          hasInMemoryToken: !!this.inMemoryToken,
+          hasStorageToken: !!(await storageService.getToken()),
+          tokenLength: token ? token.length : 0,
+        });
+        
         if (token) {
           const headersAny = config.headers as any;
           if (headersAny && typeof headersAny.set === 'function') {
             headersAny.set('Authorization', `Bearer ${token}`);
+            console.log('[API] Set Authorization header using .set() method');
           } else {
             config.headers = {
               ...(config.headers || {}),
               Authorization: `Bearer ${token}`,
             } as any;
+            console.log('[API] Set Authorization header using object spread');
           }
+          
+          const finalAuthHeader = (headersAny?.get?.('Authorization') || headersAny?.Authorization || headersAny?.authorization);
+          console.log('[API] Final Authorization header:', finalAuthHeader ? `Bearer ${finalAuthHeader.substring(7, 20)}...` : 'NOT SET');
+        } else {
+          console.log('[API] No token available, skipping Authorization header');
         }
 
         // Track API call with Sentry span
