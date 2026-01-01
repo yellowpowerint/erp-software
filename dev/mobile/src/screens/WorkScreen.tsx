@@ -29,11 +29,15 @@ export default function WorkScreen() {
   const [error, setError] = useState<string | null>(null);
   
   const searchRef = useRef('');
+  const typeFilterRef = useRef<ApprovalType | undefined>(undefined);
+  const statusFilterRef = useRef<ApprovalStatus | undefined>(undefined);
+  const isLoadingRef = useRef(false);
 
   const canAccess = useMemo(() => !!user, [user]);
 
   const loadApprovals = useCallback(async (targetPage = 1, append = false) => {
-    if (!canAccess) return;
+    if (!canAccess || isLoadingRef.current) return;
+    isLoadingRef.current = true;
 
     try {
       if (targetPage === 1) {
@@ -47,8 +51,8 @@ export default function WorkScreen() {
       const res = await approvalsService.getApprovals({
         page: targetPage,
         search: searchRef.current.trim() || undefined,
-        type: typeFilter,
-        status: statusFilter,
+        type: typeFilterRef.current,
+        status: statusFilterRef.current,
       });
 
       setPage(res.page);
@@ -65,12 +69,15 @@ export default function WorkScreen() {
       setIsLoading(false);
       setIsFetchingMore(false);
       setIsRefreshing(false);
+      isLoadingRef.current = false;
     }
-  }, [canAccess, typeFilter, statusFilter]);
+  }, [canAccess]);
 
   useEffect(() => {
+    typeFilterRef.current = typeFilter;
+    statusFilterRef.current = statusFilter;
     loadApprovals(1, false);
-  }, [typeFilter, statusFilter]);
+  }, [typeFilter, statusFilter, loadApprovals]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
