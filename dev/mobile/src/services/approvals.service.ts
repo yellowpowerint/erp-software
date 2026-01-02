@@ -37,7 +37,17 @@ export interface ApprovalsListResponse {
   pageSize: number;
   total: number;
   totalPages: number;
+  hasNextPage: boolean;
 }
+
+type RawApprovalsListResponse = {
+  items?: Approval[];
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+};
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -87,8 +97,24 @@ export const approvalsService = {
       ...(params.status ? { status: params.status } : {}),
     };
 
-    const response = await apiClient.get<ApprovalsListResponse>('/approvals', { params: query });
-    return response.data;
+    const response = await apiClient.get<RawApprovalsListResponse>('/approvals', { params: query });
+    const data = response.data || {};
+
+    const pageSize = Number(data.pageSize) || DEFAULT_PAGE_SIZE;
+    const total = Number(data.total) || 0;
+    const totalPages =
+      Number(data.totalPages) || Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+    const page = Number(data.page) || 1;
+    const hasNextPage = typeof data.hasNextPage === 'boolean' ? data.hasNextPage : page < totalPages;
+
+    return {
+      items: Array.isArray(data.items) ? data.items : [],
+      page,
+      pageSize,
+      total,
+      totalPages,
+      hasNextPage,
+    };
   },
 
   async getApprovalDetail(type: string, id: string): Promise<ApprovalDetail> {

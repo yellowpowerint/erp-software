@@ -20,6 +20,7 @@ export default function WorkScreen() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -32,6 +33,7 @@ export default function WorkScreen() {
   const typeFilterRef = useRef<ApprovalType | undefined>(undefined);
   const statusFilterRef = useRef<ApprovalStatus | undefined>(undefined);
   const isLoadingRef = useRef(false);
+  const lastEndReachedAtRef = useRef(0);
 
   const canAccess = useMemo(() => !!user, [user]);
 
@@ -57,11 +59,13 @@ export default function WorkScreen() {
 
       setPage(res.page);
       setTotalPages(res.totalPages);
+      setHasNextPage(res.hasNextPage);
       setApprovals((prev) => (append ? [...prev, ...res.items] : res.items));
       setError(null);
     } catch (err: any) {
       console.error('Failed to load approvals', err);
       setError(err?.response?.status === 403 ? 'Access denied' : 'Failed to load approvals');
+      setHasNextPage(false);
       if (!append) {
         setApprovals([]);
       }
@@ -85,8 +89,14 @@ export default function WorkScreen() {
   };
 
   const loadMore = () => {
+    if (approvals.length === 0) return;
     if (isLoading || isFetchingMore) return;
-    if (page >= totalPages) return;
+    if (!hasNextPage) return;
+
+    const now = Date.now();
+    if (now - lastEndReachedAtRef.current < 1200) return;
+    lastEndReachedAtRef.current = now;
+
     loadApprovals(page + 1, true);
   };
 
@@ -194,10 +204,10 @@ export default function WorkScreen() {
         </View>
       }
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
-      onEndReached={loadMore}
+      onEndReached={approvals.length > 0 && hasNextPage ? loadMore : undefined}
       onEndReachedThreshold={0.5}
       ListFooterComponent={
-        isFetchingMore ? (
+        isFetchingMore && approvals.length > 0 && hasNextPage ? (
           <View style={styles.footer}>
             <ActivityIndicator size="small" color={theme.colors.primary} />
             <Text style={styles.loadingText}>Loading more...</Text>
