@@ -15,6 +15,11 @@ export class MobileController {
     return this.mobileService.getMobileConfig();
   }
 
+  @Get("capabilities")
+  async getUserCapabilities(@CurrentUser() user: any) {
+    return this.mobileService.getUserCapabilities(user);
+  }
+
   @Post("devices/register")
   async registerDevice(@CurrentUser() user: any, @Body() dto: RegisterMobileDeviceDto) {
     return this.mobileService.registerDevice(user.userId, {

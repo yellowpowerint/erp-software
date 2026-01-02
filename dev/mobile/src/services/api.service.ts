@@ -7,7 +7,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { storageService } from './storage.service';
 import { errorService } from './error.service';
 
-const API_BASE_URL = 'https://erp.yellowpowerinternational.com/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://erp.yellowpowerinternational.com/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 

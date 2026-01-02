@@ -64,6 +64,7 @@ export type WorkStackParamList = {
   TasksList: undefined;
   ApprovalDetail: { approvalId: string; approvalType?: string };
   TaskDetail: { taskId: string };
+  DocumentViewer: { documentId: string; url?: string; name?: string; mimeType?: string; size?: number };
   NoAccess: { resource?: string; message?: string };
   NotFound: { resource?: string; message?: string };
 };

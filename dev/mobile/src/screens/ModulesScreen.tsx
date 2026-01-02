@@ -1,23 +1,35 @@
 /**
  * Modules Screen - ERP Modules Grid
  * Session M0.1 - Modules tab placeholder
+ * Phase 1 - Capabilities-driven module visibility
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../theme.config';
+import { useCapabilities } from '../hooks/useCapabilities';
+import { Button } from '../components';
 
 export default function ModulesScreen() {
   const navigation = useNavigation();
-  const modules = [
-    { id: 'inventory', title: 'Inventory', subtitle: 'Stock management', route: 'InventorySearch' as const, available: true },
-    { id: 'safety', title: 'Safety', subtitle: 'View incidents', route: 'IncidentList' as const, available: true },
-    { id: 'hr', title: 'HR', subtitle: 'Employee directory', route: 'EmployeeDirectory' as const, available: true },
-    { id: 'finance', title: 'Finance', subtitle: 'Expenses', route: 'ExpensesList' as const, available: true },
-    { id: 'projects', title: 'Projects', subtitle: 'Project tracking', route: 'ProjectsList' as const, available: true },
-    { id: 'documents', title: 'Documents', subtitle: 'Document library', route: 'DocumentList' as const, available: true },
+  const { loaded, status, error, refresh, modules: allowedModules } = useCapabilities();
+  
+  const allModules = [
+    { id: 'inventory', title: 'Inventory', subtitle: 'Stock management', route: 'InventorySearch' as const },
+    { id: 'receiving', title: 'Receiving', subtitle: 'Goods receipt', route: 'InventorySearch' as const },
+    { id: 'safety', title: 'Safety', subtitle: 'View incidents', route: 'IncidentList' as const },
+    { id: 'employees', title: 'HR', subtitle: 'Employee directory', route: 'EmployeeDirectory' as const },
+    { id: 'leave', title: 'Leave', subtitle: 'Leave requests', route: 'LeaveRequestsList' as const },
+    { id: 'expenses', title: 'Expenses', subtitle: 'Expense claims', route: 'ExpensesList' as const },
+    { id: 'projects', title: 'Projects', subtitle: 'Project tracking', route: 'ProjectsList' as const },
+    { id: 'documents', title: 'Documents', subtitle: 'Document library', route: 'DocumentList' as const },
   ];
+  
+  const modules = useMemo(() => {
+    if (!loaded) return [];
+    return allModules.filter((module) => allowedModules.includes(module.id));
+  }, [allowedModules, loaded]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -33,16 +45,29 @@ export default function ModulesScreen() {
           <Text style={styles.outboxButtonText}>📋 Outbox</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.gridContainer}>
-        {modules.map((module) => (
-          module.available ? (
+      {status === 'error' ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorTitle}>Unable to load permissions</Text>
+          <Text style={styles.loadingText}>{error || 'Please try again.'}</Text>
+          <View style={styles.retryWrap}>
+            <Button title="Retry" onPress={() => refresh()} />
+          </View>
+        </View>
+      ) : !loaded ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Loading modules...</Text>
+        </View>
+      ) : (
+        <View style={styles.gridContainer}>
+          {modules.map((module) => (
             <TouchableOpacity key={module.id} style={styles.moduleCard} onPress={() => (navigation as any).navigate(module.route)}>
               <Text style={styles.moduleTitle}>{module.title}</Text>
               <Text style={styles.moduleSubtitle}>{module.subtitle}</Text>
             </TouchableOpacity>
-          ) : null
-        ))}
-      </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -54,6 +79,28 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: theme.spacing.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    paddingVertical: theme.spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: theme.spacing.sm,
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textSecondary,
+  },
+  errorTitle: {
+    fontSize: theme.typography.fontSize.lg,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
+  retryWrap: {
+    marginTop: theme.spacing.lg,
+    width: '100%',
   },
   gridContainer: {
     flexDirection: 'row',

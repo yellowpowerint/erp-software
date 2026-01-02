@@ -9,6 +9,7 @@ import { storageService } from '../services/storage.service';
 import { apiService } from '../services/api.service';
 import { pushService } from '../services/push.service';
 import { clearSentryUser, setSentryUser } from '../config/sentry.config';
+import { capabilitiesService, UserCapabilities } from '../services/capabilities.service';
 
 apiService.setLogoutCallback(() => {
   useAuthStore.getState().logout();
@@ -16,6 +17,9 @@ apiService.setLogoutCallback(() => {
 
 interface AuthState {
   user: User | null;
+  capabilities: UserCapabilities | null;
+  capabilitiesStatus: 'idle' | 'loading' | 'loaded' | 'error';
+  capabilitiesError: string | null;
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   isAuthBusy: boolean;
@@ -24,11 +28,15 @@ interface AuthState {
   login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
+  refreshCapabilities: () => Promise<void>;
   clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
+  capabilities: null,
+  capabilitiesStatus: 'idle',
+  capabilitiesError: null,
   isAuthenticated: false,
   isBootstrapping: true,
   isAuthBusy: false,
@@ -67,8 +75,26 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       setSentryUser(user.id, user.role);
+      
+      // Fetch user capabilities
+      let capabilities: UserCapabilities | null = null;
+      let capabilitiesStatus: AuthState['capabilitiesStatus'] = 'loading';
+      let capabilitiesError: string | null = null;
+      try {
+        capabilities = await capabilitiesService.getUserCapabilities();
+        console.log('[AUTH] Capabilities fetched:', capabilities);
+        capabilitiesStatus = 'loaded';
+      } catch (err) {
+        console.error('[AUTH] Failed to fetch capabilities:', err);
+        capabilitiesStatus = 'error';
+        capabilitiesError = err instanceof Error ? err.message : 'Failed to load permissions. Please try again.';
+      }
+      
       set({
         user,
+        capabilities,
+        capabilitiesStatus,
+        capabilitiesError,
         isAuthenticated: true,
         isAuthBusy: false,
         error: null,
@@ -81,6 +107,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error: any) {
       set({
         user: null,
+        capabilities: null,
+        capabilitiesStatus: 'idle',
+        capabilitiesError: null,
         isAuthenticated: false,
         isAuthBusy: false,
         error: error.message || 'Login failed',
@@ -102,6 +131,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       clearSentryUser();
       set({
         user: null,
+        capabilities: null,
+        capabilitiesStatus: 'idle',
+        capabilitiesError: null,
         isAuthenticated: false,
         isAuthBusy: false,
         error: null,
@@ -112,6 +144,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       clearSentryUser();
       set({
         user: null,
+        capabilities: null,
+        capabilitiesStatus: 'idle',
+        capabilitiesError: null,
         isAuthenticated: false,
         isAuthBusy: false,
         error: null,
@@ -128,6 +163,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         clearSentryUser();
         set({
           user: null,
+          capabilities: null,
+          capabilitiesStatus: 'idle',
+          capabilitiesError: null,
           isAuthenticated: false,
           isBootstrapping: false,
         });
@@ -138,8 +176,26 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user = await authService.getMe();
 
       setSentryUser(user.id, user.role);
+      
+      // Fetch user capabilities
+      let capabilities: UserCapabilities | null = null;
+      let capabilitiesStatus: AuthState['capabilitiesStatus'] = 'loading';
+      let capabilitiesError: string | null = null;
+      try {
+        capabilities = await capabilitiesService.getUserCapabilities();
+        console.log('[AUTH] Capabilities fetched during bootstrap:', capabilities);
+        capabilitiesStatus = 'loaded';
+      } catch (err) {
+        console.error('[AUTH] Failed to fetch capabilities during bootstrap:', err);
+        capabilitiesStatus = 'error';
+        capabilitiesError = err instanceof Error ? err.message : 'Failed to load permissions. Please try again.';
+      }
+      
       set({
         user,
+        capabilities,
+        capabilitiesStatus,
+        capabilitiesError,
         isAuthenticated: true,
         isBootstrapping: false,
         error: null,
@@ -152,9 +208,27 @@ export const useAuthStore = create<AuthState>((set) => ({
       clearSentryUser();
       set({
         user: null,
+        capabilities: null,
+        capabilitiesStatus: 'idle',
+        capabilitiesError: null,
         isAuthenticated: false,
         isBootstrapping: false,
         error: null, // Don't show bootstrap errors on login screen
+      });
+    }
+  },
+
+  refreshCapabilities: async () => {
+    set({ capabilitiesStatus: 'loading', capabilitiesError: null });
+    try {
+      const capabilities = await capabilitiesService.getUserCapabilities();
+      set({ capabilities, capabilitiesStatus: 'loaded', capabilitiesError: null });
+    } catch (err) {
+      console.error('[AUTH] Failed to refresh capabilities:', err);
+      set({
+        capabilities: null,
+        capabilitiesStatus: 'error',
+        capabilitiesError: err instanceof Error ? err.message : 'Failed to load permissions. Please try again.',
       });
     }
   },

@@ -30,6 +30,7 @@ import DocumentViewerScreen from '../screens/DocumentViewerScreen';
 import OutboxScreenEnhanced from '../screens/OutboxScreenEnhanced';
 import NoAccessScreen from '../screens/NoAccessScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
+import { RequireCapability } from '../components';
 
 const Stack = createStackNavigator<ModulesStackParamList>();
 
@@ -47,24 +48,168 @@ export default function ModulesNavigator() {
       }}
     >
       <Stack.Screen name="ModulesMain" component={ModulesScreen} options={{ title: 'Modules' }} />
-      <Stack.Screen name="InventorySearch" component={InventorySearchScreen} options={{ title: 'Inventory' }} />
-      <Stack.Screen name="InventoryDetail" component={InventoryDetailScreen} options={{ title: 'Item Detail' }} />
-      <Stack.Screen name="ReceiveStock" component={ReceiveStockScreen} options={{ title: 'Receive Stock' }} />
-      <Stack.Screen name="IncidentCapture" component={IncidentCaptureScreen} options={{ title: 'Report Incident' }} />
-      <Stack.Screen name="IncidentList" component={IncidentListScreen} options={{ title: 'Incidents' }} />
-      <Stack.Screen name="IncidentDetail" component={IncidentDetailScreen} options={{ title: 'Incident Detail' }} />
-      <Stack.Screen name="EmployeeDirectory" component={EmployeeDirectoryScreen} options={{ title: 'Employees' }} />
-      <Stack.Screen name="EmployeeProfile" component={EmployeeProfileScreen} options={{ title: 'Employee Profile' }} />
-      <Stack.Screen name="LeaveRequestsList" component={LeaveRequestsListScreen} options={{ title: 'Leave Requests' }} />
-      <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} options={{ title: 'Request Leave' }} />
-      <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ title: 'Expenses' }} />
-      <Stack.Screen name="ExpenseSubmit" component={ExpenseSubmitScreen} options={{ title: 'Submit Expense' }} />
-      <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
-      <Stack.Screen name="ProjectsList" component={ProjectsListScreen} options={{ title: 'Projects' }} />
-      <Stack.Screen name="ProjectDetail" component={ProjectDetailScreen} options={{ title: 'Project Detail' }} />
-      <Stack.Screen name="DocumentList" component={DocumentListScreen} options={{ title: 'Documents' }} />
-      <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} options={{ title: 'Upload Document' }} />
-      <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} options={{ title: 'View Document' }} />
+      <Stack.Screen
+        name="InventorySearch"
+        component={() => (
+          <RequireCapability anyModuleIds={['inventory', 'receiving']} capability="canViewInventory" resource="inventory">
+            <InventorySearchScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Inventory' }}
+      />
+      <Stack.Screen
+        name="InventoryDetail"
+        component={() => (
+          <RequireCapability anyModuleIds={['inventory', 'receiving']} capability="canViewInventory" resource="inventory">
+            <InventoryDetailScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Item Detail' }}
+      />
+      <Stack.Screen
+        name="ReceiveStock"
+        component={() => (
+          <RequireCapability moduleId="receiving" capability="canReceiveStock" resource="receiving">
+            <ReceiveStockScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Receive Stock' }}
+      />
+      <Stack.Screen
+        name="IncidentCapture"
+        component={() => (
+          <RequireCapability moduleId="safety" capability="canCreateIncident" resource="safety">
+            <IncidentCaptureScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Report Incident' }}
+      />
+      <Stack.Screen
+        name="IncidentList"
+        component={() => (
+          <RequireCapability moduleId="safety" resource="safety">
+            <IncidentListScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Incidents' }}
+      />
+      <Stack.Screen
+        name="IncidentDetail"
+        component={() => (
+          <RequireCapability moduleId="safety" resource="safety">
+            <IncidentDetailScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Incident Detail' }}
+      />
+      <Stack.Screen
+        name="EmployeeDirectory"
+        component={() => (
+          <RequireCapability moduleId="employees" resource="employees">
+            <EmployeeDirectoryScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Employees' }}
+      />
+      <Stack.Screen
+        name="EmployeeProfile"
+        component={() => (
+          <RequireCapability moduleId="employees" resource="employees">
+            <EmployeeProfileScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Employee Profile' }}
+      />
+      <Stack.Screen
+        name="LeaveRequestsList"
+        component={() => (
+          <RequireCapability moduleId="leave" resource="leave">
+            <LeaveRequestsListScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Leave Requests' }}
+      />
+      <Stack.Screen
+        name="LeaveRequest"
+        component={() => (
+          <RequireCapability moduleId="leave" resource="leave">
+            <LeaveRequestScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Request Leave' }}
+      />
+      <Stack.Screen
+        name="ExpensesList"
+        component={() => (
+          <RequireCapability moduleId="expenses" resource="expenses">
+            <ExpensesListScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Expenses' }}
+      />
+      <Stack.Screen
+        name="ExpenseSubmit"
+        component={() => (
+          <RequireCapability moduleId="expenses" resource="expenses">
+            <ExpenseSubmitScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Submit Expense' }}
+      />
+      <Stack.Screen
+        name="ExpenseDetail"
+        component={() => (
+          <RequireCapability moduleId="expenses" resource="expenses">
+            <ExpenseDetailScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Expense Detail' }}
+      />
+      <Stack.Screen
+        name="ProjectsList"
+        component={() => (
+          <RequireCapability moduleId="projects" resource="projects">
+            <ProjectsListScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Projects' }}
+      />
+      <Stack.Screen
+        name="ProjectDetail"
+        component={() => (
+          <RequireCapability moduleId="projects" resource="projects">
+            <ProjectDetailScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Project Detail' }}
+      />
+      <Stack.Screen
+        name="DocumentList"
+        component={() => (
+          <RequireCapability moduleId="documents" resource="documents">
+            <DocumentListScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Documents' }}
+      />
+      <Stack.Screen
+        name="DocumentUpload"
+        component={() => (
+          <RequireCapability moduleId="documents" capability="canUploadDocuments" resource="documents">
+            <DocumentUploadScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Upload Document' }}
+      />
+      <Stack.Screen
+        name="DocumentViewer"
+        component={() => (
+          <RequireCapability moduleId="documents" resource="documents">
+            <DocumentViewerScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'View Document' }}
+      />
       <Stack.Screen name="Outbox" component={OutboxScreenEnhanced} options={{ title: 'Outbox' }} />
       <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'Access Denied' }} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Not Found' }} />

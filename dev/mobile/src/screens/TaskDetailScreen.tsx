@@ -3,14 +3,14 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { useRoute, RouteProp, useNavigation, NavigationProp } from '@react-navigation/native';
 import { tasksService, TaskDetail } from '../services/tasks.service';
 import { theme } from '../../theme.config';
-import { ModulesStackParamList } from '../navigation/types';
+import { WorkStackParamList } from '../navigation/types';
 import { AttachmentsCard } from '../components';
 import { Attachment } from '../types/attachment';
 import { mediaPickerService } from '../services/mediaPicker.service';
 
 export default function TaskDetailScreen() {
   const route = useRoute<any>();
-  const navigation = useNavigation<NavigationProp<ModulesStackParamList>>();
+  const navigation = useNavigation<NavigationProp<WorkStackParamList>>();
   const { taskId } = route.params || {};
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);

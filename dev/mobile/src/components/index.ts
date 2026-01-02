@@ -14,3 +14,4 @@ export { default as QuickActionsSheet } from './QuickActionsSheet';
 export { default as ActivityItem } from './ActivityItem';
 export { default as NotificationItem } from './NotificationItem';
 export { ErrorBoundary } from './ErrorBoundary';
+export { default as RequireCapability } from './RequireCapability';

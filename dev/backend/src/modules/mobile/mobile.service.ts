@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
+import { getModulesForRole, getCapabilitiesForRole } from "./capabilities.helper";
 
 type MobileFeatureFlags = {
   home: boolean;
@@ -200,5 +201,35 @@ export class MobileService {
         deviceId,
       },
     });
+  }
+
+  async getUserCapabilities(user: any) {
+    const userRecord = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: {
+        id: true,
+        role: true,
+        department: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+
+    if (!userRecord) {
+      throw new ForbiddenException("User not found");
+    }
+
+    const role = userRecord.role;
+    const modules = getModulesForRole(role);
+    const capabilities = getCapabilitiesForRole(role);
+
+    return {
+      userId: userRecord.id,
+      role: userRecord.role,
+      departmentId: userRecord.department,
+      modules,
+      capabilities,
+    };
   }
 }

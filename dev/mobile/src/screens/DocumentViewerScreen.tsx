@@ -4,18 +4,23 @@ import { NavigationProp, RouteProp, useNavigation, useRoute } from '@react-navig
 import { WebView } from 'react-native-webview';
 import * as Sharing from 'expo-sharing';
 import { documentsService } from '../services/documents.service';
-import { ModulesStackParamList } from '../navigation/types';
 import { theme } from '../../theme.config';
 import { Button, Card } from '../components';
 
-type ViewerRoute = RouteProp<ModulesStackParamList, 'DocumentViewer'>;
+type ViewerParamList = {
+  DocumentViewer: { documentId: string; url?: string; name?: string; mimeType?: string; size?: number };
+  NoAccess: { resource?: string; message?: string };
+  NotFound: { resource?: string; message?: string };
+};
+
+type ViewerRoute = RouteProp<ViewerParamList, 'DocumentViewer'>;
 
 const LARGE_FILE_BYTES = 20 * 1024 * 1024; // 20MB threshold
 
 export default function DocumentViewerScreen() {
   const route = useRoute<ViewerRoute>();
   const { documentId, url: initialUrl, name: initialName } = route.params || {};
-  const navigation = useNavigation<NavigationProp<ModulesStackParamList>>();
+  const navigation = useNavigation<NavigationProp<ViewerParamList>>();
 
   const [name, setName] = useState(initialName || 'Document');
   const [url, setUrl] = useState<string | undefined>(initialUrl);

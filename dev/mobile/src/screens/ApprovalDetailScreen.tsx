@@ -17,15 +17,17 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, NavigationProp } from '@react-navigation/native';
 import { approvalsService, ApprovalDetail } from '../services/approvals.service';
-import { ModulesStackParamList } from '../navigation/types';
+import { WorkStackParamList } from '../navigation/types';
 import { theme } from '../../theme.config';
 import { AttachmentsCard } from '../components';
 import { mediaPickerService } from '../services/mediaPicker.service';
+import { useCapabilities } from '../hooks/useCapabilities';
 
 export default function ApprovalDetailScreen() {
   const route = useRoute<any>();
-  const navigation = useNavigation<NavigationProp<ModulesStackParamList>>();
+  const navigation = useNavigation<NavigationProp<WorkStackParamList>>();
   const { approvalId, approvalType } = route.params || {};
+  const { canApprove, canReject } = useCapabilities();
 
   const [approval, setApproval] = useState<ApprovalDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -274,7 +276,7 @@ export default function ApprovalDetailScreen() {
         )}
       </ScrollView>
 
-      {approval.status === 'PENDING' && (
+      {approval.status === 'PENDING' && canApprove && canReject && (
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
