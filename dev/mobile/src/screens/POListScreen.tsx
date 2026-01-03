@@ -62,9 +62,9 @@ export default function POListScreen() {
             <Text style={styles.poNumber}>{item.poNumber}</Text>
             <Text style={styles.status}>{item.status}</Text>
           </View>
-          <Text style={styles.vendor}>{item.vendorName}</Text>
-          <Text style={styles.amount}>{item.currency} {item.totalAmount.toFixed(2)}</Text>
-          <Text style={styles.meta}>{item.receivedItemsCount}/{item.itemsCount} items received</Text>
+          <Text style={styles.vendor}>{item.vendor?.companyName || item.vendorName}</Text>
+          <Text style={styles.amount}>{item.currency} {Number(item.totalAmount).toFixed(2)}</Text>
+          <Text style={styles.meta}>{item._count?.items || item.itemsCount || 0} items</Text>
         </TouchableOpacity>
       )}
     />
