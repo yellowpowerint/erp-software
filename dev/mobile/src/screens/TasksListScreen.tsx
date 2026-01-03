@@ -10,8 +10,9 @@ import { tasksService, Task, TaskStatus } from '../services/tasks.service';
 import { theme } from '../../theme.config';
 import { WorkStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/authStore';
+import { cacheService } from '../services/cache.service';
 
-const TASK_STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+const TASK_STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED', 'CANCELLED'];
 
 export default function TasksListScreen() {
   const navigation = useNavigation<NavigationProp<WorkStackParamList>>();
@@ -27,6 +28,7 @@ export default function TasksListScreen() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | undefined>(undefined);
   const [mineOnly, setMineOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   const canAccess = useMemo(() => !!user, [user]);
 
@@ -34,7 +36,7 @@ export default function TasksListScreen() {
     loadTasks(1, false);
   }, [statusFilter, search, mineOnly]);
 
-  const loadTasks = async (targetPage = 1, append = false) => {
+  const loadTasks = async (targetPage = 1, append = false, forceRefresh = false) => {
     if (!canAccess) return;
     if (targetPage > 1 && isFetchingMore) return;
 
@@ -46,16 +48,57 @@ export default function TasksListScreen() {
         setIsFetchingMore(true);
       }
 
-      const res = await tasksService.getTasks({
+      const userId = user?.id;
+
+      const apiParams = {
         page: targetPage,
         search: search.trim() || undefined,
         status: statusFilter,
         mine: mineOnly,
-      });
+      };
+
+      const cacheParams = { ...apiParams, userId };
+
+      // Try to load from cache first (only for page 1)
+      if (targetPage === 1 && !forceRefresh) {
+        const cached = await cacheService.get<any>('/tasks', cacheParams);
+        if (cached) {
+          console.log('[TASKS] Loaded tasks from cache');
+          setPage(cached.page);
+          setTotalPages(cached.totalPages);
+          setTasks(cached.items);
+          setIsFromCache(true);
+          setIsLoading(false);
+
+          // Fetch fresh data in background
+          tasksService.getTasks(apiParams)
+            .then(res => {
+              console.log('[TASKS] Refreshed tasks from server');
+              setPage(res.page);
+              setTotalPages(res.totalPages);
+              setTasks(res.items);
+              setIsFromCache(false);
+              cacheService.set('/tasks', res, cacheParams);
+            })
+            .catch(err => {
+              console.error('[TASKS] Background refresh failed:', err);
+            });
+          return;
+        }
+      }
+
+      // Fetch from server
+      const res = await tasksService.getTasks(apiParams);
 
       setPage(res.page);
       setTotalPages(res.totalPages);
       setTasks((prev) => (append ? [...prev, ...res.items] : res.items));
+      setIsFromCache(false);
+
+      // Cache the response (only page 1)
+      if (targetPage === 1) {
+        await cacheService.set('/tasks', res, cacheParams);
+      }
     } catch (err: any) {
       console.error('Failed to load tasks', err);
       setError(err?.response?.status === 403 ? 'Access denied' : 'Failed to load tasks');
@@ -68,7 +111,7 @@ export default function TasksListScreen() {
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    loadTasks(1, false);
+    loadTasks(1, false, true); // Force refresh from server
   };
 
   const loadMore = () => {
@@ -194,6 +237,12 @@ export default function TasksListScreen() {
       <Text style={styles.title}>Tasks</Text>
       <Text style={styles.subtitle}>Your assigned tasks</Text>
 
+      {isFromCache && (
+        <View style={styles.cacheBanner}>
+          <Text style={styles.cacheBannerText}>📱 Offline - Showing cached data</Text>
+        </View>
+      )}
+
       <View style={styles.searchBox}>
         <TextInput
           style={styles.searchInput}
@@ -280,6 +329,20 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.md,
+  },
+  cacheBanner: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffc107',
+    borderWidth: 1,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  cacheBannerText: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.medium,
+    color: '#856404',
+    textAlign: 'center',
   },
   searchBox: {
     marginBottom: theme.spacing.md,

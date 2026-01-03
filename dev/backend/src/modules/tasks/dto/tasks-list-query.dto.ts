@@ -1,7 +1,7 @@
 import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
 import { Transform, Type } from "class-transformer";
 
-const TASK_STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED"] as const;
+const TASK_STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED", "BLOCKED", "CANCELLED"] as const;
 type TaskStatusQuery = (typeof TASK_STATUSES)[number];
 
 export class TasksListQueryDto {

@@ -1,0 +1,112 @@
+## Prioritized implementation plan (based on your answers)
+
+Given mobile is for **exec approvals + managers + warehouse receiving + safety + fleet**, and you want **offline support for approvals + tasks**, the fastest path to “enterprise-grade” is:
+
+### Phase 1 (High priority): Control + Reliability Foundation
+- **Capabilities-driven access (RBAC+)** across mobile
+  - Hide/disable modules + actions before users hit screens (reduce 403-driven UX)
+- **Offline foundation for list screens**
+  - Cache last successful payloads
+  - “Show cached then sync” pattern
+- **Outbox expansion**
+  - Extend the existing queue to support approvals actions + task updates (not just incidents/expenses/leave/doc uploads)
+- **Notification deep link reliability**
+  - Ensure approvals/tasks notifications can open the correct detail screen even when offline (fallback to list + cached detail where possible)
+
+### Phase 2 (High priority): Exec/Manager “Work” becomes first-class
+- **Approvals**
+  - Cached approvals list (per filter)
+  - Cached approval detail
+  - Offline approve/reject queue (with conflict handling)
+- **Tasks**
+  - Cached tasks list + detail
+  - Offline task status updates / comments (queued)
+
+### Phase 3 (High priority): Warehouse Receiving (GRN / receive stock)
+- Align mobile “receive stock” to procurement/inventory realities:
+  - Receive against **PO** / expected items
+  - Attach delivery notes/photos
+  - Partial receipt + discrepancy notes
+  - Offline receiving submissions queued (optional, but ideal for warehouse connectivity gaps)
+
+### Phase 4 (High priority): Fleet mobile workflows (mining-appropriate)
+- **Pre-start inspections** (mobile-first checklist)
+- **Breakdown reporting** (media + location)
+- **Fuel / usage logs**
+- Offline-first for inspections/breakdowns/fuel (reuse outbox)
+
+### Phase 5 (Medium): Safety expansion
+- Safety inspections/checklists
+- Corrective actions (auto-create tasks from incidents)
+- Escalation rules (severity triggers approvals/notifications)
+
+---
+
+## Phase 1 detail: Capabilities-driven mobile (what to build)
+
+### Backend (recommended): `GET /mobile/config`
+Return a **single authoritative config** for the logged-in user, e.g.
+- `role`, `departmentId`, `siteId` (if relevant)
+- [modules](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/backend/src/modules:0:0-0:0): which tiles/screens should show
+- `capabilities`: fine-grained action flags (approve/reject/receive/etc.)
+
+Example capabilities you’ll actually need for your user groups:
+- `canViewApprovals`, `canApprove`, `canReject`
+- `canViewTasks`, `canUpdateTasks`
+- `canReceiveStock`
+- `canCreateIncident`, `canViewAllIncidents`
+- `canCreateFleetInspection`, `canLogFuel`, `canReportBreakdown`
+- `canUploadDocuments`, `canShareDocuments` (later, tied to document permissions)
+
+**Important design choice (quick win):**
+- Start by mapping capabilities from **role only** (like your [menu.ts](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/frontend/lib/config/menu.ts:0:0-0:0) does).
+- Later upgrade to hybrid rules (role + department + explicit permissions), especially for Documents.
+
+### Mobile changes
+- Add `capabilities` to your auth/global store after login/bootstrap.
+- Update:
+  - [ModulesScreen](cci:1://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/mobile/src/screens/ModulesScreen.tsx:10:0-47:1) to **filter tiles**
+  - “Approve/Reject” buttons to **disable/hide** if not allowed
+  - Navigation guards (if user manually deep-links to a screen they shouldn’t access)
+
+This reduces “try → 403 → no access screen” loops and makes the app feel enterprise.
+
+---
+
+## Phase 2 detail: Offline for approvals + tasks (the “Yes and Yes”)
+
+### Offline pattern (consistent + simple)
+- **Cache layer**
+  - Store last successful list responses + detail responses in `AsyncStorage` (or SQLite later if needed).
+  - Key by endpoint + filter params + user id.
+- **Sync layer**
+  - On screen open: show cached immediately (if present), then refresh in background.
+- **Outbox layer (existing queue.service.ts)**
+  - Queue actions when offline (or when request fails with network error)
+  - Retry with backoff
+  - Mark item as:
+    - `pending`
+    - `processing`
+    - `failed` (with reason)
+    - `completed`
+
+### Conflict handling (must-have for approvals)
+Approvals are sensitive: if two people act, the second action might fail.
+- If server returns “already approved/rejected” (often `409`/`400`):
+  - Mark queued job as `failed_conflict`
+  - Refresh approvals list
+  - Show a clear message: “This approval was already processed.”
+
+---
+
+## What I need from you to start implementing Phase 1 correctly
+1. **Do you want mobile module visibility to match the web menu exactly** (i.e., reuse the same role→module mapping logic as [frontend/lib/config/menu.ts](cci:7://file:///c:/Users/Plange/Downloads/Projects/mining-erp/dev/frontend/lib/config/menu.ts:0:0-0:0)), or should mobile be a smaller curated subset even if web has more?
+2. For warehouse: is “Receive Stock” supposed to be:
+   - **inventory-only receiving** (simple stock in), or
+   - **procurement-linked GRN** (receive against PO lines)?
+
+---
+
+## Task status
+- **Updated roadmap** now aligned to your actual users and offline requirement.
+- **Next execution step** (once you answer the two questions): implement **Phase 1 `GET /mobile/config` + mobile gating** (`c4`), then move to offline approvals/tasks (`c5`).

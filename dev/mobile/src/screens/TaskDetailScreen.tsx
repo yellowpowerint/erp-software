@@ -7,15 +7,19 @@ import { WorkStackParamList } from '../navigation/types';
 import { AttachmentsCard } from '../components';
 import { Attachment } from '../types/attachment';
 import { mediaPickerService } from '../services/mediaPicker.service';
-
+import { deepLinkOfflineService } from '../services/deepLinkOffline.service';
+import { taskActionsService } from '../services/taskActions.service';
+import { useAuthStore } from '../store/authStore';
 export default function TaskDetailScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<NavigationProp<WorkStackParamList>>();
   const { taskId } = route.params || {};
+  const { user } = useAuthStore();
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   useEffect(() => {
     loadTask();
@@ -31,8 +35,21 @@ export default function TaskDetailScreen() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await tasksService.getTaskDetail(taskId);
-      setTask(data);
+      
+      // Use offline fallback service
+      const result = await deepLinkOfflineService.fetchTask(taskId, user?.id);
+      
+      if (result.success && result.data) {
+        setTask(result.data);
+        setIsFromCache(result.fromCache);
+        
+        // Cache the data for future offline access
+        if (!result.fromCache) {
+          await deepLinkOfflineService.cacheTask(taskId, result.data, user?.id);
+        }
+      } else {
+        setError(result.error || 'Failed to load task');
+      }
     } catch (err: any) {
       console.error('Failed to load task:', err);
       const status = err?.response?.status;
@@ -69,6 +86,39 @@ export default function TaskDetailScreen() {
     }
   };
 
+
+  const handleMarkCompleted = () => {
+    if (!task) return;
+
+    Alert.alert('Complete Task', 'Mark this task as completed?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Complete',
+        style: 'default',
+        onPress: async () => {
+          try {
+            const result = await taskActionsService.queueTaskUpdate({
+              taskId: task.id,
+              status: 'COMPLETED',
+              comment: 'Marked as completed from mobile',
+            });
+
+            if (result.queued) {
+              Alert.alert('Queued', 'Task update queued. It will be submitted when you are online.');
+            } else {
+              Alert.alert('Success', 'Task marked as completed.');
+            }
+
+            await loadTask();
+          } catch (err: any) {
+            console.error('Failed to mark completed:', err);
+            Alert.alert('Error', err?.message || 'Failed to update task.');
+          }
+        },
+      },
+    ]);
+  };
+
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -94,6 +144,12 @@ export default function TaskDetailScreen() {
 
   return (
     <ScrollView style={styles.container}>
+      {isFromCache && (
+        <View style={styles.cacheBanner}>
+          <Text style={styles.cacheBannerText}>📱 Offline - Showing cached data</Text>
+        </View>
+      )}
+      
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{task.title}</Text>
@@ -102,6 +158,12 @@ export default function TaskDetailScreen() {
         <View style={[styles.badge, getStatusBadgeStyle(task.status)]}>
           <Text style={styles.badgeText}>{task.status}</Text>
         </View>
+
+        {task.status !== 'COMPLETED' && (
+          <TouchableOpacity style={styles.completeButton} onPress={handleMarkCompleted}>
+            <Text style={styles.completeButtonText}>Mark Completed</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {task.dueDate && (
@@ -187,6 +249,10 @@ function getStatusBadgeStyle(status: string) {
       return { backgroundColor: '#2196F3' };
     case 'PENDING':
       return { backgroundColor: '#FF9800' };
+    case 'BLOCKED':
+      return { backgroundColor: '#9C27B0' };
+    case 'CANCELLED':
+      return { backgroundColor: '#F44336' };
     default:
       return { backgroundColor: '#999' };
   }
@@ -200,6 +266,8 @@ function formatBytes(bytes: number): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
+  cacheBanner: { backgroundColor: '#fff3cd', borderColor: '#ffc107', borderWidth: 1, borderRadius: theme.borderRadius.md, padding: theme.spacing.sm, margin: theme.spacing.md },
+  cacheBannerText: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium, color: '#856404', textAlign: 'center' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing.lg, backgroundColor: theme.colors.background },
   loadingText: { marginTop: theme.spacing.sm, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.regular },
   errorText: { color: theme.colors.error, fontFamily: theme.typography.fontFamily.medium, marginBottom: theme.spacing.sm },
@@ -210,6 +278,8 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular, color: theme.colors.textSecondary, marginTop: theme.spacing.xs },
   badge: { paddingHorizontal: theme.spacing.sm, paddingVertical: 4, borderRadius: theme.borderRadius.full },
   badgeText: { color: '#fff', fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.semibold },
+  completeButton: { marginTop: theme.spacing.sm, paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs, backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md },
+  completeButtonText: { color: '#fff', fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium },
   dueDateCard: { padding: theme.spacing.md, margin: theme.spacing.md, borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.surface },
   overdue: { backgroundColor: '#ffe0e0', borderWidth: 2, borderColor: theme.colors.error },
   dueSoon: { backgroundColor: '#fff6e0', borderWidth: 2, borderColor: theme.colors.warning },

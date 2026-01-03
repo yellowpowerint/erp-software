@@ -1,0 +1,11 @@
+diff --git a/dev/backend/prisma/schema.prisma b/dev/backend/prisma/schema.prisma
+--- a/dev/backend/prisma/schema.prisma
++++ b/dev/backend/prisma/schema.prisma
+@@
+ enum TaskStatus {
+   PENDING
+   IN_PROGRESS
+   COMPLETED
+   BLOCKED
++  CANCELLED
+ }

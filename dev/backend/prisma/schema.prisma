@@ -171,6 +171,7 @@ model User {
   requisitionStageApprovals      RequisitionApproval[]   @relation("RequisitionStageApprover")
   requisitionAttachmentsUploaded RequisitionAttachment[] @relation("RequisitionAttachmentUploader")
   taskAttachmentsUploaded        TaskAttachment[]        @relation("TaskAttachmentUploader")
+  taskCommentsAuthored           TaskComment[]           @relation("TaskCommentAuthor")
   incidentAttachmentsUploaded    IncidentAttachment[]    @relation("IncidentAttachmentUploader")
   expenseAttachmentsUploaded     ExpenseAttachment[]     @relation("ExpenseAttachmentUploader")
 
@@ -2097,6 +2098,7 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
   BLOCKED
+  CANCELLED
 }
 
 model Project {
@@ -2168,6 +2170,7 @@ model Task {
   completedAt DateTime?
   order       Int              @default(0)
   attachments TaskAttachment[]
+  comments    TaskComment[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
@@ -2193,6 +2196,20 @@ model TaskAttachment {
   @@map("task_attachments")
 }
 
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("TaskCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([authorId])
+  @@map("task_comments")
+}
 // Production & Field Operations System
 enum ShiftType {
   DAY

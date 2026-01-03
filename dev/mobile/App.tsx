@@ -13,10 +13,24 @@ import ConfigGate from './src/providers/ConfigGate';
 import { ErrorBoundary, OfflineBanner } from './src/components';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from './theme.config';
+import { useQueueProcessor } from './src/hooks/useQueueProcessor';
 
 import { initSentry } from './src/config/sentry.config';
 
 initSentry();
+console.log('[APP] EXPO_PUBLIC_API_BASE_URL:', process.env.EXPO_PUBLIC_API_BASE_URL);
+
+function AppContent() {
+  useQueueProcessor();
+
+  return (
+    <>
+      <OfflineBanner />
+      <RootNavigator />
+      <StatusBar style="auto" />
+    </>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -38,9 +52,7 @@ export default function App() {
     <ErrorBoundary>
       <ConfigGate>
         <AuthProvider>
-          <OfflineBanner />
-          <RootNavigator />
-          <StatusBar style="auto" />
+          <AppContent />
         </AuthProvider>
       </ConfigGate>
     </ErrorBoundary>

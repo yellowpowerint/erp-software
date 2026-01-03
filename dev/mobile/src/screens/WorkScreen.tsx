@@ -9,6 +9,7 @@ import { approvalsService, Approval, ApprovalStatus, ApprovalType } from '../ser
 import { theme } from '../../theme.config';
 import { WorkStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/authStore';
+import { cacheService } from '../services/cache.service';
 
 const APPROVAL_TYPES: ApprovalType[] = ['INVOICE', 'PURCHASE_REQUEST', 'IT_REQUEST', 'PAYMENT_REQUEST'];
 const APPROVAL_STATUSES: ApprovalStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
@@ -28,6 +29,7 @@ export default function WorkScreen() {
   const [typeFilter, setTypeFilter] = useState<ApprovalType | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<ApprovalStatus | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
   
   const searchRef = useRef('');
   const typeFilterRef = useRef<ApprovalType | undefined>(undefined);
@@ -37,7 +39,7 @@ export default function WorkScreen() {
 
   const canAccess = useMemo(() => !!user, [user]);
 
-  const loadApprovals = useCallback(async (targetPage = 1, append = false) => {
+  const loadApprovals = useCallback(async (targetPage = 1, append = false, forceRefresh = false) => {
     if (!canAccess || isLoadingRef.current) return;
     isLoadingRef.current = true;
 
@@ -50,18 +52,62 @@ export default function WorkScreen() {
         setIsFetchingMore(true);
       }
 
-      const res = await approvalsService.getApprovals({
+      const userId = user?.id;
+
+      const apiParams = {
         page: targetPage,
         search: searchRef.current.trim() || undefined,
         type: typeFilterRef.current,
         status: statusFilterRef.current,
-      });
+      };
+
+      const cacheParams = { ...apiParams, userId };
+
+      // Try to load from cache first (only for page 1)
+      if (targetPage === 1 && !forceRefresh) {
+        const cached = await cacheService.get<any>('/approvals', cacheParams);
+        if (cached) {
+          console.log('[WORK] Loaded approvals from cache');
+          setPage(cached.page);
+          setTotalPages(cached.totalPages);
+          setHasNextPage(cached.hasNextPage);
+          setApprovals(cached.items);
+          setIsFromCache(true);
+          setIsLoading(false);
+          isLoadingRef.current = false;
+
+          // Fetch fresh data in background
+          approvalsService.getApprovals(apiParams)
+            .then(res => {
+              console.log('[WORK] Refreshed approvals from server');
+              setPage(res.page);
+              setTotalPages(res.totalPages);
+              setHasNextPage(res.hasNextPage);
+              setApprovals(res.items);
+              setIsFromCache(false);
+              cacheService.set('/approvals', res, cacheParams);
+            })
+            .catch(err => {
+              console.error('[WORK] Background refresh failed:', err);
+            });
+          return;
+        }
+      }
+
+      // Fetch from server
+      const res = await approvalsService.getApprovals(apiParams);
 
       setPage(res.page);
       setTotalPages(res.totalPages);
       setHasNextPage(res.hasNextPage);
       setApprovals((prev) => (append ? [...prev, ...res.items] : res.items));
+      setIsFromCache(false);
       setError(null);
+
+      // Cache the response (only page 1)
+      if (targetPage === 1) {
+        await cacheService.set('/approvals', res, cacheParams);
+      }
     } catch (err: any) {
       console.error('Failed to load approvals', err);
       setError(err?.response?.status === 403 ? 'Access denied' : 'Failed to load approvals');
@@ -85,7 +131,7 @@ export default function WorkScreen() {
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    loadApprovals(1, false);
+    loadApprovals(1, false, true); // Force refresh from server
   };
 
   const loadMore = () => {
@@ -140,7 +186,25 @@ export default function WorkScreen() {
     </View>
   );
 
-  const ListHeader = () => (
+
+  if (!canAccess) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>You must be signed in to view approvals.</Text>
+      </View>
+    );
+  }
+
+  if (isLoading && !isRefreshing && approvals.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Loading approvals...</Text>
+      </View>
+    );
+  }
+
+    const ListHeader = () => (
     <View>
       <Text style={styles.title}>Work</Text>
       <Text style={styles.subtitle}>Approvals & Tasks</Text>
@@ -163,30 +227,19 @@ export default function WorkScreen() {
             searchRef.current = text;
           }}
           returnKeyType="search"
-          onSubmitEditing={() => loadApprovals(1, false)}
+          onSubmitEditing={() => loadApprovals(1, false, true)}
         />
       </View>
+
+      {isFromCache && (
+        <View style={styles.cacheBanner}>
+          <Text style={styles.cacheBannerText}>📱 Offline - Showing cached data</Text>
+        </View>
+      )}
 
       <Filters />
     </View>
   );
-
-  if (!canAccess) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>You must be signed in to view approvals.</Text>
-      </View>
-    );
-  }
-
-  if (isLoading && !isRefreshing && approvals.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading approvals...</Text>
-      </View>
-    );
-  }
 
   return (
     <FlatList
@@ -358,6 +411,20 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: '#fff',
+  },
+  cacheBanner: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffc107',
+    borderWidth: 1,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  cacheBannerText: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.medium,
+    color: '#856404',
+    textAlign: 'center',
   },
   chipTextInactive: {
     color: theme.colors.text,

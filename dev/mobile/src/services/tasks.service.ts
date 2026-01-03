@@ -6,7 +6,7 @@
 import { apiClient } from './api.service';
 import { uploadService } from './upload.service';
 
-export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface Task {
@@ -107,5 +107,17 @@ export const tasksService = {
     }
 
     return result.data;
+  },
+
+  async updateTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+    await apiClient.patch(`/tasks/${taskId}/status`, { status });
+  },
+
+  async addTaskComment(taskId: string, comment: string): Promise<void> {
+    await apiClient.post(`/tasks/${taskId}/comments`, { content: comment });
+  },
+
+  async updateTaskAssignment(taskId: string, assignedToId: string): Promise<void> {
+    await apiClient.patch(`/tasks/${taskId}/assignment`, { assignedToId });
   },
 };

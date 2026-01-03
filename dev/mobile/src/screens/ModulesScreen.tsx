@@ -18,6 +18,7 @@ export default function ModulesScreen() {
   const allModules = [
     { id: 'inventory', title: 'Inventory', subtitle: 'Stock management', route: 'InventorySearch' as const },
     { id: 'receiving', title: 'Warehouse', subtitle: 'Receive goods', route: 'POList' as const },
+    { id: 'fleet', title: 'Fleet', subtitle: 'Vehicle operations', route: 'FleetHome' as const },
     { id: 'safety', title: 'Safety', subtitle: 'View incidents', route: 'IncidentList' as const },
     { id: 'employees', title: 'HR', subtitle: 'Employee directory', route: 'EmployeeDirectory' as const },
     { id: 'leave', title: 'Leave', subtitle: 'Leave requests', route: 'LeaveRequestsList' as const },

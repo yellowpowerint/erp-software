@@ -1,8 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
-export type QueueItemType = 'incident' | 'expense' | 'leave_request' | 'document_upload';
-export type QueueItemStatus = 'pending' | 'submitting' | 'failed' | 'retrying';
+export type QueueItemType = 
+  | 'incident' 
+  | 'expense' 
+  | 'leave_request' 
+  | 'document_upload'
+  | 'approval_action'
+  | 'task_update'
+  | 'grn_submission';
+export type QueueItemStatus = 'pending' | 'submitting' | 'failed' | 'retrying' | 'conflict';
 
 export interface BaseQueueItem {
   id: string;
@@ -23,6 +30,7 @@ export interface QueueStats {
   failed: number;
   submitting: number;
   retrying: number;
+  conflict: number;
 }
 
 const QUEUE_KEY = '@unified_queue';
@@ -89,6 +97,7 @@ export const queueService = {
       failed: queue.filter(item => item.status === 'failed').length,
       submitting: queue.filter(item => item.status === 'submitting').length,
       retrying: queue.filter(item => item.status === 'retrying').length,
+      conflict: queue.filter(item => item.status === 'conflict').length,
     };
   },
 
@@ -148,6 +157,22 @@ export const queueService = {
     const queue = await this.getQueue();
     const item = queue.find(q => q.id === id);
     if (!item) return;
+
+    // Check if this is a conflict error (409 or approval already processed)
+    const isConflict = errorCode === '409' || 
+      error.toLowerCase().includes('already approved') ||
+      error.toLowerCase().includes('already rejected') ||
+      error.toLowerCase().includes('already processed');
+
+    if (isConflict) {
+      await this.updateQueueItem(id, {
+        status: 'conflict',
+        lastError: error,
+        errorCode,
+        lastAttemptAt: new Date().toISOString(),
+      });
+      return;
+    }
 
     const retryCount = item.retryCount + 1;
     const nextRetryAt = retryCount < MAX_RETRIES 
@@ -241,7 +266,7 @@ export const queueService = {
       case '404':
         return 'Resource not found. It may have been deleted.';
       case '409':
-        return 'Conflict detected. This item may have been modified by someone else.';
+        return 'This item was already processed by someone else.';
       case '413':
         return 'File too large. Please reduce the file size and try again.';
       case '422':

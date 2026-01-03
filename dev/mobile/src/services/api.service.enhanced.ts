@@ -12,11 +12,14 @@ import { addBreadcrumb } from '../config/sentry.config';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://erp.yellowpowerinternational.com/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
+const NO_RETRY_ENDPOINTS = ['/mobile/config', '/auth/me', '/mobile/capabilities'];
+const CRITICAL_ENDPOINT_TIMEOUT_MS = 15000;
 
 interface RetryConfig extends InternalAxiosRequestConfig {
   _retry?: number;
   _retryDelay?: number;
   _sentryTransaction?: any;
+  _skipRetry?: boolean;
 }
 
 class ApiServiceEnhanced {
@@ -33,6 +36,8 @@ class ApiServiceEnhanced {
       },
     });
 
+    console.log('[API] Using API base URL:', API_BASE_URL);
+
     this.setupInterceptors();
   }
 
@@ -44,13 +49,25 @@ class ApiServiceEnhanced {
     // Request interceptor with performance tracking
     this.client.interceptors.request.use(
       async (config) => {
-        const token = this.inMemoryToken || (await storageService.getToken());
+        const storageToken = await storageService.getToken();
+        const token = this.inMemoryToken || storageToken;
+
+        // Apply shorter timeout and mark critical endpoints for no-retry
+        const requestUrl = config.url || '';
+        const isCriticalEndpoint = NO_RETRY_ENDPOINTS.some((endpoint) => requestUrl.includes(endpoint));
+        if (isCriticalEndpoint) {
+          (config as any).timeout = CRITICAL_ENDPOINT_TIMEOUT_MS;
+          (config as RetryConfig)._skipRetry = true;
+        }
+
         console.log('[API] Request interceptor:', {
           url: config.url,
+          baseURL: config.baseURL,
           method: config.method,
           hasInMemoryToken: !!this.inMemoryToken,
-          hasStorageToken: !!(await storageService.getToken()),
+          hasStorageToken: !!storageToken,
           tokenLength: token ? token.length : 0,
+          isCriticalEndpoint,
         });
         
         if (token) {
@@ -140,8 +157,8 @@ class ApiServiceEnhanced {
           return Promise.reject(error);
         }
 
-        // Retry logic
-        if (errorService.isRetryable(normalizedError) && config) {
+        // Retry logic (skip for critical bootstrap endpoints)
+        if (errorService.isRetryable(normalizedError) && config && !config._skipRetry) {
           const retryCount = config._retry || 0;
           
           if (retryCount < MAX_RETRIES) {

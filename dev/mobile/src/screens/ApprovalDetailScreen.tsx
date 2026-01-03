@@ -22,12 +22,16 @@ import { theme } from '../../theme.config';
 import { AttachmentsCard } from '../components';
 import { mediaPickerService } from '../services/mediaPicker.service';
 import { useCapabilities } from '../hooks/useCapabilities';
+import { useAuthStore } from '../store/authStore';
+import { deepLinkOfflineService } from '../services/deepLinkOffline.service';
+import { approvalActionsService } from '../services/approvalActions.service';
 
 export default function ApprovalDetailScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<NavigationProp<WorkStackParamList>>();
   const { approvalId, approvalType } = route.params || {};
   const { canApprove, canReject } = useCapabilities();
+  const { user } = useAuthStore();
 
   const [approval, setApproval] = useState<ApprovalDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +41,7 @@ export default function ApprovalDetailScreen() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   useEffect(() => {
     loadApproval();
@@ -52,8 +57,21 @@ export default function ApprovalDetailScreen() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await approvalsService.getApprovalDetail(approvalType || 'INVOICE', approvalId);
-      setApproval(data);
+      
+      // Use offline fallback service
+      const result = await deepLinkOfflineService.fetchApproval(approvalId, approvalType || 'INVOICE', user?.id);
+      
+      if (result.success && result.data) {
+        setApproval(result.data);
+        setIsFromCache(result.fromCache);
+        
+        // Cache the data for future offline access
+        if (!result.fromCache) {
+          await deepLinkOfflineService.cacheApproval(approvalId, approvalType || 'INVOICE', result.data, user?.id);
+        }
+      } else {
+        setError(result.error || 'Failed to load approval');
+      }
     } catch (err: any) {
       console.error('Failed to load approval:', err);
       const status = err?.response?.status;
@@ -81,12 +99,21 @@ export default function ApprovalDetailScreen() {
           if (!approval) return;
           try {
             setIsApproving(true);
-            await approvalsService.approveApproval(approval.type, approval.id);
-            Alert.alert('Success', 'Approval submitted successfully');
+            const result = await approvalActionsService.queueApprovalAction({
+              approvalId: approval.id,
+              approvalType: approval.type,
+              action: 'approve',
+            });
+            
+            if (result.queued) {
+              Alert.alert('Queued', 'Approval action queued. It will be submitted when you are online.');
+            } else {
+              Alert.alert('Success', 'Approval submitted successfully');
+            }
             navigation.goBack();
-          } catch (err) {
+          } catch (err: any) {
             console.error('Failed to approve:', err);
-            Alert.alert('Error', 'Failed to approve. Please try again.');
+            Alert.alert('Error', err?.message || 'Failed to approve. Please try again.');
           } finally {
             setIsApproving(false);
           }
@@ -107,13 +134,25 @@ export default function ApprovalDetailScreen() {
 
     try {
       setIsRejecting(true);
-      await approvalsService.rejectApproval(approval.type, approval.id, rejectReason.trim());
+      const result = await approvalActionsService.queueApprovalAction({
+        approvalId: approval.id,
+        approvalType: approval.type,
+        action: 'reject',
+        comment: rejectReason.trim(),
+      });
+      
       setShowRejectModal(false);
-      Alert.alert('Success', 'Rejection submitted successfully');
+      setRejectReason('');
+      
+      if (result.queued) {
+        Alert.alert('Queued', 'Rejection queued. It will be submitted when you are online.');
+      } else {
+        Alert.alert('Success', 'Rejection submitted successfully');
+      }
       navigation.goBack();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to reject:', err);
-      Alert.alert('Error', 'Failed to reject. Please try again.');
+      Alert.alert('Error', err?.message || 'Failed to reject. Please try again.');
     } finally {
       setIsRejecting(false);
     }
@@ -169,6 +208,12 @@ export default function ApprovalDetailScreen() {
   return (
     <>
       <ScrollView style={styles.container}>
+        {isFromCache && (
+          <View style={styles.cacheBanner}>
+            <Text style={styles.cacheBannerText}>📱 Offline - Showing cached data</Text>
+          </View>
+        )}
+        
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>{approval.title}</Text>
@@ -374,6 +419,8 @@ function formatBytes(bytes: number): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
+  cacheBanner: { backgroundColor: '#fff3cd', borderColor: '#ffc107', borderWidth: 1, borderRadius: theme.borderRadius.md, padding: theme.spacing.sm, margin: theme.spacing.md },
+  cacheBannerText: { fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium, color: '#856404', textAlign: 'center' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing.lg, backgroundColor: theme.colors.background },
   loadingText: { marginTop: theme.spacing.sm, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.regular },
   errorText: { color: theme.colors.error, fontFamily: theme.typography.fontFamily.medium, marginBottom: theme.spacing.sm },
