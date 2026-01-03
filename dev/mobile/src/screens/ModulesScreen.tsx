@@ -17,14 +17,13 @@ export default function ModulesScreen() {
   
   const allModules = [
     { id: 'inventory', title: 'Inventory', subtitle: 'Stock management', route: 'InventorySearch' as const },
-    { id: 'receiving', title: 'Receiving', subtitle: 'Goods receipt', route: 'InventorySearch' as const },
+    { id: 'receiving', title: 'Warehouse', subtitle: 'Receive goods', route: 'POList' as const },
     { id: 'safety', title: 'Safety', subtitle: 'View incidents', route: 'IncidentList' as const },
     { id: 'employees', title: 'HR', subtitle: 'Employee directory', route: 'EmployeeDirectory' as const },
     { id: 'leave', title: 'Leave', subtitle: 'Leave requests', route: 'LeaveRequestsList' as const },
     { id: 'expenses', title: 'Expenses', subtitle: 'Expense claims', route: 'ExpensesList' as const },
     { id: 'projects', title: 'Projects', subtitle: 'Project tracking', route: 'ProjectsList' as const },
     { id: 'documents', title: 'Documents', subtitle: 'Document library', route: 'DocumentList' as const },
-    { id: 'warehouse', title: 'Warehouse', subtitle: 'Receive goods', route: 'POList' as const },
   ];
   
   const modules = useMemo(() => {
