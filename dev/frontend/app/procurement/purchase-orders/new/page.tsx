@@ -72,7 +72,12 @@ function NewPurchaseOrderContent() {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const res = await api.get('/procurement/vendors', { params: { status: 'APPROVED', take: 200 } });
+        // SUPER_ADMIN can see all vendors, others only see APPROVED
+        const params: any = { take: 200 };
+        if (user?.role !== 'SUPER_ADMIN') {
+          params.status = 'APPROVED';
+        }
+        const res = await api.get('/procurement/vendors', params);
         const data = res.data.data || res.data;
         setVendors(Array.isArray(data) ? data : []);
       } catch (e) {
