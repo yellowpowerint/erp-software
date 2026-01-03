@@ -184,7 +184,15 @@ export class PurchaseOrdersService {
         throw new ForbiddenException("Not allowed");
     }
 
-    if (query.status) (where as any).status = query.status;
+    if (query.status) {
+      // Handle comma-separated status values from mobile app
+      const statuses = query.status.split(',').map((s: string) => s.trim());
+      if (statuses.length === 1) {
+        (where as any).status = statuses[0];
+      } else {
+        (where as any).status = { in: statuses };
+      }
+    }
     if (query.vendorId && user.role !== UserRole.VENDOR)
       where.vendorId = String(query.vendorId);
 
