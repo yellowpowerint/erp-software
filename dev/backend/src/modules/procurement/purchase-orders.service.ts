@@ -28,6 +28,7 @@ export class PurchaseOrdersService {
         UserRole.CFO,
         UserRole.PROCUREMENT_OFFICER,
         UserRole.OPERATIONS_MANAGER,
+        UserRole.WAREHOUSE_MANAGER,
       ] as UserRole[]
     ).includes(role);
   }
