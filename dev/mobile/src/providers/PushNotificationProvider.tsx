@@ -89,27 +89,69 @@ export default function PushNotificationProvider({ children }: PushNotificationP
   const handleDeepLink = (url: string) => {
     console.log('Handling deep link:', url);
     
-    // Parse miningerp:// URLs
-    const match = url.match(/miningerp:\/\/(\w+)(?:\/(.+))?/);
-    if (match) {
-      const [, screen, params] = match;
+    // Ignore Expo development URLs (exp://)
+    if (url.startsWith('exp://')) {
+      console.log('Ignoring Expo development URL');
+      return;
+    }
+    
+    // Parse miningerp:// URLs - support both legacy and canonical routes
+    // Canonical: miningerp://work/approvals/:id, miningerp://work/tasks/:id
+    // Legacy: miningerp://approval/:id, miningerp://task/:id
+    
+    // Try canonical routes first (work/approvals/:id or work/tasks/:id)
+    const canonicalMatch = url.match(/miningerp:\/\/work\/(approvals|tasks)\/([^/?]+)(?:\?(.+))?/);
+    if (canonicalMatch) {
+      const [, resource, id, queryString] = canonicalMatch;
+      
+      if (resource === 'approvals') {
+        // Parse approvalType from query string if present
+        const params: any = { approvalId: id };
+        if (queryString) {
+          const urlParams = new URLSearchParams(queryString);
+          const approvalType = urlParams.get('type');
+          if (approvalType) {
+            params.approvalType = approvalType;
+          }
+        }
+        (navigation as any).navigate('Work', { 
+          screen: 'ApprovalDetail', 
+          params 
+        });
+        return;
+      } else if (resource === 'tasks') {
+        (navigation as any).navigate('Work', { 
+          screen: 'TaskDetail', 
+          params: { taskId: id } 
+        });
+        return;
+      }
+    }
+    
+    // Try legacy routes (approval/:id or task/:id)
+    const legacyMatch = url.match(/miningerp:\/\/(approval|task|notifications)(?:\/([^/?]+))?/);
+    if (legacyMatch) {
+      const [, screen, id] = legacyMatch;
       
       if (screen === 'notifications') {
         (navigation as any).navigate('Home', { screen: 'Notifications' });
-      } else if (screen === 'approval' && params) {
+      } else if (screen === 'approval' && id) {
         (navigation as any).navigate('Work', { 
           screen: 'ApprovalDetail', 
-          params: { approvalId: params } 
+          params: { approvalId: id } 
         });
-      } else if (screen === 'task' && params) {
+      } else if (screen === 'task' && id) {
         (navigation as any).navigate('Work', { 
           screen: 'TaskDetail', 
-          params: { taskId: params } 
+          params: { taskId: id } 
         });
       } else {
         // Fallback to notifications
         (navigation as any).navigate('Home', { screen: 'Notifications' });
       }
+    } else {
+      // No match - fallback to notifications
+      (navigation as any).navigate('Home', { screen: 'Notifications' });
     }
   };
 
