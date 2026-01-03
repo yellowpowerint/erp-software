@@ -31,6 +31,9 @@ import OutboxScreenEnhanced from '../screens/OutboxScreenEnhanced';
 import POListScreen from '../screens/POListScreen';
 import ReceiveGoodsScreen from '../screens/ReceiveGoodsScreen';
 import FleetHomeScreen from '../screens/FleetHomeScreen';
+import FleetInspectionScreen from '../screens/FleetInspectionScreen';
+import ReportBreakdownScreen from '../screens/ReportBreakdownScreen';
+import LogFuelScreen from '../screens/LogFuelScreen';
 import NoAccessScreen from '../screens/NoAccessScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
 import { RequireCapability } from '../components';
@@ -240,6 +243,33 @@ export default function ModulesNavigator() {
           </RequireCapability>
         )}
         options={{ title: 'Fleet Operations' }}
+      />
+      <Stack.Screen
+        name="FleetInspection"
+        component={() => (
+          <RequireCapability moduleId="fleet" capability="canCreateFleetInspection" resource="fleet">
+            <FleetInspectionScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Pre-Start Inspection' }}
+      />
+      <Stack.Screen
+        name="ReportBreakdown"
+        component={() => (
+          <RequireCapability moduleId="fleet" capability="canReportBreakdown" resource="fleet">
+            <ReportBreakdownScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Report Breakdown' }}
+      />
+      <Stack.Screen
+        name="LogFuel"
+        component={() => (
+          <RequireCapability moduleId="fleet" capability="canLogFuel" resource="fleet">
+            <LogFuelScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Log Fuel' }}
       />
       <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'Access Denied' }} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Not Found' }} />
