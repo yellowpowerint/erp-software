@@ -216,7 +216,7 @@ export default function ModulesNavigator() {
       <Stack.Screen
         name="POList"
         component={() => (
-          <RequireCapability moduleId="warehouse" capability="canReceiveStock" resource="warehouse">
+          <RequireCapability moduleId="receiving" capability="canReceiveStock" resource="warehouse">
             <POListScreen />
           </RequireCapability>
         )}
@@ -225,7 +225,7 @@ export default function ModulesNavigator() {
       <Stack.Screen
         name="ReceiveGoods"
         component={() => (
-          <RequireCapability moduleId="warehouse" capability="canReceiveStock" resource="warehouse">
+          <RequireCapability moduleId="receiving" capability="canReceiveStock" resource="warehouse">
             <ReceiveGoodsScreen />
           </RequireCapability>
         )}
