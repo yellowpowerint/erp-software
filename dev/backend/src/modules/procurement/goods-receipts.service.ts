@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, UserRole } from "@prisma/client";
+import { DocumentCategory, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { DocumentsService } from "../documents/documents.service";
 import {
   AcceptGoodsReceiptDto,
   CreateGoodsReceiptDto,
@@ -16,7 +17,10 @@ import {
 
 @Injectable()
 export class GoodsReceiptsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private documentsService: DocumentsService,
+  ) {}
 
   private canManageReceiving(role: UserRole): boolean {
     return (
@@ -595,5 +599,31 @@ export class GoodsReceiptsService {
         include: { items: true },
       });
     });
+  }
+
+  async uploadAttachment(
+    grnId: string,
+    file: Express.Multer.File,
+    userId: string,
+  ) {
+    const grn = await this.prisma.goodsReceipt.findUnique({
+      where: { id: grnId },
+    });
+
+    if (!grn) {
+      throw new NotFoundException(`Goods Receipt with ID ${grnId} not found`);
+    }
+
+    return this.documentsService.uploadDocument(
+      file,
+      {
+        category: DocumentCategory.OTHER,
+        module: "procurement",
+        referenceId: grnId,
+        description: `Attachment for GRN ${grn.grnNumber}`,
+        tags: ["grn", "goods-receipt", "attachment"],
+      },
+      userId,
+    );
   }
 }

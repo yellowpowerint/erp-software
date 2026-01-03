@@ -24,6 +24,7 @@ export default function ModulesScreen() {
     { id: 'expenses', title: 'Expenses', subtitle: 'Expense claims', route: 'ExpensesList' as const },
     { id: 'projects', title: 'Projects', subtitle: 'Project tracking', route: 'ProjectsList' as const },
     { id: 'documents', title: 'Documents', subtitle: 'Document library', route: 'DocumentList' as const },
+    { id: 'warehouse', title: 'Warehouse', subtitle: 'Receive goods', route: 'POList' as const },
   ];
   
   const modules = useMemo(() => {

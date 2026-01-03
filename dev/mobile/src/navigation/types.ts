@@ -48,6 +48,11 @@ export type ModulesStackParamList = {
   DocumentUpload: undefined;
   DocumentViewer: { documentId: string; url?: string; name?: string; mimeType?: string; size?: number };
   Outbox: undefined;
+  POList: undefined;
+  ReceiveGoods: { poId: string };
+  WarehouseGRNList: undefined;
+  WarehouseGRNDetail: { grnId: string };
+  WarehouseGRNCreate: undefined;
   NoAccess: { resource?: string; message?: string };
   NotFound: { resource?: string; message?: string };
 };

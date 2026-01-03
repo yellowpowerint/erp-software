@@ -28,6 +28,8 @@ import DocumentListScreen from '../screens/DocumentListScreen';
 import DocumentUploadScreen from '../screens/DocumentUploadScreen';
 import DocumentViewerScreen from '../screens/DocumentViewerScreen';
 import OutboxScreenEnhanced from '../screens/OutboxScreenEnhanced';
+import POListScreen from '../screens/POListScreen';
+import ReceiveGoodsScreen from '../screens/ReceiveGoodsScreen';
 import NoAccessScreen from '../screens/NoAccessScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
 import { RequireCapability } from '../components';
@@ -211,6 +213,24 @@ export default function ModulesNavigator() {
         options={{ title: 'View Document' }}
       />
       <Stack.Screen name="Outbox" component={OutboxScreenEnhanced} options={{ title: 'Outbox' }} />
+      <Stack.Screen
+        name="POList"
+        component={() => (
+          <RequireCapability moduleId="warehouse" capability="canReceiveStock" resource="warehouse">
+            <POListScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Purchase Orders' }}
+      />
+      <Stack.Screen
+        name="ReceiveGoods"
+        component={() => (
+          <RequireCapability moduleId="warehouse" capability="canReceiveStock" resource="warehouse">
+            <ReceiveGoodsScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Receive Goods' }}
+      />
       <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'Access Denied' }} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Not Found' }} />
     </Stack.Navigator>

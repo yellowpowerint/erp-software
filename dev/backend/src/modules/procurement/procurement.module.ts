@@ -17,6 +17,7 @@ import { PurchaseOrdersController } from "./purchase-orders.controller";
 import { PurchaseOrdersService } from "./purchase-orders.service";
 import { GoodsReceiptsController } from "./goods-receipts.controller";
 import { GoodsReceiptsService } from "./goods-receipts.service";
+import { GoodsReceiptsAttachmentsController } from "./goods-receipts-attachments.controller";
 import { InvoicesController } from "./invoices.controller";
 import { InvoicesService } from "./invoices.service";
 import { PaymentsController } from "./payments.controller";
@@ -44,6 +45,7 @@ import { InventoryIntegrationService } from "./inventory-integration.service";
     RFQsController,
     PurchaseOrdersController,
     GoodsReceiptsController,
+    GoodsReceiptsAttachmentsController,
     InvoicesController,
     PaymentsController,
     ProcurementDashboardController,
