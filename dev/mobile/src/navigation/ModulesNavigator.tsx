@@ -30,6 +30,7 @@ import DocumentViewerScreen from '../screens/DocumentViewerScreen';
 import OutboxScreenEnhanced from '../screens/OutboxScreenEnhanced';
 import POListScreen from '../screens/POListScreen';
 import ReceiveGoodsScreen from '../screens/ReceiveGoodsScreen';
+import FleetHomeScreen from '../screens/FleetHomeScreen';
 import NoAccessScreen from '../screens/NoAccessScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
 import { RequireCapability } from '../components';
@@ -230,6 +231,15 @@ export default function ModulesNavigator() {
           </RequireCapability>
         )}
         options={{ title: 'Receive Goods' }}
+      />
+      <Stack.Screen
+        name="FleetHome"
+        component={() => (
+          <RequireCapability moduleId="fleet" resource="fleet">
+            <FleetHomeScreen />
+          </RequireCapability>
+        )}
+        options={{ title: 'Fleet Operations' }}
       />
       <Stack.Screen name="NoAccess" component={NoAccessScreen} options={{ title: 'Access Denied' }} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Not Found' }} />
